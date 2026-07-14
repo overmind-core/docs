@@ -71,9 +71,7 @@
   --om-shadow-light:
     0 1px 2px rgb(from var(--om-brown-deep) r g b / 0.05),
     0 4px 12px rgb(from var(--om-brown-deep) r g b / 0.06);
-  --om-shadow-dark:
-    0 1px 2px rgb(0 0 0 / 0.45),
-    0 6px 16px rgb(0 0 0 / 0.35);
+  --om-shadow-dark: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 16px rgb(0 0 0 / 0.35);
 
   /* NeueBit is a bitmap face: it needs a larger nominal size to render at
    * the visual weight of ~13px body text */
@@ -166,7 +164,7 @@ body {
   display: none !important;
 }
 #content-area {
-  padding-bottom: 5rem;
+  padding-bottom: 1rem;
 }
 
 /* ─── Body width — spend the idle whitespace (696px → 784px) ───────────── */
@@ -262,7 +260,9 @@ div:has(> #navigation-items) {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
   border-radius: 3px;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
@@ -367,11 +367,14 @@ ul.toc .toc-item a {
   border-color: var(--om-border-dark) !important;
   background: rgb(from var(--om-orange) r g b / 0.06);
 }
-[data-radix-menu-content] :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
+[data-radix-menu-content]
+  :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
   background: rgb(from var(--om-copper) r g b / 0.1) !important;
   color: var(--om-copper) !important;
 }
-.dark [data-radix-menu-content] :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
+.dark
+  [data-radix-menu-content]
+  :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
   background: rgb(from var(--om-orange) r g b / 0.12) !important;
   color: var(--om-orange) !important;
 }
@@ -410,7 +413,15 @@ ul.toc .toc-item a {
 }
 
 /* ─── Focus ring — light orange, both modes ────────────────────────────── */
-:is(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+:is(
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  [tabindex]
+):focus-visible {
   outline: 2px solid var(--om-orange);
   outline-offset: 2px;
 }
