@@ -1,0 +1,45 @@
+---
+title: Integrations
+description: Connect Overmind to the tools you already use, including your code, your traces, and your observability stack.
+---
+
+Integrations bring your world into Overmind. You connect the places your agent's code and data already live, and Overmind pulls them in. You can set these up during onboarding or add them later from your project settings.
+
+{/* TODO(screenshot): Integrations page in project settings */}
+
+## Connect your code (GitHub)
+
+Linking a GitHub repository lets Overmind read your agent's code and turn it into an agent you can work with. There are two ways to connect:
+
+- Install the GitHub app on the repositories you want to share, then pick a repo and branch.
+- Paste a public repository URL if you want to try Overmind without installing anything.
+
+After you connect, Overmind analyzes the repository and creates one or more agents from it. [Repositories](/context/repositories) covers what happens next. You can disconnect whenever you want, and Overmind only reads the repositories you choose.
+
+{/* TODO(screenshot): GitHub connect flow with repo and branch selection */}
+
+## Bring in your traces
+
+Overmind needs to see how your agent behaves in production. You can get that data in two ways. You can send traces directly from your app with the tracing SDK, which is covered in [Tracing](/onboarding/tracing). Or, if you already collect traces in another tool, you can import them.
+
+### Observability connectors
+
+If you already collect traces in another tool, you can import them into Overmind. To connect a tool, add its credentials in settings, and Overmind imports your existing traces so you can start working with real data right away. Your credentials are stored securely and are used only to read your traces. The set of supported tools grows over time, so check the console for what you can connect today.
+
+{/* TODO(screenshot): Connectors list in settings showing the available observability tools */}
+
+## API keys
+
+API keys let your own systems send data to Overmind, whether for tracing or for any other programmatic use. You create and manage keys in your project settings. Treat them like passwords. Keep them secret, and revoke any key you no longer need.
+
+{/* TODO(screenshot): API keys management in settings */}
+
+## Good to know
+
+You choose what to connect, and you can disconnect at any time. Connected credentials are stored securely and stay scoped to your project. We add new connectors over time, so the console always shows the current set.
+
+## Next steps
+
+- [Tracing](/onboarding/tracing) sends live data from your app.
+- [Repositories](/context/repositories) and [Agents](/context/agents) show how your code becomes agents.
+- [Datasets and Traces](/context/datasets-and-traces) covers the data you have brought in.

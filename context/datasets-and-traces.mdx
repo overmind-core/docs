@@ -1,0 +1,46 @@
+---
+title: Datasets and Traces
+description: The real-world data and test sets Overmind uses to measure and improve your agent.
+---
+
+Traces and datasets are the data half of your context. Traces are a record of what your agent actually did. Datasets are the curated examples you measure it against. Together they let Overmind tell whether a change made your agent better or worse.
+
+## Traces
+
+A trace is a complete record of one thing your agent did, such as a request handled from start to finish. Inside a trace you can see each step, including the model calls, the tools, and the retrieval steps that ran, and how they nest together. For every model call you get the prompt and the response, the model used, the token usage and cost, the request settings such as temperature, the latency, and, for streamed calls, the time to the first token. Traces that belong to the same conversation are grouped, so you can follow a multi-turn exchange in order.
+
+Traces reach Overmind in two ways. You can send them from your live application, which is covered in [Tracing](/onboarding/tracing), or you can import them from an observability tool you have connected, which is covered in [Integrations](/onboarding/integrations). Either way, they show up in your project in near real time.
+
+{/* TODO(screenshot): Trace detail with a nested step timeline and a model call expanded */}
+
+## Datasets
+
+A dataset is a collection of examples used to test an agent. Each example has an input and, when you have one, the output you expect. Examples can also carry extra detail, such as a persona for the kind of user who would send it and tags you can filter on. When you evaluate or optimize an agent, Overmind runs it against a dataset and scores the results.
+
+Datasets keep a version history, so you can see how the set changed over time and compare runs fairly. Once you are happy with a version, you can lock it. The examples then stay fixed while you change the agent, which keeps your before-and-after comparisons honest.
+
+{/* TODO(screenshot): Dataset view with a list of examples showing input and expected output */}
+
+## Where datasets come from
+
+Overmind supports a few sources, and you can mix them in one dataset.
+
+The most valuable examples come from your own traces, turned into test cases (more on that below). You can add a small set of seed examples by hand to cover the cases you most care about. You can generate synthetic examples to widen coverage where you have gaps. You can also build variations from examples you already have, which is useful for testing how the agent handles small changes in wording or input.
+
+## Turning traces into a dataset
+
+The examples that matter most are the real ones. Overmind can take a set of traces and build a dataset from them, so the agent is measured against situations it genuinely faced. You select the traces you want, Overmind turns them into examples, and the result is a dataset you can review, edit, and lock.
+
+{/* TODO(diagram): Left-to-right flow. "Live app or connected tool" goes to "Traces", then to "Build a dataset from traces", then to "Dataset", then to "Evaluate and optimize". */}
+
+{/* TODO(screen-recording): Select some traces, build a dataset from them, and open the resulting dataset */}
+
+## Good to know
+
+Traces arrive in near real time and stay organized by conversation. Building a dataset from traces takes a single step, and a locked version stays stable so your comparisons hold up. To get the most out of this, keep tracing on so you always have a fresh supply of real examples, and curate a dataset that represents the cases you care about most.
+
+## Next steps
+
+- [Evaluation Metrics](/evaluation/eval-metrics) scores your agent against a dataset.
+- [Optimizers](/evaluation/optimizers) improves your agent using its data.
+- [Agents](/context/agents) shows the dataset attached to each agent.

@@ -1,0 +1,32 @@
+---
+title: Inference
+description: Run your fine-tuned models on Overmind and try them in the Playground.
+---
+
+<Info>
+  Inference is available in early access with limited capacity. Reach out to [support@overmindlab.ai](mailto:support@overmindlab.ai) to have it enabled for your project.
+</Info>
+
+Overmind serves the models you fine-tune, so you never stand up your own serving stack. When a [fine-tuning](/fine-tuning) run succeeds, the model is deployed automatically and shows up ready to use. From there, the Playground gives you a place to talk to it and see how it behaves.
+
+## Your models, served for you
+
+Deployment is not a step you perform; it is something that happens for you. A model that finishes training is brought online, warmed up, and marked ready, all without you touching infrastructure. Models sit idle at no effort to you and wake quickly when you come back to them. If you no longer need a model online, you can take it down without losing the trained weights, so bringing it back later is easy.
+
+## The Playground
+
+The Playground is a chat interface for trying models out. Pick one of your fine-tuned models and start a conversation; responses stream in as the model writes. You can set the system prompt and adjust generation settings such as temperature and response length, which makes it easy to poke at how the model behaves under the conditions your agent would actually use.
+
+The model picker also includes popular frontier models, so you can put your fine-tuned model side by side with the models you already know. Asking both the same question is the fastest way to get a feel for what your training actually bought you.
+
+{/* TODO(screenshot): Playground with a fine-tuned model selected and a streaming response */}
+
+## Good to know
+
+The Playground is the way to use a deployed model today; calling your model from your own application through an API is not available yet. Playground conversations are also not captured as traces, so they do not feed into evaluation the way your production traffic does. Both of these are areas we are actively working on, along with a registry view of all your trained models.
+
+## Next steps
+
+- [Fine-tuning](/fine-tuning) is how a model ends up here.
+- [Evaluation Metrics](/evaluation/eval-metrics) tells you whether the new model is actually better.
+- [Tracing](/onboarding/tracing) keeps the real-world data flowing that your next training run will need.

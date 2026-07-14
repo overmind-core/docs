@@ -1,0 +1,50 @@
+---
+title: Fine-tuning
+description: Train a private model on your own data, from a dataset to a deployed model, without leaving Overmind.
+---
+
+<Info>
+  Fine-tuning is available in early access with limited capacity. Reach out to [support@overmindlab.ai](mailto:support@overmindlab.ai) to have it enabled for your project.
+</Info>
+
+Once you have collected real data and you know what "good" looks like, the next step is a model tuned to your use case. Fine-tuning lets you train a private model on your own datasets, right from Overmind, without setting up training infrastructure yourself. When training finishes, the model is deployed for you and ready to try.
+
+## How it works
+
+A training run starts from a dataset in your project (see [Datasets and Traces](/context/datasets-and-traces)) and moves through three steps: pick your data, review the setup, and watch it train.
+
+You choose the dataset and give the run a name. Overmind checks the dataset as you go and tells you up front if something needs fixing, so a run does not fail minutes in over a formatting problem. It also flags things worth knowing before you spend the time, such as a dataset that is on the small side.
+
+{/* TODO(screenshot): Fine-tuning setup with a dataset selected and validation passing */}
+
+## Recommended models and settings
+
+You do not have to guess which model to train or how to train it. Overmind analyzes your dataset, works out what kind of task it represents, and recommends base models from a curated catalog that ranges from compact, fast models to large, capable ones. Each recommendation comes with a plain-language explanation of why it fits your data. If your agent uses tools, only models that handle tool calling are offered.
+
+Sensible training settings are picked for you based on your data, and every one of them stays editable if you want to take the wheel. Most runs do fine on the defaults.
+
+{/* TODO(screenshot): Configure step with recommended models and the rationale visible */}
+
+## Compare experiments side by side
+
+The right model size is rarely obvious in advance, so a single run can train up to four experiments in parallel, each with its own model and settings. You might put a compact model up against a larger one and let the results settle the question. The experiments run together and are grouped in one place, so comparing them is straightforward.
+
+## What you see during training
+
+While a run is going, you can follow it live. Each experiment shows its current status, how far training has progressed, and a loss curve that updates as the model learns. A timeline records what happened and when. If something goes wrong, the error is shown so you can see why, and you can retry the run. You can also cancel a run at any point.
+
+{/* TODO(screenshot): Monitor view with live status and a loss curve */}
+
+## When training finishes
+
+A finished model is deployed automatically. There is no separate publish step; once the run succeeds, the model is live and ready to use in the [Playground](/inference), where you can chat with it and compare it against frontier models. You can review the final loss numbers and the settings used, and download the trained weights if you want to run the model elsewhere. Your trained model stays private to your project.
+
+## Good to know
+
+The quality of a fine-tuned model comes almost entirely from the data, so the best runs start from datasets built out of your real traces (see [Datasets and Traces](/context/datasets-and-traces)). Small datasets can work, but Overmind will warn you when a set looks too thin to teach the model much. During early access, capacity is limited, so very large models and long queues of parallel runs may not be available yet.
+
+## Next steps
+
+- [Datasets and Traces](/context/datasets-and-traces) is where the training data comes from.
+- [Inference](/inference) is where you try your fine-tuned model.
+- [Evaluation Metrics](/evaluation/eval-metrics) defines the bar your model should clear.
