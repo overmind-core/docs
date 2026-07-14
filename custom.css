@@ -1,0 +1,475 @@
+/*
+ * Overmind docs theme — applies the Overmind design language on top of
+ * Mintlify (luma theme).
+ *
+ * The palette is taken directly from the brand eye (logo/overmind-eye-copper.svg):
+ *   #ED670F copper · #F69A5B light orange · #79380D rust
+ *   #2F1606 deep brown · #3B1B06 dark brown · #FEEEDD cream
+ *
+ * Design language source of truth: overmind-platform/frontend/design.md
+ *  - Warm layered surfaces with soft brown-tinted depth
+ *  - Voice model: NeueBit = labels / chrome, PP Neue Montreal = body/content,
+ *    PP Mondwest = editorial display (doc headings)
+ *  - Sharp, small radii (2-6px); real font weights only, no faux bold
+ *
+ * Selectors target the luma theme's actual DOM: #navigation-items,
+ * .sidebar-group-header, ul.sidebar-group, a[aria-current="page"], ul.toc.
+ * These are theme internals and may need a nudge after Mintlify updates.
+ */
+
+/* ─── Supplementary font cuts ──────────────────────────────────────────── */
+@font-face {
+  font-family: "NeueBit";
+  src: url("/fonts/PPNeueBit-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 80%;
+  descent-override: 20%;
+}
+
+@font-face {
+  font-family: "NeueBit";
+  src: url("/fonts/PPNeueBit-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  ascent-override: 80%;
+  descent-override: 20%;
+}
+
+/* Real weight masters so emphasis is never browser-synthesized */
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/fonts/PPNeueMontreal-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/fonts/PPNeueMontreal-SemiBold.woff2") format("woff2");
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ─── Brand palette — straight from the eye ────────────────────────────── */
+:root {
+  --om-copper: #ed670f;
+  --om-orange: #f69a5b;
+  --om-rust: #79380d;
+  --om-brown-deep: #2f1606;
+  --om-brown: #3b1b06;
+  --om-cream: #feeedd;
+
+  --om-border-light: rgb(from var(--om-rust) r g b / 0.16);
+  --om-border-dark: rgb(from var(--om-orange) r g b / 0.14);
+
+  /* Warm brown-tinted depth, never gray */
+  --om-shadow-light:
+    0 1px 2px rgb(from var(--om-brown-deep) r g b / 0.05),
+    0 4px 12px rgb(from var(--om-brown-deep) r g b / 0.06);
+  --om-shadow-dark:
+    0 1px 2px rgb(0 0 0 / 0.45),
+    0 6px 16px rgb(0 0 0 / 0.35);
+
+  /* NeueBit is a bitmap face: it needs a larger nominal size to render at
+   * the visual weight of ~13px body text */
+  --om-nav-label-size: 16px; /* group / eyebrow labels */
+  --om-nav-item-size: 18px; /* nav rows and TOC entries */
+}
+
+/* ─── Global typographic polish ────────────────────────────────────────── */
+html,
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0;
+}
+
+/* Mondwest needs a touch of negative tracking, like in the app */
+#content-area :is(h1, h2, h3, h4, h5, h6) {
+  letter-spacing: -0.015em;
+  font-weight: 400; /* single Mondwest master — never synthesize weight */
+  line-height: 1.15;
+}
+
+/* Headings — explicit H1 size mirrors the frontend's "tighter, sharper" scale */
+#content-area h1 {
+  font-size: clamp(2.25rem, 1.6rem + 2vw, 3.25rem);
+  letter-spacing: -0.025em;
+}
+
+/* Content emphasis lands on the real SemiBold master */
+#content-area :is(strong, b, th) {
+  font-weight: 600;
+}
+
+/* ─── Navbar — floating warm bar with the lockup shown as-is ───────────── */
+#navbar img,
+#navbar a:hover img {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* frosted warm background + brand hairline instead of flat gray */
+#navbar > div.z-0 {
+  background: rgb(from var(--om-cream) r g b / 0.72) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.dark #navbar > div.z-0 {
+  background: rgb(from var(--om-brown-deep) r g b / 0.55) !important;
+}
+#navbar > div.z-10.absolute {
+  border-color: var(--om-border-light) !important;
+}
+.dark #navbar > div.z-10.absolute {
+  border-color: var(--om-border-dark) !important;
+}
+
+/* Console button — pixel-terminal chip instead of a generic pill */
+#navbar a[href*="console.overmindlab.ai"] {
+  border-radius: 4px !important;
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: background-color 150ms ease;
+}
+#navbar a[href*="console.overmindlab.ai"]:hover {
+  opacity: 1 !important;
+  background: var(--om-rust) !important;
+}
+
+/* Search — warm field with the label register */
+#navbar button[class*="group/search"] {
+  border: 1px solid var(--om-border-light) !important;
+  border-radius: 4px !important;
+  background: rgb(from var(--om-cream) r g b / 0.5) !important;
+  color: var(--om-rust) !important;
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.dark #navbar button[class*="group/search"] {
+  border-color: var(--om-border-dark) !important;
+  background: rgb(from var(--om-orange) r g b / 0.05) !important;
+  color: rgb(from var(--om-orange) r g b / 0.75) !important;
+}
+
+/* ─── Footer — removed; content keeps a comfortable bottom margin ──────── */
+#footer {
+  display: none !important;
+}
+#content-area {
+  padding-bottom: 5rem;
+}
+
+/* ─── Body width — spend the idle whitespace (696px → 784px) ───────────── */
+@media (min-width: 1024px) {
+  #content-area {
+    max-width: 784px !important;
+    /* re-center: Mintlify's offset formula hardcodes half of 696px (348) */
+    margin-left: max(0px, calc(50vw - 392px - 14rem)) !important;
+  }
+}
+
+/* ─── Sidebar — grouped panels, pixel-terminal chrome ─────────────────────
+ * Each navigation group becomes its own layered card: eyebrow label with a
+ * copper pixel marker on top, dense rows inside, active row as a copper pill.
+ * This breaks the "one long list" feel and makes the hierarchy legible.
+ */
+
+/* The whole rail is one quiet layered surface with a hairline edge —
+ * groups live on it as eyebrow + tree-line clusters instead of boxes */
+div:has(> #navigation-items) {
+  background: rgb(from var(--om-cream) r g b / 0.35);
+  border-right: 1px solid var(--om-border-light);
+}
+.dark div:has(> #navigation-items) {
+  background: rgb(from var(--om-brown-deep) r g b / 0.35);
+  border-right: 1px solid var(--om-border-dark);
+}
+
+/* Container — reclaim the airy default padding and hide the gutter the
+ * always-visible scrollbar was carving out of the rail */
+#navigation-items {
+  padding: 14px 10px 14px 14px !important;
+  scrollbar-gutter: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+#navigation-items:hover {
+  scrollbar-color: rgb(from var(--om-rust) r g b / 0.25) transparent;
+}
+.dark #navigation-items:hover {
+  scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
+}
+
+/* Groups — no boxes; a snug 16px rhythm between clusters */
+#navigation-items div:has(> .sidebar-group-header) {
+  margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
+  margin-bottom: 16px;
+}
+
+/* Rows hang off a warm tree line under each eyebrow — terminal style */
+#navigation-items ul.sidebar-group {
+  border-left: 1px solid var(--om-border-light);
+  margin-left: 2px;
+}
+.dark #navigation-items ul.sidebar-group {
+  border-left-color: var(--om-border-dark);
+}
+
+/* Group eyebrow — NeueBit uppercase with a copper pixel-square marker */
+#navigation-items .sidebar-group-header {
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-size: var(--om-nav-label-size);
+  font-weight: 400 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  line-height: 1.2;
+  color: var(--om-rust) !important;
+  margin-bottom: 6px !important;
+  padding-left: 0.75rem !important;
+}
+.dark #navigation-items .sidebar-group-header {
+  color: rgb(from var(--om-orange) r g b / 0.8) !important;
+}
+
+#navigation-items .sidebar-group-header::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  background: var(--om-copper);
+}
+.dark #navigation-items .sidebar-group-header::before {
+  background: var(--om-orange);
+}
+
+/* Rows — dense pixel-terminal pills */
+#navigation-items .sidebar-group li a {
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-size: var(--om-nav-item-size);
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 3px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+#navigation-items .sidebar-group li a:hover {
+  background: rgb(from var(--om-copper) r g b / 0.08);
+}
+.dark #navigation-items .sidebar-group li a:hover {
+  background: rgb(from var(--om-orange) r g b / 0.1);
+}
+
+/* Active row — copper pill on the tree line, real NeueBit Bold */
+#navigation-items .sidebar-group li:has(> a[aria-current="page"]) {
+  box-shadow: inset 2px 0 0 var(--om-copper); /* copper segment of the tree line */
+}
+#navigation-items .sidebar-group li a[aria-current="page"] {
+  font-weight: 700;
+  text-shadow: none !important;
+  color: var(--om-copper) !important;
+  background: rgb(from var(--om-copper) r g b / 0.1);
+  border-radius: 0 3px 3px 0;
+}
+.dark #navigation-items .sidebar-group li:has(> a[aria-current="page"]) {
+  box-shadow: inset 2px 0 0 var(--om-orange);
+}
+.dark #navigation-items .sidebar-group li a[aria-current="page"] {
+  color: var(--om-orange) !important;
+  background: rgb(from var(--om-orange) r g b / 0.11);
+}
+
+/* ─── In-page TOC — same register as the sidebar ───────────────────────── */
+#table-of-contents-content ~ * button span,
+button:has(+ #table-of-contents-content) span,
+h2:has(#table-of-contents-content) span {
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-size: var(--om-nav-label-size);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--om-rust);
+}
+.dark h2:has(#table-of-contents-content) span {
+  color: rgb(from var(--om-orange) r g b / 0.8);
+}
+
+ul.toc .toc-item a {
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-size: var(--om-nav-item-size);
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+/* ─── Copy-page split button + its dropdown — brand chrome, not gray ───── */
+#content-area button[class*="rounded-l-xl"],
+#content-area button[class*="rounded-r-xl"] {
+  border-color: var(--om-border-light) !important;
+  color: var(--om-rust) !important;
+  background: rgb(from var(--om-cream) r g b / 0.5) !important;
+}
+.dark #content-area button[class*="rounded-l-xl"],
+.dark #content-area button[class*="rounded-r-xl"] {
+  border-color: var(--om-border-dark) !important;
+  color: rgb(from var(--om-orange) r g b / 0.85) !important;
+  background: rgb(from var(--om-orange) r g b / 0.05) !important;
+}
+#content-area button[class*="rounded-l-xl"]:hover,
+#content-area button[class*="rounded-r-xl"]:hover {
+  background: rgb(from var(--om-copper) r g b / 0.1) !important;
+  color: var(--om-copper) !important;
+}
+.dark #content-area button[class*="rounded-l-xl"]:hover,
+.dark #content-area button[class*="rounded-r-xl"]:hover {
+  background: rgb(from var(--om-orange) r g b / 0.12) !important;
+  color: var(--om-orange) !important;
+}
+
+/* Dropdown renders in a body-level Radix portal */
+[data-radix-menu-content] {
+  background: #fbeedb !important; /* unmistakably brand cream, not white */
+  border: 1px solid var(--om-border-light) !important;
+  border-radius: 6px !important;
+  box-shadow: var(--om-shadow-light) !important;
+  color: var(--om-brown-deep);
+}
+.dark [data-radix-menu-content] {
+  background: #1c120a !important;
+  border-color: var(--om-border-dark) !important;
+  box-shadow: var(--om-shadow-dark) !important;
+  color: var(--om-cream);
+}
+
+[data-radix-menu-content] :is([role="menuitem"], a, button) {
+  color: inherit !important;
+  border-radius: 4px;
+}
+
+/* the little icon tiles inside menu items */
+[data-radix-menu-content] [class*="border-gray-200"] {
+  border-color: var(--om-border-light) !important;
+  background: rgb(from var(--om-cream) r g b / 0.45);
+}
+.dark [data-radix-menu-content] [class*="border-gray-200"] {
+  border-color: var(--om-border-dark) !important;
+  background: rgb(from var(--om-orange) r g b / 0.06);
+}
+[data-radix-menu-content] :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
+  background: rgb(from var(--om-copper) r g b / 0.1) !important;
+  color: var(--om-copper) !important;
+}
+.dark [data-radix-menu-content] :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
+  background: rgb(from var(--om-orange) r g b / 0.12) !important;
+  color: var(--om-orange) !important;
+}
+
+/* ─── Content depth — warm layered surfaces, brown-tinted shadows ──────── */
+#content-area pre {
+  border: 1px solid var(--om-border-light) !important;
+  border-radius: 4px !important;
+  box-shadow: var(--om-shadow-light) !important;
+}
+.dark #content-area pre {
+  border-color: var(--om-border-dark) !important;
+  box-shadow: var(--om-shadow-dark) !important;
+}
+
+#content-area :is(.card, .callout, .accordion, table) {
+  box-shadow: var(--om-shadow-light);
+  border-radius: 6px;
+}
+.dark #content-area :is(.card, .callout, .accordion, table) {
+  box-shadow: var(--om-shadow-dark);
+}
+
+#content-area :is(p, li, td) code:not(pre code) {
+  border-radius: 3px;
+}
+
+/* ─── Selection — copper highlight ─────────────────────────────────────── */
+::selection {
+  background-color: rgb(from var(--om-copper) r g b / 0.25);
+  color: var(--om-brown-deep);
+}
+.dark ::selection {
+  background-color: rgb(from var(--om-orange) r g b / 0.35);
+  color: var(--om-cream);
+}
+
+/* ─── Focus ring — light orange, both modes ────────────────────────────── */
+:is(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--om-orange);
+  outline-offset: 2px;
+}
+
+/* ─── Scrollbar — subtle warm tone ─────────────────────────────────────── */
+* {
+  scrollbar-color: rgb(from var(--om-rust) r g b / 0.3) transparent;
+}
+.dark * {
+  scrollbar-color: rgb(from var(--om-orange) r g b / 0.3) transparent;
+}
+
+/* ─── Custom animated cursor — Overmind signature, same as the platform ──
+ * Three states: default, pointer over interactive elements, and a pressed
+ * "active" frame while the mouse button is down.
+ */
+*,
+*::before,
+*::after {
+  cursor:
+    url("/images/cursor-default.svg") 3 2,
+    auto !important;
+}
+
+a,
+a *,
+button,
+button *,
+[role="button"],
+[role="button"] *,
+[type="button"],
+[type="submit"],
+[type="reset"],
+label[for],
+select,
+option,
+summary,
+[tabindex]:not([tabindex="-1"]),
+input[type="checkbox"],
+input[type="radio"],
+.cursor-pointer,
+.cursor-pointer * {
+  cursor:
+    url("/images/cursor-pointer.svg") 3 2,
+    pointer !important;
+}
+
+a:active,
+a:active *,
+button:active,
+button:active *,
+[role="button"]:active,
+[role="button"]:active *,
+[type="button"]:active,
+[type="submit"]:active,
+[type="reset"]:active,
+.cursor-pointer:active,
+.cursor-pointer:active * {
+  cursor:
+    url("/images/cursor-active.svg") 3 2,
+    pointer !important;
+}

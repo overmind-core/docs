@@ -1,0 +1,21 @@
+# Dependencies (pulled in by the local `mint` CLI)
+node_modules/
+bun.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Mintlify local dev cache
+.mintlify/
+
+# Logs
+*.log
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+.idea/
+.vscode/
+
+# Scratch
+*.tmp

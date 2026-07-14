@@ -1,0 +1,46 @@
+---
+title: Optimizers
+description: Let Overmind propose and test improvements to your agent, and report the changes that move your scores.
+---
+
+An optimizer takes an agent you can already measure and tries to make it better. It proposes changes to your agent, tests each one against your data, and tells you which changes improved your scores. Because every change is checked before it counts, an optimization run gives you evidence, not guesses.
+
+The changes are real edits to your agent's code. An optimizer can rewrite prompts, sharpen tool descriptions, switch the model, and adjust the agent's logic. It works on the code in your connected repository, so the improvements it finds are concrete and reviewable.
+
+{/* TODO(screenshot): Optimization run with the score climbing across iterations */}
+
+## Before you start
+
+An optimizer needs a way to tell good from bad, and it needs to be able to run your agent. Set up three things first: an agent connected from your code (see [Agents](/context/agents)), a dataset to test against (see [Datasets and Traces](/context/datasets-and-traces)), and the metrics that define success for this agent (see [Evaluation Metrics](/evaluation/eval-metrics)). Overmind also needs to be able to execute your agent during the run, so it can try each proposed change on real inputs.
+
+## How a run works
+
+A run moves through a clear sequence.
+
+1. Overmind runs a quick check to confirm it can execute your agent.
+2. It measures your agent as it is today and records the baseline score.
+3. It generates a batch of candidate changes for the current round.
+4. It runs each candidate on your dataset and scores it with your metrics.
+5. It compares the candidates to the baseline, keeps the best, and starts another round from there.
+
+This repeats for several rounds, and the score climbs as good changes build on each other. By default a run explores a handful of candidates per round across several rounds, which balances thoroughness against time and cost.
+
+{/* TODO(diagram): A loop. "Check it can run the agent" goes to "Measure baseline", then "Generate candidates", then "Run on dataset", then "Score with your metrics", then a decision "Better than baseline?". If yes, "Keep as the new best" and loop back to "Generate candidates"; if no, "Discard" and loop back. The best result flows out to "Winning change + score". */}
+
+Scoring during a run uses the same evaluation metrics you set up, so an optimization is measured the same way as an evaluation. That consistency is what lets you trust the result.
+
+## What you see
+
+While a run is going, you can follow it on the agent's Jobs tab. Overmind shows each round, the candidates it tried, the score each one reached, and how the best result compares to the baseline. If a candidate fails to run, the error is shown so you can see why.
+
+When the run finishes, Overmind reports the winning change as a set of edits along with the score it achieved and the improvement over the baseline. You review that change and decide whether to apply it to your codebase. Overmind shows you what changed and what it gained; the choice to adopt it stays with you.
+
+## Good to know
+
+Every result is backed by your own metrics and data, and you can read exactly what each candidate changed before adopting anything. The quality of the outcome depends on what you measure against, so set up the agent, dataset, and metrics carefully, and make sure your metrics reflect what you actually care about. If a run cannot run your agent, it stops early and tells you, instead of producing a result you cannot trust.
+
+## Next steps
+
+- [Evaluation Metrics](/evaluation/eval-metrics) defines success before you optimize.
+- [Datasets and Traces](/context/datasets-and-traces) gives the optimizer realistic data to work with.
+- [Agents](/context/agents) is where optimization runs appear for each agent.

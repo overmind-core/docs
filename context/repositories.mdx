@@ -1,0 +1,54 @@
+---
+title: Repositories
+description: Connect a code repository so Overmind can read your agent and build context from it.
+---
+
+A repository is your agent's source code, connected from GitHub. It is the starting point for everything else in Overmind. When you link a repository, Overmind clones the branch you choose, reads the code to find the agents inside it, and builds a working picture of how each one behaves.
+
+Each project links to one repository, and you choose it when you create the project. The repository and branch are fixed for the life of the project, so pick the branch that represents the agent you want to work on.
+
+{/* TODO(screenshot): Create Project dialog, step where you connect a repository */}
+
+## Connecting a repository
+
+There are two ways to connect, depending on whether the code is public.
+
+For a public repository, paste its URL when you create the project. Overmind accepts standard GitHub URLs and does not need access to your GitHub account. You then pick the branch to analyze, which defaults to the repository's default branch.
+
+For a private repository, connect your GitHub account and install the Overmind GitHub app. During installation you choose exactly which repositories Overmind can see, so it never has access to everything by default. Once the app is installed, your repositories appear in a list, you select one, and you choose a branch. Overmind asks you to confirm before it links and analyzes the repository.
+
+{/* TODO(screenshot): Repository and branch selection with the confirm dialog */}
+
+## What you see while it analyzes
+
+After you link a repository, Overmind works through a few stages, and the status updates as it goes: it clones the branch, reads the codebase, and then marks the repository ready. While it reads the code, a live label tells you what it is doing at that moment, such as searching for agents.
+
+If something goes wrong, the repository shows an error with a short explanation, and you can run the analysis again.
+
+{/* TODO(screenshot): Repository status moving through cloning, analyzing, and ready */}
+
+## What analysis produces
+
+When analysis finishes, you get three things.
+
+The first is one or more agents discovered in the code, each with the tools, prompts, and control flow Overmind found. These show up in your project and are covered in [Agents](/context/agents).
+
+The second is a short summary of the repository, a plain overview of the codebase and the AI components inside it. If you left your project description blank, Overmind uses this summary as a starting point.
+
+The third is a telemetry assessment. Overmind checks whether your code already sends OpenTelemetry traces and how much of the agent is covered. If coverage is incomplete, Overmind can open a pull request that adds instrumentation for you, targeting the branch you linked. You will see the pull request's status in the project, and a link to view it on GitHub. This is how many teams get tracing in place quickly. See [Tracing](/onboarding/tracing) for the bigger picture.
+
+{/* TODO(screenshot): The OpenTelemetry instrumentation pull request card with its status */}
+
+## Keeping the repository in sync
+
+Overmind remembers the commit it last analyzed and checks it against the latest commit on your branch. If the branch has moved on, the project shows that it is out of sync and offers to re-analyze. Re-analyzing rebuilds the discovered agents from the current code. The project also tells you if the branch was deleted or if Overmind can no longer reach the repository.
+
+## Actions you can take
+
+You can re-analyze the repository at any time to pick up new code. You can view or open the instrumentation pull request. You can disconnect GitHub, which removes Overmind's access and uninstalls the app from your account. Because the repository and branch are set when the project is created, there is no in-place change of either; to point at a different repository, create a new project.
+
+## Next steps
+
+- [Agents](/context/agents) covers the agents Overmind builds from your code.
+- [Tracing](/onboarding/tracing) explains how production data reaches Overmind.
+- [Integrations](/onboarding/integrations) covers GitHub and your other connections.

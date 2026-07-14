@@ -1,0 +1,52 @@
+---
+title: Agents
+description: Inspect the agents Overmind discovers in your code, including their behavior, data, and metrics.
+---
+
+An agent is Overmind's view of one assistant in your codebase. Overmind discovers agents for you when it analyzes a repository, so you do not define them by hand. Each agent is the unit you inspect, evaluate, and improve.
+
+## The agents list
+
+Your project shows every agent Overmind found. Each one appears as a card with its name and a short description, a badge for its type, and any tags. The card also shows a few details at a glance, including the model the agent uses, the model Overmind used to analyze it, the size of its current dataset, where it lives in the code, and when it was last updated. You can search the list, filter by type or dataset, and sort it.
+
+{/* TODO(screenshot): Agents list with several agent cards */}
+
+## Inside an agent
+
+Open an agent to see everything Overmind knows about it. The header shows the agent's name, description, and tags, all of which you can edit, along with the model it uses and a link back to the source repository. A gauge shows how much of the agent your traces currently cover, which is a quick read on how complete your telemetry is.
+
+The detail page is organized into a few tabs.
+
+### Overview
+
+The Overview tab shows how the agent is put together. Overmind renders a flow graph of the agent, with the steps it runs, the tools it can call, and the supporting pieces around them. This is the fastest way to understand an unfamiliar agent or to confirm that Overmind read your code correctly.
+
+{/* TODO(screenshot): Agent Overview tab with the flow graph */}
+
+### Policy
+
+The Policy tab holds a plain-language description of how the agent is supposed to behave. Overmind drafts this from your code, and you can edit it. The policy matters because it is the reference point for what counts as correct when you evaluate or optimize the agent.
+
+### Dataset
+
+The Dataset tab shows the data the agent is tested on. You can see the active dataset and its examples, switch between versions, upload your own, and explore what is there. See [Datasets and Traces](/context/datasets-and-traces) for how datasets are built and versioned.
+
+### Eval metrics
+
+The Eval metrics tab shows the metrics chosen for this agent and lets you review and approve them. These are the measures that score the agent during evaluation and optimization. See [Evaluation Metrics](/evaluation/eval-metrics) for the full set of available metrics.
+
+### Jobs
+
+The Jobs tab is where the agent's evaluation and optimization runs appear. You can follow optimization experiments here, including their progress and results. See [Optimizers](/evaluation/optimizers) for what those runs do.
+
+{/* TODO(screenshot): Agent detail page showing the tab bar */}
+
+## Actions you can take
+
+From an agent you can edit its name, description, and tags, start an optimization, open its traces, and archive it when you no longer need it. You can manage its dataset by uploading, activating, or exploring data, and you can approve its evaluation metrics. The flow graph can be expanded for a closer look.
+
+## Next steps
+
+- [Datasets and Traces](/context/datasets-and-traces) is the data your agents are tested on.
+- [Evaluation Metrics](/evaluation/eval-metrics) measures how well an agent does.
+- [Optimizers](/evaluation/optimizers) proposes and tests improvements to an agent.

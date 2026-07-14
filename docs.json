@@ -3,14 +3,39 @@
   "name": "Overmind",
   "theme": "luma",
   "logo": {
-    "light": "https://media.brand.dev/6b499a55-89e1-45ae-8865-9b29fd8b974e.svg",
-    "dark": "https://media.brand.dev/16d7c2e8-c972-4118-a9ad-7fb49585c165.svg"
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
   },
-  "favicon": "https://media.brand.dev/f1147f23-6ff6-4def-8a57-ef2bafac3515.svg",
+  "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#f4a367",
-    "light": "#823a0a",
-    "dark": "#9c8474"
+    "primary": "#ed670f",
+    "light": "#f69a5b",
+    "dark": "#ed670f"
+  },
+  "background": {
+    "color": {
+      "light": "#fdf6ec",
+      "dark": "#120b06"
+    },
+    "decoration": "grid"
+  },
+  "fonts": {
+    "heading": {
+      "family": "PP Mondwest",
+      "source": "/fonts/PPMondwest-Regular.woff2",
+      "format": "woff2",
+      "weight": 400
+    },
+    "body": {
+      "family": "PP Neue Montreal",
+      "source": "/fonts/PPNeueMontreal-Book.woff2",
+      "format": "woff2",
+      "weight": 400
+    }
+  },
+  "styling": {
+    "eyebrows": "section",
+    "codeblocks": "system"
   },
   "navbar": {
     "primary": {
@@ -20,96 +45,58 @@
     }
   },
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "Docs",
-        "groups": [
-          {
-            "group": "Get Started",
-            "pages": [
-              "docs/introduction",
-              "docs/quickstart",
-              "docs/platform-overview"
-            ]
-          },
-          {
-            "group": "Optimizer",
-            "pages": [
-              "docs/optimizer/how-it-works",
-              "docs/optimizer/agent-skills",
-              "docs/optimizer/policies",
-              "docs/optimizer/datasets"
-            ]
-          },
-          {
-            "group": "Tracing",
-            "pages": [
-              "docs/tracing/overview",
-              "docs/tracing/python-sdk",
-              "docs/tracing/js-sdk",
-              "docs/tracing/integrations"
-            ]
-          },
-          {
-            "group": "More",
-            "pages": [
-              "docs/fine-tuning"
-            ]
-          }
+        "group": "Overview",
+        "pages": [
+          "index"
         ]
       },
       {
-        "tab": "REST API",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "api-reference/overview",
-              "api-reference/authentication"
-            ]
-          },
-          {
-            "group": "Resources",
-            "pages": [
-              "api-reference/agents",
-              "api-reference/jobs",
-              "api-reference/datasets",
-              "api-reference/traces",
-              "api-reference/projects"
-            ]
-          }
+        "group": "Onboarding and Integrations",
+        "pages": [
+          "onboarding/onboarding",
+          "onboarding/integrations",
+          "onboarding/tracing",
+          "onboarding/instrumentation"
         ]
       },
       {
-        "tab": "SDK Reference",
-        "groups": [
-          {
-            "group": "Python SDK",
-            "pages": [
-              "sdk/python/overview",
-              "sdk/python/agents",
-              "sdk/python/jobs",
-              "sdk/python/datasets",
-              "sdk/python/traces"
-            ]
-          },
-          {
-            "group": "TypeScript SDK",
-            "pages": [
-              "sdk/typescript/overview",
-              "sdk/typescript/agents",
-              "sdk/typescript/jobs",
-              "sdk/typescript/datasets",
-              "sdk/typescript/traces"
-            ]
-          }
+        "group": "Context",
+        "pages": [
+          "context/repositories",
+          "context/agents",
+          "context/datasets-and-traces"
+        ]
+      },
+      {
+        "group": "Evaluation",
+        "pages": [
+          "evaluation/eval-metrics",
+          "evaluation/optimizers"
+        ]
+      },
+      {
+        "group": "Fine-tuning",
+        "pages": [
+          "fine-tuning"
+        ]
+      },
+      {
+        "group": "Inference",
+        "pages": [
+          "inference"
         ]
       }
     ]
   },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/overmind-core/overmind"
-    }
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
+    ]
   }
 }

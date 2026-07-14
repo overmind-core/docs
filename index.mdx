@@ -1,81 +1,43 @@
 ---
-title: "Overmind: Autonomous AI Agent Optimization Platform"
-sidebarTitle: "Home"
-description: "Overmind automatically improves your production AI agents — better prompts, better tools, better models — with regression-safe optimization loops."
+title: Introduction
 ---
 
-Overmind is an autonomous optimization platform for production AI agents. Point it at your agent code, and it runs structured loops that diagnose failures, generate candidate code fixes, and keep only the changes that measurably improve outcomes — without breaking what already works.
+## What is Overmind?
 
-<CardGroup cols={2}>
-  <Card title="Quick Start" icon="bolt" href="/docs/quickstart">
-    Install Overmind and run your first optimization in 10 minutes
-  </Card>
-  <Card title="Platform Overview" icon="map" href="/docs/platform-overview">
-    Learn how the Optimizer, Tracing SDKs, and Fine-tuning fit together
-  </Card>
-  <Card title="Optimizer Reference" icon="gears" href="/docs/optimizer/how-it-works">
-    Deep dive into policies, the optimization loop, and safeguards
-  </Card>
-  <Card title="Tracing" icon="chart-line" href="/docs/tracing/overview">
-    Instrument your LLM stack with zero code changes
-  </Card>
-</CardGroup>
+Overmind helps you understand and improve the AI agents you run in production. You connect your agent and the data it produces, you decide what a good response looks like, and Overmind measures your agent against that bar and helps you raise it.
+
+Everything happens in the [Overmind console](https://console.overmindlab.ai). You connect a code repository, Overmind reads it and builds a picture of your agent, and from there you can review its behavior, score it on real examples, and run optimizations that keep only the changes that help.
+
+{/* TODO(screenshot): Console dashboard showing a project and its agents at a glance */}
+
+## Who is this for
+
+Overmind is built for teams that already have an AI agent running, or close to it, and want to make it better with evidence instead of guesswork.
+
+You will get the most out of Overmind if your agent lives in a GitHub repository, since Overmind reads that code to understand how the agent works. It also helps to have a sense of what a good response looks like for your use case, whether that is a correct answer, a safe one, or the right tool being called. If you send production traces to Overmind, the picture gets sharper, because the agent is then measured against situations it actually faced.
+
+You do not need an evaluation harness, a labeling pipeline, or model-training infrastructure of your own. Overmind provides those parts. If you are still prototyping and have no agent yet, Overmind can still help once there is code to point it at.
+
+## How Overmind helps you
+
+- [Onboarding and Integrations](/onboarding/onboarding) is where you create your account and connect the tools you already use.
+- [Repositories](/context/repositories) and [Agents](/context/agents) are where Overmind turns your code into agents you can inspect and work with.
+- [Datasets and Traces](/context/datasets-and-traces) hold the real-world data and test sets that everything else is measured against.
+- [Evaluation](/evaluation/eval-metrics) is where you define what "good" means, score your agent, and compare versions.
+- [Optimizers](/evaluation/optimizers) propose and test improvements, and report the changes that move your scores.
+- [Fine-tuning](/fine-tuning) trains a private model on your own data, with recommended models and settings. Available in early access.
+- [Inference](/inference) serves your fine-tuned models and lets you try them in the Playground. Available in early access.
 
 ## How it works
 
-Overmind improves agents by running structured optimization loops driven by your own policy and test data.
+You connect your agent and its data, you tell Overmind what a good response looks like, and Overmind tests and scores the agent for you. When you run an optimization, Overmind proposes changes, tries them on your data, and shows you the ones that improve your scores. You stay in control the whole way, and you can always see what changed and why.
 
-<Steps>
-  <Step title="Register your agent">
-    Run `/overmind-register-agent` in Cursor or Claude Code. Overmind reads your code, identifies the entrypoint, and registers the agent in the console.
-  </Step>
-  <Step title="Generate policy, spec & dataset">
-    Run `/overmind-generate-spec-and-dataset`. Overmind infers (or imports) a policy document, builds scoring criteria, and creates a test dataset — all in one pass.
-  </Step>
-  <Step title="Optimize">
-    Run `/overmind-optimize-agent`. Overmind evaluates every test case, diagnoses failures, generates candidate code fixes, and accepts only changes that pass regression checks.
-  </Step>
-  <Step title="Review results">
-    View score history, traces, improvement reports, and diffs at [console.overmindlab.ai](https://console.overmindlab.ai/agents).
-  </Step>
-</Steps>
+{/* TODO(screen-recording): 60-90s walkthrough that connects a repo, reviews the agent, runs an evaluation, and views results */}
 
-## Key capabilities
+## Where to start
 
-<CardGroup cols={3}>
-  <Card title="Policy-Driven" icon="shield-check">
-    Optimization respects your business rules — not just metric scores
-  </Card>
-  <Card title="Full-Stack Fixes" icon="layer-group">
-    Modifies prompts, tool descriptions, model selection, and agent logic together
-  </Card>
-  <Card title="Regression-Safe" icon="circle-check">
-    Rejects candidates that improve averages but harm individual test cases
-  </Card>
-  <Card title="Automatic Tracing" icon="satellite-dish">
-    Zero-code-change instrumentation for OpenAI, Anthropic, Gemini, and Agno
-  </Card>
-  <Card title="IDE-Native Workflow" icon="terminal">
-    Three slash commands in Cursor or Claude Code drive the entire workflow
-  </Card>
-  <Card title="Multi-File Agents" icon="folder-tree">
-    Resolves import graphs and applies targeted per-file edits
-  </Card>
-</CardGroup>
+If you are new, begin with [Onboarding and Integrations](/onboarding/onboarding) to set up your account and connect your tools.
 
-## Explore the docs
+To understand the building blocks, read [Repositories](/context/repositories), [Agents](/context/agents), and [Datasets and Traces](/context/datasets-and-traces).
 
-<CardGroup cols={2}>
-  <Card title="Agent Skills" icon="wand-magic-sparkles" href="/docs/optimizer/agent-skills">
-    Use slash commands to register, configure, and optimize agents from your IDE
-  </Card>
-  <Card title="Python Tracing SDK" icon="python" href="/docs/tracing/python-sdk">
-    Full reference for `init()`, decorators, custom spans, and context helpers
-  </Card>
-  <Card title="JS/TS Tracing SDK" icon="js" href="/docs/tracing/js-sdk">
-    Instrument OpenAI, Anthropic, and Gemini with one `initTracing()` call
-  </Card>
-  <Card title="REST API Reference" icon="code" href="/api-reference/overview">
-    Browse all public endpoints for agents, jobs, datasets, traces, and projects
-  </Card>
-</CardGroup>
+When you are ready to measure and improve, see [Evaluation Metrics](/evaluation/eval-metrics) and [Optimizers](/evaluation/optimizers).

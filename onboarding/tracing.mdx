@@ -1,0 +1,139 @@
+---
+title: Tracing
+description: Send traces to Overmind so it can see how your agent behaves in production.
+---
+
+Tracing is how Overmind sees what your agent actually does in production. Once tracing is on, every model call your agent makes is captured and shows up in your project, along with the inputs, the outputs, the latency, and the cost. This is the data that powers the rest of Overmind, so it is worth setting up early.
+
+You add a small SDK to your app and turn it on once at startup. After that, you keep writing code the way you do today. There are no call-site rewrites and no proxy in front of your model provider.
+
+{/* TODO(screenshot): Traces list in the console showing recent traces arriving */}
+
+## What you need
+
+You need an Overmind API key, which you can create in your project settings (see [Onboarding](/onboarding/onboarding)). You also need one of the supported providers in your app: OpenAI, Anthropic, or Google Gemini. Python also supports Agno.
+
+## Python
+
+Install the SDK alongside the provider you use:
+
+```bash
+pip install overmind openai
+```
+
+Turn tracing on once, at the top of your app's entry point, before any model calls:
+
+```python
+from overmind import init
+
+init(
+    agent_name="Support Triage",   # attribute every trace to this agent
+    service_name="my-service",
+    environment="production",
+)
+```
+
+The `agent_name` (or `agent_id`) is what links the traces to an agent in your project. It is optional, but without it your traces arrive unattributed. See [Attribute traces to an agent](#attribute-traces-to-an-agent) below.
+
+That is all you have to do. Keep using your existing client as you always have, and every call is traced for you:
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+client.chat.completions.create(
+    model="gpt-5-mini",
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+)
+```
+
+To trace your own functions, tools, and workflows on top of this, see [Instrumentation](/onboarding/instrumentation).
+
+## JavaScript / TypeScript
+
+Install the SDK alongside your provider:
+
+```bash
+npm install @overmind-lab/trace-sdk openai
+```
+
+Turn tracing on once at startup, then use your provider as usual:
+
+```ts
+import { OpenAI } from "openai";
+import { OvermindClient } from "@overmind-lab/trace-sdk";
+
+const overmind = new OvermindClient({
+  agentName: "Support Triage", // attribute every trace to this agent
+  apiKey: process.env.OVERMIND_API_KEY!,
+  appName: "my-app",
+});
+
+overmind.initTracing({ enabledProviders: { openai: OpenAI } });
+
+// Your existing OpenAI, Anthropic, or Gemini calls are now traced.
+
+await overmind.shutdown(); // flush before a short-lived process exits
+```
+
+As with Python, `agentName` (or `agentId`) is what links the traces to an agent. See [Attribute traces to an agent](#attribute-traces-to-an-agent) below.
+
+## Attribute traces to an agent
+
+Overmind attaches every trace to an agent so its traces, datasets, and jobs all line up under one place. Both the Python and JavaScript SDKs support this. You tell Overmind which agent a process belongs to when you initialize the SDK, in one of two ways:
+
+- `agent_id` (`agentId` in JavaScript) — the agent's UUID, copied from its page in the console. This is the exact, drift-proof option: Overmind resolves it with a direct lookup. Prefer it whenever you know the UUID.
+- `agent_name` (`agentName` in JavaScript) — a human-readable name such as `"Support Triage"`. Overmind derives a stable identity from it, so keep the name constant across runs.
+
+```python
+from overmind import init
+
+init(
+    agent_id="6f1c9b2e-…",          # preferred: exact match to an agent in the console
+    agent_name="Support Triage",    # used as a fallback if agent_id is omitted
+    service_name="my-service",
+    environment="production",
+)
+```
+
+In JavaScript, pass the same identity to the `OvermindClient` constructor:
+
+```ts
+const overmind = new OvermindClient({
+  agentId: "6f1c9b2e-…", // preferred: exact match to an agent in the console
+  agentName: "Support Triage", // used as a fallback if agentId is omitted
+  apiKey: process.env.OVERMIND_API_KEY!,
+  appName: "my-app",
+});
+```
+
+You can also set these without touching code, through environment variables:
+
+```bash
+export OVERMIND_AGENT_ID=6f1c9b2e-…
+export OVERMIND_AGENT_NAME="Support Triage"
+export OVERMIND_PROJECT_ID=…        # only needed for session auth; API keys pin the project
+```
+
+Two failure modes are worth calling out:
+
+- **No identity.** If you set neither the id nor the name, the traces still arrive, but they are not linked to any agent, so they will not show up on an agent's page.
+- **An unstable name.** If you change the agent name between runs, Overmind treats each variant as a different agent and you end up with duplicates. Pick a name and keep it, or use the id.
+
+Identity is stamped on every span in the process, including the ones captured automatically from your provider, so all of a run's activity resolves to the same agent.
+
+## Other languages
+
+If your app is not in Python or JavaScript, you can still send traces. Overmind accepts standard OpenTelemetry data, so any OpenTelemetry SDK can point at your project using your API key. Reach out to [support@overmindlab.ai](mailto:support@overmindlab.ai) and we will help you set it up.
+
+## Tips
+
+Turn tracing on once, at startup, before your first model call. Give each agent its own service name so Overmind keeps them apart. Keep tracing on in production, because the more real data Overmind has, the more it can help you improve.
+
+Your traces appear in your project in near real time, and they feed both [Evaluation](/evaluation/eval-metrics) and the [Optimizer](/evaluation/optimizers).
+
+## Next steps
+
+- [Instrumentation](/onboarding/instrumentation) covers tracing your own code in depth.
+- [Datasets and Traces](/context/datasets-and-traces) turns your traces into test data.
+- [Integrations](/onboarding/integrations) connects the rest of your stack.

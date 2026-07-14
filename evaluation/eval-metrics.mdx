@@ -1,0 +1,58 @@
+---
+title: Evaluation Metrics
+description: Define what "good" means for your agent, score it on real data, and compare versions.
+---
+
+Evaluation tells you whether your agent is any good, and whether a change made it better or worse. You pick what to measure, choose the data to measure on, and Overmind scores your agent example by example. You can run several models at once and compare them side by side.
+
+{/* TODO(screenshot): Evaluation run comparison grid with scores per example */}
+
+## Evaluators and metrics
+
+A metric is one question you ask about a response, such as "is this correct?" or "did it call the right tool?". Overmind answers these with evaluators, and there are a few different kinds, suited to different questions.
+
+An LLM judge has a model grade the response against a rubric written in plain language. It works well for quality, tone, safety, and correctness, where there is no single exact answer. The judge returns a score along with its reasoning and a breakdown by rubric item.
+
+A deterministic check applies a fixed rule with no model involved, such as exact match, contains, valid JSON, a tool-selection check, or thresholds on latency and cost. These are fast and unambiguous.
+
+A statistical measure scores a whole dataset at once instead of one example at a time. This covers measures like accuracy, precision and recall, F1, and text-similarity scores such as BLEU and ROUGE.
+
+A trajectory check looks at the sequence of steps and tool calls an agent made, and judges whether it followed a sensible path. It can compare against a reference path or have a model judge the path directly.
+
+An agentic judge is an LLM judge tuned for long, multi-step agent runs, where there is a lot of trajectory to read through.
+
+## Ready-made metrics
+
+Overmind ships a library of metrics you can use right away, with no setup. They cover the things teams most often need to check, from correctness and safety to tool use and task completion. You can browse the current library in the console, use a metric as it is, adjust it, or write your own. The library grows over time, so treat the console as the source of truth for what is available today.
+
+## Writing your own evaluator
+
+To build an evaluator, give it a name and describe in plain English what a good response looks like. Overmind turns that description into a checklist of specific criteria, which you can review and edit before saving. From then on, the evaluator scores responses against that checklist and explains each result. You can also preview an evaluator on a sample to see how it scores before you commit to it.
+
+{/* TODO(screenshot): The evaluator builder with a plain-language rubric and the generated checklist */}
+
+## Running an evaluation
+
+An evaluation run brings three things together: a dataset to test on, the metrics to apply, and the models to compare.
+
+You start by choosing an agent and a dataset, and Overmind suggests metrics that fit the data. You then pick the models you want to compare, which become the columns of your results. The first model is the baseline, and the others are measured against it. You can set how many examples to run, and Overmind shows a cost estimate before you start. When you launch, Overmind runs each model on every example and scores the output.
+
+The models you can choose from include a curated set from the major model providers, any models you have fine-tuned, and a wider catalog of available models with their context lengths and prices. The console shows the current options when you set up a run.
+
+{/* TODO(screen-recording): Walk through the run setup, pick a dataset, metrics, and models, then launch */}
+
+## Reading the results
+
+While a run is in progress, Overmind shows live progress as it generates responses, scores them, and aggregates the totals, with partial results appearing as they come in.
+
+When the run finishes, you get a summary card for each model with its average score, pass rate, and number of examples, and a grid showing the score for every example against every model. You can switch between metrics, drill into a single example to see the full conversation, and read the judge's reasoning for each score. Scores are shown as a percentage, and where a failure cascades through a run, Overmind marks which step was the root cause and which were knock-on effects.
+
+## Good to know
+
+The metric library works out of the box, and you control what "good" means through the rubric on each judged metric. Some metrics need a reference answer in your dataset, and some apply to a whole dataset instead of a single example, so Overmind points you toward the metrics that fit your data. To get useful results, start from a dataset that reflects the cases you care about, and pick metrics that match what matters most for your agent.
+
+## Next steps
+
+- [Optimizers](/evaluation/optimizers) uses these metrics to improve your agent automatically.
+- [Datasets and Traces](/context/datasets-and-traces) builds the test data you evaluate against.
+- [Agents](/context/agents) shows the metrics chosen for each agent.

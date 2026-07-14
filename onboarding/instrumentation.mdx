@@ -1,0 +1,629 @@
+---
+title: Instrumentation
+description: Instrument your code with the Overmind SDKs, from automatic provider capture to decorators, custom spans, and context helpers in Python and JavaScript.
+---
+
+Instrumentation is how you control what Overmind sees at runtime. Turning tracing on captures every supported model call automatically. On top of that, the Python SDK gives you decorators and span helpers so you can trace your own functions, tools, and workflows, which turns a flat list of model calls into a structured tree you can read, debug, and optimize.
+
+If you only want to get traces flowing, start with [Tracing](/onboarding/tracing). This page is the full reference.
+
+## How tracing works
+
+Overmind tracing is built on [OpenTelemetry](https://opentelemetry.io/). You do not need to know OpenTelemetry to use it, but the model helps.
+
+A trace is one end-to-end operation, such as handling a single request. Each trace is a tree of spans, and a span is one unit of work: a model call, a tool invocation, a function, or a loop iteration. A span records a start time, a duration, a status, and a set of attributes. Spans nest, so a workflow span can contain tool spans, which contain the model calls underneath. That structure is what the console renders as a timeline.
+
+There are two layers, and most apps use both. Automatic instrumentation captures calls to supported providers once you turn tracing on, with no code changes. Manual instrumentation is the decorators and helpers you add to your own code so Overmind also sees the business logic around the model calls.
+
+## Python
+
+### Install
+
+Install the SDK alongside the provider you use:
+
+```bash
+pip install overmind openai          # OpenAI
+pip install overmind anthropic       # Anthropic
+pip install overmind google-genai    # Google Gemini
+pip install overmind agno            # Agno
+```
+
+### Turn tracing on
+
+Call `init()` once at process startup, before any model calls or framework setup, at the top of your entry point:
+
+```python
+from overmind import init
+
+init(
+    agent_name="Support Triage",
+    service_name="my-service",
+    environment="production",
+    providers=["openai"],
+)
+```
+
+| Parameter           | Default                      | Description                                                                                                                                                                                                       |
+| ------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `overmind_api_key`  | `None`                       | Your Overmind API key. Falls back to the `OVERMIND_API_KEY` environment variable.                                                                                                                                 |
+| `agent_id`          | `None`                       | The agent's UUID, from its page in the console. The exact, drift-proof way to attribute traces to an agent. Falls back to `OVERMIND_AGENT_ID`. See [Attribute traces to an agent](#attribute-traces-to-an-agent). |
+| `agent_name`        | `None`                       | A stable human-readable agent name, used when `agent_id` is not set. Falls back to `OVERMIND_AGENT_NAME`.                                                                                                         |
+| `project_id`        | `None`                       | The project's UUID. Usually inferred from the API key, so you only need it for session auth. Falls back to `OVERMIND_PROJECT_ID`.                                                                                 |
+| `service_name`      | `"overmind-telemetry"`       | The name shown in the console. Falls back to `OVERMIND_SERVICE_NAME`.                                                                                                                                             |
+| `environment`       | `"development"`              | The deployment environment, such as `production` or `staging`. Falls back to `OVERMIND_ENVIRONMENT`.                                                                                                              |
+| `providers`         | `None`                       | The providers to instrument. Supported values are `openai`, `anthropic`, `google`, and `agno`. Leave it out or pass an empty list to instrument every supported provider you have installed.                      |
+| `overmind_base_url` | `https://api.overmindlab.ai` | The ingest endpoint. Falls back to `OVERMIND_API_URL`.                                                                                                                                                            |
+
+Calling `init()` again is safe. Passing more providers turns those on without resetting the existing setup.
+
+| Environment variable    | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| `OVERMIND_API_KEY`      | Your Overmind API key.                                       |
+| `OVERMIND_AGENT_ID`     | The agent's UUID, overridden by the `agent_id` argument.     |
+| `OVERMIND_AGENT_NAME`   | The agent name, overridden by the `agent_name` argument.     |
+| `OVERMIND_PROJECT_ID`   | The project's UUID, overridden by the `project_id` argument. |
+| `OVERMIND_SERVICE_NAME` | Service name, overridden by the `service_name` argument.     |
+| `OVERMIND_ENVIRONMENT`  | Environment name, overridden by the `environment` argument.  |
+| `OVERMIND_API_URL`      | A custom ingest endpoint.                                    |
+
+### Attribute traces to an agent
+
+Every trace belongs to an agent, and this is the single most important thing to get right during setup. It is what lines up a run's traces, dataset, and jobs under one agent in the console. You identify the agent when you call `init()`, in one of two ways.
+
+- **`agent_id` (preferred).** The agent's UUID, copied from its page in the console. Overmind resolves it with a direct lookup, so it keeps working even if you rename the agent. It is stamped as `overmind.agent.id`.
+- **`agent_name` (fallback).** A human-readable name such as `"Support Triage"`. Overmind derives a stable identity from the name, so it must stay constant across runs. It is stamped as `overmind.agent.name`.
+
+```python
+init(
+    agent_id="6f1c9b2e-…",          # exact match to an agent; prefer this when you know it
+    agent_name="Support Triage",    # used only when agent_id is not set
+    service_name="my-service",
+    providers=["openai"],
+)
+```
+
+The identity is placed on the process and copied onto **every** span, including the model-call spans captured automatically from your provider, so an entire run resolves to the same agent without any per-call tagging.
+
+Watch for two failure modes:
+
+- **No identity means unattributed spans.** If you set neither `agent_id` nor `agent_name`, the traces still arrive, but they are not linked to any agent and will not appear on an agent's page.
+- **An unstable name means duplicate agents.** If `agent_name` changes between runs, Overmind treats each variant as a new agent. Pick one name and keep it, or use `agent_id`.
+
+If you need to set the identity after `init()`, for example because you resolve the agent later in a request, use `set_agent_id()` or `set_agent_name()` from `overmind.tracing` (see [Advanced helpers](#advanced-helpers)). They bind every span created downstream to that agent.
+
+### Automatic instrumentation
+
+After `init()`, keep using your existing client as you always have:
+
+```python
+from openai import OpenAI
+
+client = OpenAI()
+response = client.chat.completions.create(
+    model="gpt-5-mini",
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+)
+```
+
+Each provider call becomes a span that captures the prompts and completions, the model name and request settings, the token counts, the latency, and any error. That is enough to populate the console. The rest of this page is about adding your own spans around those calls.
+
+### What a model call captures
+
+Model-call spans carry a consistent set of attributes under the `genai.*` namespace. This is the same span-attribute contract the SDK, the ingest pipeline, and the console are all reconciled against, so what you see below is exactly what a model-call span can hold. Overmind never fills in a value it does not have, so a field is present only when the provider or your call actually supplies it.
+
+| Attribute                                                                                  | Description                                                                                |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `genai.model` / `genai.response.model`                                                     | The model you requested and the model the provider actually served.                        |
+| `genai.provider`                                                                           | The provider, such as `openai` or `anthropic`.                                             |
+| `genai.prompt_tokens` / `genai.completion_tokens` / `genai.total_tokens`                   | Token usage for the call.                                                                  |
+| `genai.cost`                                                                               | Cost in USD, taken from the provider when reported, otherwise computed from model pricing. |
+| `genai.cache_read_tokens`                                                                  | Prompt-cache read tokens, when the provider reports them.                                  |
+| `genai.request.temperature` / `genai.request.max_tokens` / `genai.request.top_p`           | The sampling settings you passed.                                                          |
+| `genai.request.message_count` / `genai.request.message_chars` / `genai.request.tool_count` | The shape of the request: how many messages, how much text, and how many tool schemas.     |
+| `genai.response.finish_reason` / `genai.response.message_chars`                            | Why generation stopped, such as `stop` or `length`, and the size of the response.          |
+| `genai.streaming` / `genai.time_to_first_token_seconds`                                    | Whether the call was streamed, and the time to the first streamed token.                   |
+| `genai.elapsed_seconds`                                                                    | The client-measured latency of the call.                                                   |
+
+Token usage and cost roll up onto the agent so you can track spend and volume over time. The token counts and model are captured for every provider call; the request settings, response shape, and streaming timing are captured when the provider and instrumentation expose them.
+
+## Tracing your own code
+
+Automatic instrumentation only sees the model calls. To understand why a call happened, which tool ran, and what the inputs were, wrap your own code in spans. There are three ways to do it.
+
+| Approach                                 | Use it for                                       | How the span ends                                   |
+| ---------------------------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Decorators                               | Whole functions                                  | Automatically, when the function returns or raises. |
+| `start_span()`                           | Blocks, loops, and branches                      | Automatically, when the `with` block exits.         |
+| `get_tracer()` with manual start and end | Spans whose lifetime does not fit a single block | You call `span.end()` yourself.                     |
+
+### Span types
+
+Every span has a type that drives how the console categorizes it.
+
+| Span type     | Meaning                                                 |
+| ------------- | ------------------------------------------------------- |
+| `ENTRY_POINT` | The outermost traced function of a request or run.      |
+| `WORKFLOW`    | A multi-step process or pipeline.                       |
+| `TOOL`        | A tool or function the agent calls.                     |
+| `RETRIEVAL`   | A retrieval or RAG step, such as a vector search.       |
+| `FUNCTION`    | A plain traced function, which is the default.          |
+| `LLM`         | A model call, set for you by automatic instrumentation. |
+
+### Decorators
+
+Decorators are the easiest way to trace a function. The SDK ships a general `@observe` decorator plus typed shortcuts that set the span type for you.
+
+| Decorator                            | Span type     |
+| ------------------------------------ | ------------- |
+| `@entry_point(name=None)`            | `ENTRY_POINT` |
+| `@workflow(name=None)`               | `WORKFLOW`    |
+| `@tool(name=None)`                   | `TOOL`        |
+| `@retrieval(name=None)`              | `RETRIEVAL`   |
+| `@function(name=None)`               | `FUNCTION`    |
+| `@observe(span_name=None, type=...)` | Configurable  |
+
+Each decorator opens a span named after the function or the name you pass, records the arguments and the return value, captures the duration, and marks the span as success or, on an exception, as failed before re-raising. Sync and async functions both work.
+
+```python
+from overmind import init, entry_point, workflow, tool
+
+init(service_name="research-agent", providers=["openai"])
+
+@tool("web_search")
+def web_search(query: str) -> list[str]:
+    ...
+
+@workflow("research")
+def research(topic: str) -> str:
+    results = web_search(topic)
+    ...
+
+@entry_point("handle_request")
+def handle_request(topic: str) -> str:
+    return research(topic)
+```
+
+Because each function calls the next, the spans nest into a single tree: `handle_request`, then `research`, then `web_search`, with the traced model calls underneath. If you omit the name, the function name is used.
+
+Async functions are supported the same way:
+
+```python
+@tool("fetch_user")
+async def fetch_user(user_id: str) -> dict:
+    return await db.get_user(user_id)
+```
+
+Use `@observe` directly when you want a custom name and an explicit type in one place:
+
+```python
+from overmind import observe, SpanType
+
+@observe("score_candidate", type=SpanType.FUNCTION)
+def score(candidate: str) -> float:
+    ...
+```
+
+Use `@retrieval` for a retrieval or RAG step so the console renders it distinctly from tool and model calls. Tag the query length and result count inside the span to add signal:
+
+```python
+from overmind import retrieval, set_tag
+
+@retrieval("search_docs")
+def search_docs(query: str) -> list[str]:
+    hits = vector_store.search(query, k=5)
+    set_tag("overmind.retrieval.query_chars", len(query))
+    set_tag("overmind.retrieval.result_count", len(hits))
+    return hits
+```
+
+### start_span() for blocks and loops
+
+When a decorator does not fit, such as a loop body or a branch, use the `start_span()` context manager. It opens a child span under whatever span is currently active and closes it when the `with` block exits.
+
+```python
+from overmind import start_span, set_tag, SpanType
+
+for i, doc in enumerate(documents):
+    with start_span("process_document", span_type=SpanType.FUNCTION, attributes={"doc.index": i}) as span:
+        result = process(doc)
+        set_tag("doc.tokens", result.tokens)
+```
+
+| Parameter    | Default             | Description                                    |
+| ------------ | ------------------- | ---------------------------------------------- |
+| `name`       | required            | The span name shown in the console.            |
+| `span_type`  | `SpanType.FUNCTION` | The span's type.                               |
+| `attributes` | `None`              | Attributes stamped on the span when it starts. |
+
+Unlike the decorators, `start_span()` does not capture inputs and outputs for you. You attach exactly the metadata you want through `attributes` or `set_tag()` inside the block.
+
+### Manual spans
+
+`start_span()` ends the span for you, because the `with` block is the lifetime. For the rare case where a span starts in one callback and ends in another, drop down to the OpenTelemetry tracer with `get_tracer()` and manage the lifecycle yourself.
+
+```python
+from overmind import get_tracer
+
+tracer = get_tracer()
+with tracer.start_as_current_span("manual_step") as span:
+    span.set_attribute("step", "load")
+    ...
+```
+
+For a fully manual lifetime, start the span and always end it:
+
+```python
+from overmind import get_tracer
+
+tracer = get_tracer()
+span = tracer.start_span("long_lived_op")
+try:
+    span.set_attribute("phase", "begin")
+    do_work()
+finally:
+    span.end()
+```
+
+Two things to know about the fully manual form. A span created with `tracer.start_span()` is not automatically the current span, so spans you open afterwards will not nest under it; activate it with `with trace.use_span(span, end_on_exit=True):` from `opentelemetry.trace`. It also will not carry Overmind's status and duration metadata unless you set it, so prefer `@observe` or `start_span()` unless you need manual control. `get_tracer()` raises `RuntimeError` if you call it before `init()`.
+
+### What gets recorded on each span
+
+Whichever method you use, spans carry a consistent set of attributes the console reads.
+
+| Attribute                                                              | Set by                        | Description                                                                      |
+| ---------------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------- |
+| `overmind.span.type`                                                   | all span helpers              | One of the span types.                                                           |
+| `overmind.status`                                                      | all span helpers              | `success`, `failed`, or `cancelled`.                                             |
+| `overmind.duration.seconds`                                            | all span helpers              | The span's wall-clock duration.                                                  |
+| `overmind.error.type` and `overmind.error.message`                     | on failure                    | The exception class and a truncated message.                                     |
+| `inputs` and `outputs`                                                 | decorators only               | The arguments and the return value.                                              |
+| `tool.name` and `tool.arg_keys`                                        | `@tool`                       | The tool's name and the argument names it received, keys only, never the values. |
+| `overmind.retrieval.query_chars` and `overmind.retrieval.result_count` | `@retrieval` with `set_tag()` | The query length and result count for a retrieval step, when you tag them.       |
+| `user.id`, `user.email`, `user.username`                               | `set_user()`                  | The current user identity.                                                       |
+| your own keys                                                          | `set_tag()` or `attributes`   | Any custom metadata you attach.                                                  |
+
+## Add context and metadata
+
+These helpers act on the current span, so call them inside a traced function, a `start_span()` block, or a request handler.
+
+### set_user()
+
+Tag the active trace with a user identity, ideally once per request in middleware. Only `user_id` is required.
+
+```python
+from fastapi import FastAPI, Request
+from overmind import set_user
+
+app = FastAPI()
+
+@app.middleware("http")
+async def add_user_context(request: Request, call_next):
+    user = getattr(request.state, "user", None)
+    if user:
+        set_user(user_id=user.id, email=user.email)
+    return await call_next(request)
+```
+
+### set_tag()
+
+Attach any key and value you want to filter on later. Strings, numbers, booleans, and lists of strings are stored as they are, and richer values are encoded for you.
+
+```python
+from overmind import set_tag
+
+set_tag("workflow", "order-processing")
+set_tag("tenant.id", tenant_id)
+set_tag("retry.count", 2)
+```
+
+### capture_exception()
+
+Record an exception on the current span and mark it as an error. Use it in `except` blocks where you handle the failure but still want it visible in the trace. Decorators and `start_span()` already do this for exceptions that propagate out of them, so this helper is for failures you catch.
+
+```python
+from overmind import capture_exception
+
+try:
+    result = client.chat.completions.create(...)
+except Exception as e:
+    capture_exception(e)
+    raise
+```
+
+### PromptString
+
+Wrapping a prompt in `PromptString` lets you declare its template and dynamic inputs, so Overmind reliably groups calls into the right agent across providers and versions. The `id` gives a stable signal for agent discovery, and separating the template from its inputs lets Overmind treat only the placeholders as dynamic. Each call accepts at most one `PromptString`.
+
+```python
+from overmind import PromptString
+
+system_prompt = PromptString(
+    id="support_greeter_v1",
+    template="You are a helpful support agent. Your name is {agent_name}.",
+    kwargs={"agent_name": "Astra"},
+)
+```
+
+### Advanced helpers
+
+These live in `overmind.tracing` and cover less common cases. Import them explicitly.
+
+```python
+from overmind.tracing import (
+    start_child_span,    # like start_span(), but forces nesting under the current span
+    set_workflow_name,   # label every downstream span with a workflow name
+    set_agent_id,        # bind downstream spans to an agent by UUID (drift-proof)
+    set_agent_name,      # bind downstream spans to a named agent
+    set_project_id,      # bind downstream spans to a project by UUID
+    set_conversation_id, # group multiple traces into one chat session
+    conversation,        # decorator form of set_conversation_id
+    observe_safe,        # like @observe, but skips input and output capture
+    force_flush_traces,  # best-effort flush before a short-lived process exits
+)
+```
+
+Use `observe_safe` for functions that handle secrets or large payloads you do not want recorded. Call `force_flush_traces()` at the end of scripts and serverless handlers so buffered spans are sent before the process exits.
+
+## A full Python example
+
+```python
+import os
+from overmind import (
+    init, entry_point, tool, start_span,
+    set_user, set_tag, capture_exception, SpanType,
+)
+from openai import OpenAI
+
+os.environ.setdefault("OVERMIND_API_KEY", "ovr_your_key_here")
+
+init(
+    agent_name="Customer Support",
+    service_name="customer-support",
+    environment="production",
+    providers=["openai"],
+)
+
+client = OpenAI()
+
+@tool("lookup_order")
+def lookup_order(order_id: str) -> dict:
+    return {"id": order_id, "status": "shipped"}
+
+@entry_point("handle_support_query")
+def handle_support_query(user_id: str, question: str) -> str:
+    set_user(user_id=user_id)
+    set_tag("workflow", "support")
+
+    with start_span("gather_context", span_type=SpanType.FUNCTION):
+        order = lookup_order("A-1001")
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful customer support agent."},
+                {"role": "user", "content": f"{question}\n\nOrder: {order}"},
+            ],
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        capture_exception(e)
+        raise
+
+print(handle_support_query("user-123", "Where is my order?"))
+```
+
+This produces one trace: `handle_support_query`, then `gather_context`, then `lookup_order`, then the model call, all tagged with the user and the workflow.
+
+## JavaScript / TypeScript
+
+The JavaScript SDK wires the clients you already use with one `initTracing()` call, and it has reached parity with Python: agent attribution, the same canonical `genai.*` attributes, and manual span helpers for your own tools, retrieval steps, and workflows.
+
+### Install
+
+```bash
+npm install @overmind-lab/trace-sdk openai          # OpenAI
+npm install @overmind-lab/trace-sdk @anthropic-ai/sdk    # Anthropic
+npm install @overmind-lab/trace-sdk @google/genai        # Google Gemini
+```
+
+### Quick start
+
+```ts
+import { OpenAI } from "openai";
+import { OvermindClient } from "@overmind-lab/trace-sdk";
+
+const overmind = new OvermindClient({
+  agentName: "Support Triage", // attribute every trace to this agent
+  apiKey: process.env.OVERMIND_API_KEY!,
+  appName: "my-app",
+});
+
+overmind.initTracing({
+  enableBatching: true,
+  enabledProviders: { openai: OpenAI },
+});
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+await openai.chat.completions.create({
+  model: "gpt-5-mini",
+  messages: [{ role: "user", content: "Explain quantum computing" }],
+});
+
+await overmind.shutdown();
+```
+
+### Multiple providers
+
+Enable several providers in one call:
+
+```ts
+import { OpenAI } from "openai";
+import * as Anthropic from "@anthropic-ai/sdk";
+import * as GoogleGenAI from "@google/genai";
+import { OvermindClient } from "@overmind-lab/trace-sdk";
+
+const overmind = new OvermindClient({
+  apiKey: process.env.OVERMIND_API_KEY!,
+  appName: "my-app",
+});
+
+overmind.initTracing({
+  enableBatching: true,
+  enabledProviders: {
+    openai: OpenAI,
+    anthropic: Anthropic,
+    googleGenAI: GoogleGenAI,
+  },
+});
+```
+
+### Configuration
+
+`OvermindClient(config)`:
+
+| Option      | Required | Description                                                                                                                                                                                           |
+| ----------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiKey`    | yes      | Your Overmind API key. Falls back to `OVERMIND_API_KEY`.                                                                                                                                              |
+| `appName`   | no       | The name shown in the console. Defaults to `overmind-js`.                                                                                                                                             |
+| `baseUrl`   | no       | A custom ingest endpoint. Falls back to `OVERMIND_TRACES_URL`.                                                                                                                                        |
+| `agentId`   | no       | The agent's UUID, from its page in the console. The exact, drift-proof way to attribute traces. Falls back to `OVERMIND_AGENT_ID`. See [Attribute traces to an agent](#attribute-traces-to-an-agent). |
+| `agentName` | no       | A stable human-readable agent name, used when `agentId` is not set. Falls back to `OVERMIND_AGENT_NAME`.                                                                                              |
+| `projectId` | no       | The project's UUID. Usually inferred from the API key, so you only need it for session auth. Falls back to `OVERMIND_PROJECT_ID`.                                                                     |
+
+`initTracing(options)`:
+
+| Option             | Required | Description                                                                                                                               |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabledProviders` | yes      | The imported provider modules to instrument.                                                                                              |
+| `enableBatching`   | no       | Batch spans before sending, which is recommended for production. Defaults to `true`. Use `false` in development to see spans immediately. |
+| `instrumentations` | no       | Additional OpenTelemetry instrumentations to register.                                                                                    |
+| `spanProcessors`   | no       | Additional span processors, such as a custom exporter.                                                                                    |
+
+Supported `enabledProviders` keys are `openai`, `anthropic`, and `googleGenAI`.
+
+| Environment variable     | Description                                                           |
+| ------------------------ | --------------------------------------------------------------------- |
+| `OVERMIND_API_KEY`       | Your Overmind API key.                                                |
+| `OVERMIND_TRACES_URL`    | A custom ingest endpoint.                                             |
+| `OVERMIND_AGENT_ID`      | The agent's UUID, overridden by the `agentId` option.                 |
+| `OVERMIND_AGENT_NAME`    | The agent name, overridden by the `agentName` option.                 |
+| `OVERMIND_PROJECT_ID`    | The project's UUID, overridden by the `projectId` option.             |
+| `DEPLOYMENT_ENVIRONMENT` | The environment tag, such as `production`. Defaults to `development`. |
+
+For each enabled provider, the SDK captures the prompts and completions, the model and request settings, the token counts, the latency, and any error. Model-call spans carry the same canonical `genai.*` attributes documented under [What a model call captures](#what-a-model-call-captures), including token usage and derived cost. One difference from Python: streaming time to first token (`genai.time_to_first_token_seconds`) is recorded for OpenAI and Google GenAI; Anthropic and Bedrock still report tokens, cost, and request settings, but not TTFT.
+
+### Agent attribution
+
+Attribution works the same way as in Python: pass `agentId` (preferred, the drift-proof UUID) or a stable `agentName` to the `OvermindClient` constructor, with `OVERMIND_AGENT_ID` / `OVERMIND_AGENT_NAME` / `OVERMIND_PROJECT_ID` as environment fallbacks. The same two failure modes apply, so see [Attribute traces to an agent](#attribute-traces-to-an-agent) above.
+
+```ts
+const overmind = new OvermindClient({
+  agentId: process.env.OVERMIND_AGENT_ID, // preferred: exact match to an agent
+  agentName: "Support Triage", // used only when agentId is not set
+  apiKey: process.env.OVERMIND_API_KEY!,
+  appName: "my-app",
+});
+```
+
+To set the identity at runtime instead, use the exported setters. They bind every span created afterwards to that agent, project, or conversation.
+
+```ts
+import {
+  setAgentId,
+  setAgentName,
+  setProjectId,
+  setConversationId,
+  getIdentity,
+} from "@overmind-lab/trace-sdk";
+
+setAgentId("6f1c9b2e-…"); // preferred, drift-proof
+setAgentName("Support Triage"); // slugified server-side; keep it stable
+setProjectId("…"); // session auth only
+setConversationId("session-42"); // group traces into one chat session
+getIdentity(); // { agentId, agentName, projectId, conversationId }
+```
+
+### Shutdown
+
+Call `shutdown()` to flush buffered spans and stop cleanly before a process exits. This matters most with batching enabled.
+
+```ts
+try {
+  // your model calls
+} finally {
+  await overmind.shutdown();
+}
+```
+
+For long-running servers, hook it into your exit signal:
+
+```ts
+process.on("SIGTERM", async () => {
+  await overmind.shutdown();
+  process.exit(0);
+});
+```
+
+### Trace your own code
+
+JavaScript cannot use decorators the way Python does, so the SDK ships function wrappers instead. Each one wraps a function in a span with the right type and the canonical `overmind.*` attributes, and works with both sync and async functions.
+
+| Helper                      | Span type     | Notes                                                                |
+| --------------------------- | ------------- | -------------------------------------------------------------------- |
+| `entryPoint(name, fn)`      | `ENTRY_POINT` | The outermost traced function of a request or run.                   |
+| `workflow(name, fn)`        | `WORKFLOW`    | A multi-step process.                                                |
+| `tool(name, fn)`            | `TOOL`        | Stamps `tool.name` and `tool.arg_keys`, and `tool.error` on failure. |
+| `retrieval(name, fn)`       | `RETRIEVAL`   | Pair with `setRetrievalStats()` for query and result counts.         |
+| `observe(name, fn)`         | `FUNCTION`    | A plain traced function.                                             |
+| `withSpan(name, fn, opts?)` | Configurable  | A span around an inline block; `opts` takes `type` and `attributes`. |
+
+```ts
+import {
+  entryPoint,
+  tool,
+  retrieval,
+  setRetrievalStats,
+  withSpan,
+  setTag,
+  captureException,
+} from "@overmind-lab/trace-sdk";
+
+const lookupOrder = tool(
+  "lookup_order",
+  async ({ orderId }: { orderId: string }) => {
+    return await db.orders.find(orderId);
+  },
+);
+
+const searchDocs = retrieval("search_docs", async (query: string) => {
+  const hits = await index.query(query);
+  setRetrievalStats({ queryChars: query.length, resultCount: hits.length });
+  return hits;
+});
+
+const handleTicket = entryPoint("handle_ticket", async (id: string) => {
+  setTag("ticket.id", id);
+  const order = await lookupOrder({ orderId: "A-1001" });
+  return await withSpan("draft_reply", async () => {
+    try {
+      return await draft(order);
+    } catch (err) {
+      captureException(err);
+      throw err;
+    }
+  });
+});
+```
+
+Spans nest under whatever span is active, so calling these from inside one another builds the same tree Python produces. `setTag()` and `captureException()` act on the active span, exactly as their Python counterparts do.
+
+## Best practices
+
+Call `init()` or `initTracing()` once, first, before any model call or framework setup. Give each agent its own service name so Overmind keeps their agents separate. Trace the work around the model call by wrapping your entry point, your multi-step logic, and your tools, since that structure is what makes a trace useful. Tag traces with the metadata you will want to filter on, such as the user and the tenant. Roll out in staging first, then keep tracing on in production, because continuous real data gives the most signal. Enable batching in production, and flush before exit for short-lived processes.
+
+## Next steps
+
+- [Tracing](/onboarding/tracing) is the quick setup if you are just getting started.
+- [Datasets and Traces](/context/datasets-and-traces) turns your traces into test data.
+- [Evaluation Metrics](/evaluation/eval-metrics) scores what your traces reveal.
