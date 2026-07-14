@@ -1,0 +1,438 @@
+---
+title: "Overmind Projects API — Workspaces and Team Access"
+sidebarTitle: "Projects"
+description: "REST API for creating and managing Overmind projects and team memberships. Projects organize agents and define the access-control boundary."
+---
+
+A **Project** is the top-level workspace container in Overmind. Every agent, dataset, job, and trace belongs to exactly one project. Projects let you organize your AI agents by product area, team, or environment, and they serve as the access-control boundary — you grant teammates access to a project and they can see all of the agents and runs within it. You create a project first, then register agents inside it and invite collaborators through the memberships sub-resource.
+
+---
+
+## GET /api/projects/
+
+List all projects the authenticated user has access to.
+
+### Query parameters
+
+<ParamField query="name" type="string">
+  Filter projects by name.
+</ParamField>
+
+<ParamField query="slug" type="string">
+  Filter by the project's URL-safe slug.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort results by. Prefix with `-` for descending (e.g. `-created_at`).
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search term applied across project name and description.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="count" type="number" required>
+  Total number of projects matching the query.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Paginated list of project objects.
+
+  <Expandable title="Project object">
+    <ResponseField name="id" type="string (uuid)" required>
+      Unique project identifier.
+    </ResponseField>
+    <ResponseField name="created_at" type="string (date-time)" required>
+      Timestamp when the project was created.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string (date-time)" required>
+      Timestamp of the most recent update.
+    </ResponseField>
+    <ResponseField name="name" type="string" required>
+      Human-readable project name. Max 255 characters.
+    </ResponseField>
+    <ResponseField name="slug" type="string" required>
+      URL-safe project identifier. Max 255 characters.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Optional free-form project description.
+    </ResponseField>
+    <ResponseField name="is_active" type="boolean">
+      Whether this project is currently active.
+    </ResponseField>
+    <ResponseField name="settings" type="object">
+      Arbitrary project-level settings object.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="next" type="string (uri)">
+  URL of the next page, or `null`.
+</ResponseField>
+
+<ResponseField name="previous" type="string (uri)">
+  URL of the previous page, or `null`.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+---
+
+## POST /api/projects/
+
+Create a new project. You must provide a `name` and a `slug`. The user making the request is automatically added as a member with owner permissions.
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  Human-readable project name. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  URL-safe unique identifier for the project. Between 1 and 255 characters. Must be unique across your organization.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Optional description of the project's purpose.
+</ParamField>
+
+<ParamField body="is_active" type="boolean">
+  Whether the project should be active on creation. Defaults to `true`.
+</ParamField>
+
+<ParamField body="settings" type="object">
+  Arbitrary project-level settings to store with the project.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="id" type="string (uuid)" required>
+  UUID of the newly created project.
+</ResponseField>
+
+<ResponseField name="created_at" type="string (date-time)" required>
+  Timestamp when the project was created.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string (date-time)" required>
+  Timestamp of the most recent update.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Project name as provided.
+</ResponseField>
+
+<ResponseField name="slug" type="string" required>
+  Project slug as provided.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Project description, if provided.
+</ResponseField>
+
+<ResponseField name="is_active" type="boolean">
+  Active status of the project.
+</ResponseField>
+
+<ResponseField name="settings" type="object">
+  Settings object as stored.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Customer Support Agents",
+    "slug": "customer-support-agents",
+    "description": "All agents used in the customer support product."
+  }'
+```
+
+```json
+{
+  "id": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+  "created_at": "2024-01-15T09:00:00.000Z",
+  "updated_at": "2024-01-15T09:00:00.000Z",
+  "name": "Customer Support Agents",
+  "slug": "customer-support-agents",
+  "description": "All agents used in the customer support product.",
+  "is_active": true,
+  "settings": {}
+}
+```
+
+---
+
+## GET /api/projects/\{id\}/
+
+Retrieve a single project by UUID.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the project to retrieve.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+---
+
+## PATCH /api/projects/\{id\}/
+
+Partially update a project. Only the fields you include are changed.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the project to update.
+</ParamField>
+
+### Body parameters
+
+All fields are optional.
+
+<ParamField body="name" type="string">
+  Updated project name. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="slug" type="string">
+  Updated URL-safe identifier. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="is_active" type="boolean">
+  Updated active status.
+</ParamField>
+
+<ParamField body="settings" type="object">
+  Updated settings object.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d/ \
+  -X PATCH \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{ "description": "Support and triage agents for the CX team." }'
+```
+
+---
+
+## DELETE /api/projects/\{id\}/
+
+Delete a project. This is a permanent operation — all agents, datasets, jobs, and traces within the project are also deleted. This action cannot be undone.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the project to delete.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d/ \
+  -X DELETE \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+Returns `204 No Content` on success.
+
+---
+
+## Project Memberships
+
+Memberships control which users have access to a project. Each membership links a user account to a project. You manage memberships through the `/api/projects/{project_id}/memberships/` sub-resource nested under each project.
+
+---
+
+### GET /api/projects/\{project\_id\}/memberships/
+
+List all members of a project.
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  ID of the project whose members you want to list.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort by.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search term applied across user email fields.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="count" type="number" required>
+  Total number of members in this project.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Paginated list of membership objects.
+
+  <Expandable title="Membership object">
+    <ResponseField name="id" type="string (uuid)" required>
+      Unique membership identifier.
+    </ResponseField>
+    <ResponseField name="created_at" type="string (date-time)" required>
+      Timestamp when the user was added to the project.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string (date-time)" required>
+      Timestamp of the last update to this membership.
+    </ResponseField>
+    <ResponseField name="project" type="string (uuid)" required>
+      UUID of the project.
+    </ResponseField>
+    <ResponseField name="user" type="number" required>
+      Numeric ID of the member user.
+    </ResponseField>
+    <ResponseField name="user_email" type="string (email)" required>
+      Email address of the member user.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d/memberships/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+```json
+{
+  "count": 2,
+  "results": [
+    {
+      "id": "aaaaaaaa-1111-2222-3333-444444444444",
+      "created_at": "2024-01-15T09:00:00.000Z",
+      "updated_at": "2024-01-15T09:00:00.000Z",
+      "project": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+      "user": 42,
+      "user_email": "alice@example.com"
+    }
+  ],
+  "next": null,
+  "previous": null
+}
+```
+
+---
+
+### POST /api/projects/\{project\_id\}/memberships/
+
+Add a user to the project by their numeric user ID. Once added, the user can view and interact with all agents, jobs, datasets, and traces in the project.
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  ID of the project to add the user to.
+</ParamField>
+
+### Body parameters
+
+<ParamField body="user_id" type="number" required>
+  Numeric ID of the user to add.
+</ParamField>
+
+### Response fields
+
+Returns the newly created membership object.
+
+<ResponseField name="id" type="string (uuid)" required>
+  UUID of the new membership record.
+</ResponseField>
+
+<ResponseField name="created_at" type="string (date-time)" required>
+  Timestamp when the membership was created.
+</ResponseField>
+
+<ResponseField name="project" type="string (uuid)" required>
+  UUID of the project.
+</ResponseField>
+
+<ResponseField name="user" type="number" required>
+  Numeric ID of the added user.
+</ResponseField>
+
+<ResponseField name="user_email" type="string (email)" required>
+  Email address of the added user.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d/memberships/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{ "user_id": 99 }'
+```
+
+```json
+{
+  "id": "bbbbbbbb-2222-3333-4444-555555555555",
+  "created_at": "2024-01-20T11:00:00.000Z",
+  "updated_at": "2024-01-20T11:00:00.000Z",
+  "project": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+  "user": 99,
+  "user_email": "bob@example.com"
+}
+```
+
+---
+
+### DELETE /api/projects/\{project\_id\}/memberships/\{id\}/
+
+Remove a user from the project. The user will immediately lose access to all agents, datasets, jobs, and traces within the project.
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  ID of the project from which to remove the user.
+</ParamField>
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the membership record to delete.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/projects/9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d/memberships/bbbbbbbb-2222-3333-4444-555555555555/ \
+  -X DELETE \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+Returns `204 No Content` on success.

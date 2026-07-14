@@ -1,0 +1,79 @@
+---
+title: "Agent Policies: Define What Correct Behavior Looks Like"
+sidebarTitle: "Policies"
+description: "Write or generate an Overmind policy document to guide optimization — define decision rules, constraints, scoring priority, and edge cases."
+---
+
+A policy document is a human-readable specification that tells the Overmind Optimizer what your agent is supposed to do — and what it must never do. Policies are not just a scoring rubric: they encode the business rules the optimizer cannot violate. Every stage of the pipeline — evaluation criteria, test data synthesis, diagnosis prompts, code generation constraints, and LLM-as-Judge scoring — is guided by your policy. An improvement that raises the average score but breaks a business rule is automatically rejected.
+
+## What policies control
+
+Your policy document feeds directly into the following stages of the optimization pipeline:
+
+- **Evaluation criteria** — The eval spec is derived from your policy, so scoring reflects your actual requirements rather than generic correctness.
+- **Test data synthesis** — When Overmind generates synthetic test cases, it draws scenarios from your policy's edge cases and decision rules.
+- **Diagnosis prompts** — The analyzer model receives your policy when identifying failure patterns, so it understands the intent behind expected behavior.
+- **Code generation constraints** — Candidate fixes are generated with your policy's constraints in scope, preventing the optimizer from introducing changes that satisfy test cases but violate domain rules.
+- **LLM-as-Judge scoring rubrics** — When semantic scoring is enabled, the judge model uses your policy's quality expectations to evaluate outputs it cannot check mechanically.
+
+## Policy document structure
+
+A policy document is a Markdown file with a set of named sections. Here is a complete example for a lead qualification agent:
+
+```markdown
+# Agent Policy: Lead Qualification
+
+## Purpose
+Qualifies inbound sales leads by analyzing company data and inquiry content.
+
+## Decision Rules
+1. If the inquiry mentions "enterprise" or "custom pricing", classify as hot
+2. Companies with 500+ employees get a minimum lead score of 60
+3. Inquiries about specific product features indicate warm interest
+
+## Constraints
+- Never disqualify without checking company size
+- Score and category must be consistent (hot = 70+, warm = 40-69, cold = <40)
+- Reasoning must reference specific data points from the input
+
+## Priority Order
+1. Accuracy of category classification
+2. Score calibration
+3. Reasoning quality
+
+## Edge Cases
+| Scenario             | Expected Behaviour                     |
+|----------------------|----------------------------------------|
+| Missing company name | Default to cold, note in reasoning     |
+| Competitor inquiry   | Classify as cold, recommend nurture    |
+
+## Quality Expectations
+- Reasoning should reference specific data points from the input
+- Scores should be calibrated: hot leads 70-100, warm 40-69, cold 0-39
+```
+
+The sections you include are flexible, but **Decision Rules**, **Constraints**, **Priority Order**, and **Edge Cases** have the most direct impact on optimization behavior. The more specific these sections are, the more precisely the optimizer can target genuine improvements.
+
+## Providing or generating a policy
+
+When you run `/overmind-generate-spec-and-dataset`, the skill asks whether you have an existing policy document:
+
+- **If you have a policy**, provide the path to your Markdown file. Overmind analyzes it against your agent code and suggests refinements to align the policy with what the code actually does.
+- **If you don't have a policy**, Overmind infers one automatically from your agent code and agent description.
+
+In both cases, you review the policy in a conversational refinement loop. The assistant presents the current draft, explains its choices, and accepts your edits before finalizing. Nothing is saved until you approve.
+
+Once finalized, the policy is pushed to the Overmind backend. You can view and edit it at any time from [console.overmindlab.ai/agents](https://console.overmindlab.ai/agents).
+
+<Note>
+  **Policies and eval specs are related but distinct.** Your policy document is human-readable and expresses intent in plain language. The `/overmind-generate-spec-and-dataset` skill derives a machine-readable eval spec from it — with precise field names, scoring weights, tolerance bands, and tool-call checks. You can edit both the policy and the eval spec from the console. Changes take effect on the next optimization run.
+</Note>
+
+<Tip>
+  **Tips for writing effective policies:**
+
+  - **Be specific about decision rules.** Vague rules like "classify correctly" give the optimizer little to work with. Concrete rules like "companies with 500+ employees get a minimum lead score of 60" produce much better results.
+  - **Include your edge cases.** The optimizer synthesizes test data from your policy's edge cases. If an edge case isn't in the policy, it won't be tested.
+  - **Specify priority order.** When multiple criteria are in tension, the optimizer needs to know which one to favor. List them explicitly under a **Priority Order** section.
+  - **Use numeric thresholds.** Wherever your domain has quantitative boundaries — score ranges, confidence levels, size cutoffs — write them down explicitly. "Hot leads score 70–100" is far more actionable than "hot leads score high."
+</Tip>

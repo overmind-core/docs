@@ -1,0 +1,521 @@
+---
+title: "Overmind Agents API — Register and Manage AI Agents"
+sidebarTitle: "Agents"
+description: "REST API for creating, updating, and managing Overmind agents, evaluation specs, and optimization history. Base URL: https://api.overmindlab.ai."
+---
+
+An **Agent** is the core resource in Overmind. It represents a registered AI agent along with all of its metadata: the underlying model it runs on, the behavioral policy that governs its outputs, the evaluation spec Overmind uses to score it, and the full history of optimization jobs that have been run against it. Every optimization run, dataset, and trace in Overmind is scoped to a specific agent. You create an agent once, then iteratively improve it through jobs without ever losing the history of how it has changed.
+
+---
+
+## GET /api/agents/
+
+List all agents visible to the authenticated user. Results are paginated and can be filtered by model, name, project, status, and more.
+
+### Query parameters
+
+<ParamField query="model" type="string">
+  Filter agents by their configured model identifier.
+</ParamField>
+
+<ParamField query="name" type="string">
+  Filter agents by name (exact or partial match depending on backend).
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort results by. Prefix with `-` for descending order (e.g. `-created_at`).
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="project" type="string (uuid)">
+  Filter agents belonging to a specific project UUID.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search term applied across agent name, slug, and description.
+</ParamField>
+
+<ParamField query="slug" type="string">
+  Filter by the agent's URL-safe slug identifier.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter agents by their current status string.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="count" type="number" required>
+  Total number of agents matching the query.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Paginated list of agent summary objects.
+
+  <Expandable title="Agent summary object">
+    <ResponseField name="id" type="string (uuid)" required>
+      Unique agent identifier.
+    </ResponseField>
+    <ResponseField name="created_at" type="string (date-time)" required>
+      ISO 8601 timestamp when the agent was created.
+    </ResponseField>
+    <ResponseField name="updated_at" type="string (date-time)" required>
+      ISO 8601 timestamp of the last update.
+    </ResponseField>
+    <ResponseField name="name" type="string" required>
+      Human-readable agent name (max 255 characters).
+    </ResponseField>
+    <ResponseField name="project" type="string (uuid)" required>
+      UUID of the project this agent belongs to.
+    </ResponseField>
+    <ResponseField name="slug" type="string" required>
+      URL-safe identifier for the agent (max 255 characters).
+    </ResponseField>
+    <ResponseField name="model" type="string">
+      Model identifier the agent uses (e.g. `gpt-4o`).
+    </ResponseField>
+    <ResponseField name="analyzer_model" type="string">
+      Model used by the Overmind analyzer when evaluating this agent.
+    </ResponseField>
+    <ResponseField name="status" type="string">
+      Current lifecycle status of the agent.
+    </ResponseField>
+    <ResponseField name="description" type="string">
+      Free-form description of the agent.
+    </ResponseField>
+    <ResponseField name="display_name" type="string">
+      Friendly display name shown in the Overmind UI.
+    </ResponseField>
+    <ResponseField name="total_points" type="number">
+      Total evaluation points available for this agent.
+    </ResponseField>
+    <ResponseField name="dataset_size" type="number">
+      Number of datapoints in the agent's active dataset.
+    </ResponseField>
+    <ResponseField name="tags" type="object">
+      Arbitrary key/value tags attached to the agent.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="next" type="string (uri)">
+  URL of the next page of results, or `null` if this is the last page.
+</ResponseField>
+
+<ResponseField name="previous" type="string (uri)">
+  URL of the previous page of results, or `null` if this is the first page.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/agents/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+```json
+{
+  "count": 2,
+  "results": [
+    {
+      "id": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+      "created_at": "2024-01-15T10:00:00.000Z",
+      "updated_at": "2024-01-20T14:30:00.000Z",
+      "name": "Support Triage Agent",
+      "project": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+      "slug": "support-triage-agent",
+      "model": "gpt-4o",
+      "status": "active",
+      "total_points": 100
+    }
+  ],
+  "next": null,
+  "previous": null
+}
+```
+
+---
+
+## POST /api/agents/
+
+Create a new agent and register it with Overmind. You must supply a `name`, `project`, and `slug` at minimum. The agent is created in an unoptimized state — run a job against it to begin improving it.
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  Human-readable agent name. Must be between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="project" type="string (uuid)" required>
+  UUID of the project this agent will belong to.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  URL-safe unique identifier for the agent within its project. Must be between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="display_name" type="string">
+  Friendly display name shown in the Overmind dashboard. Max 512 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Free-form description of the agent's purpose or behavior.
+</ParamField>
+
+<ParamField body="agent_path" type="string">
+  File system path or module path to the agent's entry point. Max 512 characters.
+</ParamField>
+
+<ParamField body="analyzer_model" type="string">
+  Model Overmind should use when analyzing this agent's outputs. Max 128 characters.
+</ParamField>
+
+<ParamField body="model" type="string">
+  The underlying LLM the agent is built on (e.g. `gpt-4o`, `claude-3-5-sonnet`). Max 128 characters.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Initial status for the agent. Max 20 characters.
+</ParamField>
+
+<ParamField body="policy_markdown" type="string">
+  Human-readable policy document describing expected agent behavior, written in Markdown.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="id" type="string (uuid)" required>
+  Unique identifier for the newly created agent.
+</ResponseField>
+
+<ResponseField name="created_at" type="string (date-time)" required>
+  Timestamp when the agent was created.
+</ResponseField>
+
+<ResponseField name="updated_at" type="string (date-time)" required>
+  Timestamp of the most recent update.
+</ResponseField>
+
+<ResponseField name="name" type="string" required>
+  Agent name as provided.
+</ResponseField>
+
+<ResponseField name="project" type="string (uuid)" required>
+  UUID of the owning project.
+</ResponseField>
+
+<ResponseField name="slug" type="string" required>
+  URL-safe identifier as provided.
+</ResponseField>
+
+<ResponseField name="active_dataset" type="string (uuid)">
+  UUID of the dataset version currently active for this agent, if any.
+</ResponseField>
+
+<ResponseField name="evaluation_criteria" type="object">
+  Structured object describing the criteria used to score the agent's outputs.
+</ResponseField>
+
+<ResponseField name="policy_data" type="object">
+  Structured representation of the agent's behavioral policy.
+</ResponseField>
+
+<ResponseField name="optimizable_elements" type="object">
+  Parts of the agent's prompt or configuration that Overmind is allowed to modify during optimization.
+</ResponseField>
+
+<ResponseField name="fixed_elements" type="object">
+  Parts of the agent's configuration that Overmind must not modify.
+</ResponseField>
+
+<ResponseField name="is_deleted" type="boolean">
+  Whether the agent has been soft-deleted.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/agents/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Support Triage Agent",
+    "project": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+    "slug": "support-triage-agent",
+    "model": "gpt-4o",
+    "description": "Routes incoming support tickets to the correct team."
+  }'
+```
+
+```json
+{
+  "id": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+  "created_at": "2024-01-15T10:00:00.000Z",
+  "updated_at": "2024-01-15T10:00:00.000Z",
+  "name": "Support Triage Agent",
+  "project": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+  "slug": "support-triage-agent",
+  "model": "gpt-4o",
+  "description": "Routes incoming support tickets to the correct team.",
+  "is_deleted": false
+}
+```
+
+---
+
+## GET /api/agents/\{id\}/
+
+Retrieve the full record for a single agent by its UUID. The response includes all fields — policy data, evaluation criteria, optimization metadata, and the full schema objects.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the agent to retrieve.
+</ParamField>
+
+### Response fields
+
+The response contains the full agent object. All fields from `POST /api/agents/` are returned, plus the following additional detail fields:
+
+<ResponseField name="agent_description" type="object">
+  Structured description of the agent's purpose, consumed by the analyzer.
+</ResponseField>
+
+<ResponseField name="input_schema" type="object">
+  JSON Schema describing the expected structure of inputs to this agent.
+</ResponseField>
+
+<ResponseField name="output_schema" type="object">
+  JSON Schema describing the expected structure of outputs from this agent.
+</ResponseField>
+
+<ResponseField name="tool_config" type="object">
+  Configuration for tools or function calls available to the agent.
+</ResponseField>
+
+<ResponseField name="tool_analysis" type="object">
+  Analysis of how the agent uses its available tools.
+</ResponseField>
+
+<ResponseField name="consistency_rules" type="object">
+  Rules that outputs must satisfy for consistency scoring.
+</ResponseField>
+
+<ResponseField name="structure_weight" type="number">
+  Weight assigned to structural correctness in the evaluation score.
+</ResponseField>
+
+<ResponseField name="tool_usage_weight" type="number">
+  Weight assigned to tool usage quality in the evaluation score.
+</ResponseField>
+
+<ResponseField name="improvement_metadata" type="object">
+  Metadata from the most recent optimization run.
+</ResponseField>
+
+<ResponseField name="backtest_metadata" type="object">
+  Metadata from the most recent model backtest.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/agents/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+---
+
+## PATCH /api/agents/\{id\}/
+
+Partially update an existing agent. Only include the fields you want to change — all other fields remain unchanged. This is the standard way to update an agent's model, policy, description, or status.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the agent to update.
+</ParamField>
+
+### Body parameters
+
+All body parameters are optional for a PATCH request.
+
+<ParamField body="name" type="string">
+  Updated agent name. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="slug" type="string">
+  Updated URL-safe identifier. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="display_name" type="string">
+  Updated display name. Max 512 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated description.
+</ParamField>
+
+<ParamField body="model" type="string">
+  Updated model identifier. Max 128 characters.
+</ParamField>
+
+<ParamField body="analyzer_model" type="string">
+  Updated analyzer model. Max 128 characters.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Updated status. Between 1 and 20 characters.
+</ParamField>
+
+<ParamField body="active_dataset" type="string (uuid)">
+  UUID of the dataset version to set as active for this agent.
+</ParamField>
+
+<ParamField body="policy_markdown" type="string">
+  Updated policy document in Markdown.
+</ParamField>
+
+<ParamField body="policy_data" type="object">
+  Updated structured policy object.
+</ParamField>
+
+<ParamField body="evaluation_criteria" type="object">
+  Updated evaluation criteria used for scoring.
+</ParamField>
+
+<ParamField body="is_deleted" type="boolean">
+  Set to `true` to soft-delete the agent.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/agents/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/ \
+  -X PATCH \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "gpt-4o-mini",
+    "status": "active"
+  }'
+```
+
+---
+
+## DELETE /api/agents/\{id\}/
+
+Soft-delete an agent. This sets `is_deleted: true` on the agent record but does not permanently remove it from the database. The agent's history, datasets, and traces are preserved. A soft-deleted agent will not appear in `GET /api/agents/` listings.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the agent to soft-delete.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/agents/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/ \
+  -X DELETE \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+Returns `204 No Content` on success.
+
+---
+
+## GET /api/agents/\{id\}/eval\_spec/
+
+Retrieve the machine-readable evaluation specification for an agent. The eval spec is the contract Overmind uses when scoring agent outputs — it defines the input schema, optimizable and fixed prompt elements, tool configuration, consistency rules, and the scoring weights for each dimension. You can use this endpoint to inspect exactly how Overmind will evaluate your agent before running a job.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the agent whose eval spec you want to retrieve.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="agent_description" type="string" required>
+  Human-readable description of what the agent does, used as context for the judge.
+</ResponseField>
+
+<ResponseField name="agent_path" type="string" required>
+  Module or file path identifying the agent implementation.
+</ResponseField>
+
+<ResponseField name="input_schema" type="object" required>
+  JSON Schema object describing the valid structure of inputs to the agent.
+</ResponseField>
+
+<ResponseField name="optimizable_elements" type="object" required>
+  Prompt components and configuration values the optimizer is permitted to modify.
+</ResponseField>
+
+<ResponseField name="fixed_elements" type="object" required>
+  Prompt components and configuration values the optimizer must leave unchanged.
+</ResponseField>
+
+<ResponseField name="output_fields" type="object" required>
+  Specification of the output fields the agent is expected to produce.
+</ResponseField>
+
+<ResponseField name="consistency_rules" type="object" required>
+  Rules describing consistency constraints that scored outputs must satisfy.
+</ResponseField>
+
+<ResponseField name="tool_config" type="object" required>
+  Tool or function-call configuration available to the agent during evaluation.
+</ResponseField>
+
+<ResponseField name="structure_weight" type="number" required>
+  Fraction of the total score allocated to structural correctness of the output.
+</ResponseField>
+
+<ResponseField name="tool_usage_weight" type="number" required>
+  Fraction of the total score allocated to quality of tool usage.
+</ResponseField>
+
+<ResponseField name="total_points" type="number" required>
+  Total number of evaluation points available across all scoring dimensions.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/agents/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/eval_spec/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+```json
+{
+  "agent_description": "Routes support tickets to the correct team based on intent and urgency.",
+  "agent_path": "agents.support_triage",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "ticket_text": { "type": "string" },
+      "customer_tier": { "type": "string" }
+    }
+  },
+  "optimizable_elements": {
+    "system_prompt": "You are a support routing agent..."
+  },
+  "fixed_elements": {
+    "output_format": "json"
+  },
+  "output_fields": {
+    "team": "string",
+    "priority": "string"
+  },
+  "consistency_rules": {},
+  "tool_config": {},
+  "structure_weight": 0.4,
+  "tool_usage_weight": 0.2,
+  "total_points": 100
+}
+```

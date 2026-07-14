@@ -1,0 +1,133 @@
+---
+title: "Overmind Optimizer: How the 7-Step Autonomous Loop Works"
+sidebarTitle: "How It Works"
+description: "Understand how Overmind's 7-step optimization loop diagnoses agent failures and applies regression-safe code fixes to your AI agent autonomously."
+---
+
+The Overmind Optimizer is an autonomous loop that diagnoses failures in your AI agent, generates concrete code fixes, re-scores every candidate, and only accepts changes that make a genuine improvement — without violating your business rules. Unlike manual prompt tuning, which is slow and subjective, or eval-only tools that tell you what's wrong but leave the fix to you, Overmind closes the loop automatically: you review diffs and reports, not every intermediate tweak.
+
+## Why Overmind
+
+<CardGroup cols={3}>
+  <Card title="Policy-driven optimization" icon="shield-check">
+    Most optimization tools maximize a score. Overmind maximizes a score _while respecting your policies_. You define the decision rules, constraints, and expectations your agent must follow — and those policies guide every stage of evaluation, diagnosis, and code generation. The optimizer cannot game metrics in ways that violate your business rules.
+  </Card>
+  <Card title="Full-stack optimization" icon="layer-group">
+    Overmind can modify system prompts, tool descriptions, model selection, agent control flow, output parsing, and iteration limits — all in a single optimization run. No other tool reaches that far into your agent.
+  </Card>
+  <Card title="Trace-aware diagnosis" icon="magnifying-glass-chart">
+    Every optimization cycle starts from detailed execution traces — every LLM call, every tool invocation, every intermediate result. The diagnosis model sees exactly where things went wrong, not just that the final output was incorrect.
+  </Card>
+</CardGroup>
+
+## The 7-step optimization loop
+
+Each optimization iteration follows a structured pipeline. Overmind runs this loop automatically when you invoke `/overmind-optimize-agent`.
+
+<Steps>
+  <Step title="Run">
+    Overmind executes your agent against every test case in the training set. Each run produces a full trace that captures every LLM call, tool invocation, intermediate result, and final output.
+  </Step>
+  <Step title="Score">
+    Outputs are scored against your evaluation spec on a 0–100 scale across multiple dimensions:
+
+    - **Structural correctness** — Are all expected fields present and non-empty?
+    - **Value accuracy** — Do enum fields match? Are numeric fields within tolerance bands?
+    - **Cross-field consistency** — Do related fields agree with each other (for example, a `"hot"` category with a score ≥ 70)?
+    - **Tool usage** — Were the right tools called, with correct parameters, in the right order?
+    - **LLM-as-Judge** *(optional)* — A judge model provides semantic scoring using policy-aware rubrics for dimensions that cannot be checked mechanically.
+  </Step>
+  <Step title="Diagnose">
+    The analyzer model receives the current agent code, per-case traces, scores, the policy document, and the history of previously attempted fixes — both successful and failed. It identifies failure patterns and root causes. Rather than simply noting "the score was low," it surfaces findings like "the agent is calling the search tool before validating input, leading to empty results on cases with missing fields."
+  </Step>
+  <Step title="Generate candidates">
+    Overmind generates multiple candidate fixes in parallel, each biased toward a different optimization area — tool descriptions, core logic, input handling, or the system prompt. This best-of-N approach increases the probability of finding a genuine improvement. When N ≥ 3, the final candidate uses a separate, independent diagnosis to maximize diversity across the candidate pool.
+  </Step>
+  <Step title="Validate">
+    Each candidate goes through syntax checking, interface verification (does the registered entrypoint still exist with the correct signature?), and a smoke test on a small random subset of cases. Candidates that crash or score dramatically below the current best are dropped early, before incurring the cost of full evaluation.
+  </Step>
+  <Step title="Evaluate">
+    Surviving candidates are scored on the full training dataset. The best candidate is selected by adjusted score, which accounts for complexity penalties applied during scoring.
+  </Step>
+  <Step title="Accept or revert">
+    The best candidate is kept **only if** it meets strict acceptance criteria:
+
+    - It must beat the **global best score** — not just the score from the previous iteration.
+    - It must not regress too many individual test cases. Per-case regression is checked with a 3-point threshold, with multiple tiers: net-positive improvement and magnitude override.
+
+    If no candidate improves, the iteration is marked as a stall. After a configurable number of consecutive stalls (the early-stopping patience threshold), optimization ends automatically.
+  </Step>
+</Steps>
+
+After all iterations complete, Overmind publishes the best agent version to the backend, evaluates on the holdout set to check for overfitting, optionally rolls back if holdout performance drops catastrophically, and generates a summary report.
+
+## Optimization safeguards
+
+Overmind includes several mechanisms to prevent common failure modes in automated optimization.
+
+<AccordionGroup>
+  <Accordion title="Train/holdout split">
+    A portion of your test cases is held out and never seen during the optimization loop. After the loop completes, the best agent is evaluated on these holdout cases. If holdout performance drops catastrophically, Overmind searches across recently accepted snapshots for a version that generalizes better. You never need to manage this split manually.
+  </Accordion>
+  <Accordion title="Regression-aware acceptance">
+    A candidate that raises the average score by 2 points but tanks 5 individual cases is likely memorizing patterns rather than making a genuine improvement. Overmind checks per-case score deltas and rejects any candidate that regresses too many cases — even if the average improves.
+  </Accordion>
+  <Accordion title="Complexity penalty">
+    The optimizer applies a quadratic penalty for excessive prompt size growth, code line growth, new branches, and hardcoded training outputs. This discourages the model from "solving" test cases by adding massive prompt text or case-specific `if`/`else` chains.
+  </Accordion>
+  <Accordion title="Label leakage prevention">
+    Analyzer prompts redact expected outputs when presenting failing cases to the diagnosis model. This prevents the optimizer from simply copying test answers into the agent code. Accepted code is also scanned for patterns that suggest data leakage from the training set.
+  </Accordion>
+  <Accordion title="Temperature annealing">
+    Code generation temperature starts at 0.8 (exploratory) and decreases to 0.4 (focused) over iterations. If the optimizer stalls for two consecutive rounds, the temperature is bumped back up to encourage exploration of different fix strategies.
+  </Accordion>
+</AccordionGroup>
+
+## What gets optimized
+
+Overmind can modify any of the following areas of your agent in a single optimization run.
+
+| Area | Examples |
+|---|---|
+| **System prompts** | More precise instructions, output format enforcement, better few-shot examples |
+| **Tool descriptions** | Clearer parameters, better usage guidance, improved error handling |
+| **Model selection** | Finding the right quality/cost tradeoff per task |
+| **Agent logic** | Tool-call ordering, retry strategies, iteration limits, output parsing |
+| **Policy compliance** | Alignment with your domain rules, edge case handling, consistency constraints |
+
+## Multi-file agents
+
+By default, Overmind optimizes the single file containing your registered entrypoint. Many real agents, however, are split across multiple modules — one for prompts, one for tools, one for orchestration logic. Overmind handles this through its bundle system.
+
+When your entrypoint imports from local modules, Overmind:
+
+1. Statically resolves the import graph from your entrypoint
+2. Identifies which files are in scope for optimization
+3. Generates targeted edits per file — not a monolithic rewrite
+4. Splices changes back into your original project structure
+
+Your directory layout stays intact throughout the process.
+
+For large repositories, the optimizer resolves a **bounded** import closure and skips common paths (`tests/`, `docs/`, `.overmind/`, etc.) using built-in rules plus optional user-provided ignore files.
+
+**Bundle scope defaults:** 24 files, 60,000 characters.
+
+<Note>
+  You can create an `.overmindignore` file at your project root to exclude specific paths from the optimization bundle. Standard `.gitignore` syntax is supported. The resolved scope — including `optimizable_paths`, `context_paths`, and `exclude_paths` as globs — is visible and editable at [console.overmindlab.ai/agents](https://console.overmindlab.ai/agents) and is respected on the next optimization run.
+</Note>
+
+## Output artifacts
+
+After optimization completes, all results are pushed to the Overmind backend. Navigate to [console.overmindlab.ai/agents](https://console.overmindlab.ai/agents) and select your agent to view the following artifacts.
+
+| Artifact | Description |
+|---|---|
+| **Policy document** | The human-readable agent policy (editable from the console) |
+| **Evaluation spec** | Machine-readable scoring criteria derived from your policy |
+| **Dataset** | The versioned test dataset used during optimization |
+| **Best agent** | The highest-scoring agent version produced by the loop |
+| **Score history** | Score for every iteration — accepted and rejected |
+| **Traces** | Detailed traces of every agent run during optimization |
+| **Report** | Summary report with scores, improvements, and diffs |
+
+All artifacts are human-readable and editable from the console. Modify the policy or eval spec, then re-run `/overmind-optimize-agent` to continue improving from where you left off.

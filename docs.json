@@ -1,0 +1,115 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Overmind",
+  "theme": "luma",
+  "logo": {
+    "light": "https://media.brand.dev/6b499a55-89e1-45ae-8865-9b29fd8b974e.svg",
+    "dark": "https://media.brand.dev/16d7c2e8-c972-4118-a9ad-7fb49585c165.svg"
+  },
+  "favicon": "https://media.brand.dev/f1147f23-6ff6-4def-8a57-ef2bafac3515.svg",
+  "colors": {
+    "primary": "#f4a367",
+    "light": "#823a0a",
+    "dark": "#9c8474"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Console",
+      "href": "https://console.overmindlab.ai"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "docs/introduction",
+              "docs/quickstart",
+              "docs/platform-overview"
+            ]
+          },
+          {
+            "group": "Optimizer",
+            "pages": [
+              "docs/optimizer/how-it-works",
+              "docs/optimizer/agent-skills",
+              "docs/optimizer/policies",
+              "docs/optimizer/datasets"
+            ]
+          },
+          {
+            "group": "Tracing",
+            "pages": [
+              "docs/tracing/overview",
+              "docs/tracing/python-sdk",
+              "docs/tracing/js-sdk",
+              "docs/tracing/integrations"
+            ]
+          },
+          {
+            "group": "More",
+            "pages": [
+              "docs/fine-tuning"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "REST API",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/authentication"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": [
+              "api-reference/agents",
+              "api-reference/jobs",
+              "api-reference/datasets",
+              "api-reference/traces",
+              "api-reference/projects"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDK Reference",
+        "groups": [
+          {
+            "group": "Python SDK",
+            "pages": [
+              "sdk/python/overview",
+              "sdk/python/agents",
+              "sdk/python/jobs",
+              "sdk/python/datasets",
+              "sdk/python/traces"
+            ]
+          },
+          {
+            "group": "TypeScript SDK",
+            "pages": [
+              "sdk/typescript/overview",
+              "sdk/typescript/agents",
+              "sdk/typescript/jobs",
+              "sdk/typescript/datasets",
+              "sdk/typescript/traces"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/overmind-core/overmind"
+    }
+  }
+}

@@ -1,0 +1,394 @@
+---
+title: "Overmind Datasets API — Versioned Agent Test Data"
+sidebarTitle: "Datasets"
+description: "REST API for creating and managing versioned Overmind test datasets and datapoints. Control which dataset version your optimization jobs use."
+---
+
+A **Dataset** is a versioned collection of test cases (datapoints) that Overmind uses to evaluate and optimize your agent. Each dataset belongs to a single agent and contains an ordered list of datapoints, where every datapoint has an `input` the agent will receive and an optional `expected_output` to compare against. Datasets are immutable by design — to update your test data you create a new dataset version rather than editing an existing one. Only the active dataset version is used when a job runs against your agent.
+
+<Note>
+  Each dataset is versioned. Overmind automatically increments the version number each time you create a new dataset for the same agent. You control which version the optimizer uses by calling `POST /api/datasets/{id}/activate/` to mark a version as active. The active version is stored on the agent as `active_dataset`.
+</Note>
+
+---
+
+## GET /api/datasets/
+
+List all dataset versions visible to the authenticated user. You can filter by agent, source, version range, and more.
+
+### Query parameters
+
+<ParamField query="agent" type="string (uuid)">
+  Filter datasets belonging to a specific agent.
+</ParamField>
+
+<ParamField query="source" type="string">
+  Filter by dataset origin. One of: `seed`, `synthetic`, `augmented`, `production`.
+</ParamField>
+
+<ParamField query="version" type="number">
+  Filter to a specific version number.
+</ParamField>
+
+<ParamField query="version_min" type="number">
+  Return only datasets at or above this version number.
+</ParamField>
+
+<ParamField query="version_max" type="number">
+  Return only datasets at or below this version number.
+</ParamField>
+
+<ParamField query="generator_model" type="string">
+  Filter by the model used to generate synthetic datapoints.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort by. Prefix with `-` for descending (e.g. `-version`).
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search term.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="count" type="number" required>
+  Total number of dataset versions matching the query.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Paginated list of dataset summary objects.
+
+  <Expandable title="Dataset summary object">
+    <ResponseField name="id" type="string (uuid)" required>
+      Unique identifier for this dataset version.
+    </ResponseField>
+    <ResponseField name="agent" type="string (uuid)" required>
+      UUID of the agent this dataset belongs to.
+    </ResponseField>
+    <ResponseField name="created_at" type="string (date-time)" required>
+      Timestamp when this dataset version was created.
+    </ResponseField>
+    <ResponseField name="version" type="number" required>
+      Auto-incremented version number for this agent's datasets.
+    </ResponseField>
+    <ResponseField name="num_datapoints" type="number" required>
+      Number of datapoints in this dataset version.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Optional name for this dataset version.
+    </ResponseField>
+    <ResponseField name="source" type="string">
+      Origin of the data: `seed`, `synthetic`, `augmented`, or `production`.
+    </ResponseField>
+    <ResponseField name="generator_model" type="string">
+      Model used to generate the datapoints (for synthetic datasets).
+    </ResponseField>
+    <ResponseField name="policy_hash" type="string">
+      Hash of the agent policy at the time this dataset was created. Useful for detecting policy drift.
+    </ResponseField>
+    <ResponseField name="metadata" type="object">
+      Arbitrary metadata attached to this dataset version.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="next" type="string (uri)">
+  URL of the next page, or `null`.
+</ResponseField>
+
+<ResponseField name="previous" type="string (uri)">
+  URL of the previous page, or `null`.
+</ResponseField>
+
+### Example
+
+```bash
+curl 'https://api.overmindlab.ai/api/datasets/?agent=182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e' \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+---
+
+## POST /api/datasets/
+
+Create a new dataset version for an agent. The version number is automatically incremented — you don't set it yourself. Include your datapoints inline in the request body. To update an existing dataset, call this endpoint again with the revised datapoints; the previous version is preserved.
+
+### Body parameters
+
+<ParamField body="agent" type="string (uuid)" required>
+  UUID of the agent this dataset is for.
+</ParamField>
+
+<ParamField body="datapoints" type="array" required>
+  Array of datapoint objects to include in this dataset version.
+
+  <Expandable title="Datapoint object">
+    <ParamField body="input" type="object">
+      The input the agent will receive. Structure must match the agent's `input_schema`.
+    </ParamField>
+    <ParamField body="expected_output" type="object">
+      The ideal output to compare the agent's response against. Optional but required for judge scoring.
+    </ParamField>
+    <ParamField body="order" type="number">
+      Display order for this datapoint. Non-negative integer.
+    </ParamField>
+    <ParamField body="persona" type="string">
+      Optional persona or user segment label for this datapoint. Max 128 characters.
+    </ParamField>
+    <ParamField body="tags" type="object">
+      Arbitrary key/value tags for filtering or analysis.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="name" type="string">
+  Optional name for this dataset version. Max 255 characters.
+</ParamField>
+
+<ParamField body="source" type="string">
+  Origin of the data. One of: `seed`, `synthetic`, `augmented`, `production`.
+</ParamField>
+
+<ParamField body="make_active" type="boolean">
+  If `true`, immediately sets this new version as the agent's active dataset. Defaults to `false`.
+</ParamField>
+
+<ParamField body="generator_model" type="string">
+  Model used to generate the datapoints, for attribution. Max 128 characters.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Arbitrary metadata to store with this dataset version.
+</ParamField>
+
+### Response fields
+
+Returns the full dataset object, including the nested `datapoints` array with server-assigned IDs.
+
+<ResponseField name="id" type="string (uuid)" required>
+  UUID of the newly created dataset version.
+</ResponseField>
+
+<ResponseField name="agent" type="string (uuid)" required>
+  UUID of the owning agent.
+</ResponseField>
+
+<ResponseField name="version" type="number" required>
+  Auto-assigned version number.
+</ResponseField>
+
+<ResponseField name="num_datapoints" type="number" required>
+  Count of datapoints in this version.
+</ResponseField>
+
+<ResponseField name="datapoints" type="array" required>
+  The datapoints as stored, each with a server-assigned `id`.
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/datasets/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "agent": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    "name": "Q1 test cases",
+    "source": "seed",
+    "make_active": true,
+    "datapoints": [
+      {
+        "input": { "ticket_text": "My invoice is wrong", "customer_tier": "enterprise" },
+        "expected_output": { "team": "billing", "priority": "high" },
+        "order": 0
+      },
+      {
+        "input": { "ticket_text": "App keeps crashing on iOS 17", "customer_tier": "standard" },
+        "expected_output": { "team": "mobile-engineering", "priority": "medium" },
+        "order": 1
+      }
+    ]
+  }'
+```
+
+---
+
+## GET /api/datasets/\{id\}/
+
+Retrieve a single dataset version with its full datapoints array inline.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the dataset version to retrieve.
+</ParamField>
+
+### Response fields
+
+Returns the full dataset object including the `datapoints` array. The structure is identical to the `POST` response above.
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/datasets/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+```json
+{
+  "id": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+  "agent": "9c8b7a6d-5e4f-3c2b-1a0d-9e8f7c6b5a4d",
+  "created_at": "2024-01-15T10:00:00.000Z",
+  "version": 3,
+  "num_datapoints": 2,
+  "name": "Q1 test cases",
+  "source": "seed",
+  "datapoints": [
+    {
+      "id": "aaaaaaaa-1111-2222-3333-444444444444",
+      "input": { "ticket_text": "My invoice is wrong", "customer_tier": "enterprise" },
+      "expected_output": { "team": "billing", "priority": "high" },
+      "order": 0,
+      "persona": null,
+      "tags": {}
+    }
+  ]
+}
+```
+
+---
+
+## DELETE /api/datasets/\{id\}/
+
+Delete a dataset version permanently. You cannot delete the version that is currently set as the agent's `active_dataset` — activate a different version first.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the dataset version to delete.
+</ParamField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/datasets/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/ \
+  -X DELETE \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+Returns `204 No Content` on success.
+
+---
+
+## POST /api/datasets/\{id\}/activate/
+
+Activate a dataset version. This sets the owning agent's `active_dataset` field to point at this version, making it the one Overmind uses when running new jobs. Only one dataset version can be active per agent at a time — activating a new version automatically deactivates the previous one.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the dataset version to activate.
+</ParamField>
+
+### Response fields
+
+Returns the full dataset object after activation, identical in structure to `GET /api/datasets/{id}/`.
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/datasets/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/activate/ \
+  -X POST \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+---
+
+## GET /api/datasets/\{id\}/datapoints/
+
+List the individual datapoints for a dataset version as a paginated collection. Use this endpoint when you want to browse datapoints without loading the entire dataset object.
+
+### Path parameters
+
+<ParamField path="id" type="string (uuid)" required>
+  UUID of the dataset version whose datapoints you want to list.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort by (e.g. `order`, `-order`).
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search term applied across datapoint fields.
+</ParamField>
+
+### Response fields
+
+<ResponseField name="count" type="number" required>
+  Total number of datapoints in this dataset version.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Paginated array of datapoint objects.
+
+  <Expandable title="Datapoint object">
+    <ResponseField name="id" type="string (uuid)" required>
+      Unique datapoint identifier.
+    </ResponseField>
+    <ResponseField name="input" type="object">
+      The input the agent receives for this test case.
+    </ResponseField>
+    <ResponseField name="expected_output" type="object">
+      The ideal response to compare against. Present when the dataset was created with expected outputs.
+    </ResponseField>
+    <ResponseField name="order" type="number">
+      Ordinal position within the dataset.
+    </ResponseField>
+    <ResponseField name="persona" type="string">
+      Optional persona label for this datapoint.
+    </ResponseField>
+    <ResponseField name="tags" type="object">
+      Key/value tags attached to this datapoint.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example
+
+```bash
+curl https://api.overmindlab.ai/api/datasets/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/datapoints/ \
+  -H 'Authorization: Bearer $OVERMIND_API_KEY'
+```
+
+A datapoint has the following structure:
+
+```json
+{
+  "id": "aaaaaaaa-1111-2222-3333-444444444444",
+  "input": {
+    "ticket_text": "My invoice is wrong",
+    "customer_tier": "enterprise"
+  },
+  "expected_output": {
+    "team": "billing",
+    "priority": "high"
+  },
+  "order": 0,
+  "persona": "enterprise-customer",
+  "tags": {
+    "category": "billing",
+    "difficulty": "easy"
+  }
+}
+```

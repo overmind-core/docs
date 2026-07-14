@@ -1,0 +1,269 @@
+---
+title: "TypeScript SDK Jobs — Create and Manage Optimization Jobs"
+sidebarTitle: "Jobs"
+description: "TypeScript SDK reference for the jobs resource — create, list, retrieve, update, and delete Overmind optimization jobs using overmind-lab."
+---
+
+The `client.jobs` resource lets you create and manage Overmind optimization jobs. A job represents a single automated run against an agent — it can perform inference, prompt tuning, judge scoring, or model backtesting. Each job contains an `iterations` array that records the candidates evaluated during the run, together with their scores and keep/discard decisions.
+
+---
+
+## `client.jobs.list()`
+
+**Signature:** `client.jobs.list(query?, options?) -> Promise<JobListResponse>`
+
+**Endpoint:** `GET /api/jobs/`
+
+Returns a paginated list of jobs. Filter by agent, job type, status, date range, or other fields.
+
+### Query parameters
+
+<ParamField query="agent" type="string" format="uuid">
+  Return only jobs associated with this agent UUID.
+</ParamField>
+
+<ParamField query="analyzer_model" type="string">
+  Filter by the analyzer model used for the job.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field name to sort by. Prefix with `-` for descending order (e.g. `-created_at`).
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by job status: `pending`, `running`, `completed`, `failed`, or `cancelled`.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const jobs = await client.jobs.list({
+  agent: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  ordering: '-created_at',
+});
+
+console.log(jobs.count);
+for (const job of jobs.results) {
+  console.log(job.id, job.status, job.job_type);
+}
+```
+
+---
+
+## `client.jobs.create()`
+
+**Signature:** `client.jobs.create(body?, options?) -> Promise<JobCreateResponse>`
+
+**Endpoint:** `POST /api/jobs/`
+
+Creates and enqueues a new optimization job. All body fields are optional — if you omit `agent`, the job runs without agent-specific context.
+
+### Body parameters
+
+<ParamField body="agent" type="string | null" format="uuid">
+  UUID of the agent this job optimizes. Omit or pass `null` for a project-level job.
+</ParamField>
+
+<ParamField body="job_type" type="string">
+  The type of optimization run to perform. Accepted values:
+
+  - `inference` — Run the agent against a dataset and collect outputs.
+  - `prompt_tuning` — Iteratively improve the agent's prompt.
+  - `judge_scoring` — Score existing outputs using the configured judge model.
+  - `model_backtesting` — Evaluate the agent's performance across model variants.
+  - `uploaded_outputs_setup` — Set up scoring for externally uploaded outputs.
+</ParamField>
+
+<ParamField body="num_iterations" type="number">
+  Number of optimization iterations to run. Each iteration produces one or more candidates.
+</ParamField>
+
+<ParamField body="candidates_per_iteration" type="number">
+  Number of candidate agent variants to evaluate per iteration.
+</ParamField>
+
+<ParamField body="analyzer_model" type="string">
+  Model identifier to use for the analyzer during this job. Up to 128 characters.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Initial job status. One of `pending`, `running`, `completed`, `failed`, `cancelled`. Defaults to `pending`.
+</ParamField>
+
+<ParamField body="project" type="string | null" format="uuid">
+  UUID of the project to associate this job with.
+</ParamField>
+
+<ParamField body="baseline_score" type="number | null">
+  Known baseline score to compare iterations against.
+</ParamField>
+
+<ParamField body="data_source" type="string">
+  Identifier for the data source used in this job. Between 1 and 20 characters.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const job = await client.jobs.create({
+  agent: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  job_type: 'prompt_tuning',
+  num_iterations: 5,
+  candidates_per_iteration: 3,
+  analyzer_model: 'gpt-4o-mini',
+});
+
+console.log(job.id);
+console.log(job.status);   // "pending"
+console.log(job.job_type); // "prompt_tuning"
+```
+
+---
+
+## `client.jobs.retrieve()`
+
+**Signature:** `client.jobs.retrieve(id: string, options?) -> Promise<JobRetrieveResponse>`
+
+**Endpoint:** `GET /api/jobs/{id}/`
+
+Fetches a single job by UUID, including its full `iterations` array. Use this endpoint to poll for job completion and inspect per-iteration scores and keep/discard decisions.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the job to retrieve.
+</ParamField>
+
+### Iterations array
+
+Each element in `iterations` has the following shape:
+
+| Field              | Type                  | Description                                             |
+|--------------------|-----------------------|---------------------------------------------------------|
+| `id`               | `string` (uuid)       | UUID of this iteration.                                 |
+| `iteration_name`   | `string`              | Human-readable name for the iteration.                  |
+| `job`              | `string` (uuid)       | UUID of the parent job.                                 |
+| `avg_score`        | `number`              | Average score across all evaluation dimensions.         |
+| `status`           | `"keep" \| "discard"` | Whether this iteration's candidate was selected.        |
+| `dimension_scores` | `unknown`             | Per-dimension breakdown of scores.                      |
+| `agent_code`       | `string`              | The candidate agent code produced in this iteration.    |
+| `description`      | `string`              | Summary description of this iteration.                  |
+| `order`            | `number`              | Iteration sequence number within the job.               |
+| `created_at`       | `string` (date-time)  | Timestamp when the iteration was created.               |
+| `updated_at`       | `string` (date-time)  | Timestamp of the last update to this iteration.         |
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const job = await client.jobs.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log(job.id);
+console.log(job.status);       // e.g. "completed"
+console.log(job.best_score);   // e.g. 0.87
+
+for (const iteration of job.iterations) {
+  console.log(
+    `Iteration ${iteration.order}: score=${iteration.avg_score}, status=${iteration.status}`,
+  );
+}
+```
+
+---
+
+## `client.jobs.update()`
+
+**Signature:** `client.jobs.update(id: string, body?, options?) -> Promise<JobUpdateResponse>`
+
+**Endpoint:** `PATCH /api/jobs/{id}/`
+
+Partially updates a job record. All body fields are optional. This is typically used to set terminal status values (`completed`, `failed`, `cancelled`) or to attach results after an external process finishes.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the job to update.
+</ParamField>
+
+### Body parameters
+
+<ParamField body="status" type="string">
+  Updated job status. One of `pending`, `running`, `completed`, `failed`, `cancelled`.
+</ParamField>
+
+<ParamField body="best_score" type="number | null">
+  Best score achieved across all iterations.
+</ParamField>
+
+<ParamField body="improvement" type="number | null">
+  Score improvement relative to the baseline.
+</ParamField>
+
+<ParamField body="report_markdown" type="string">
+  Markdown-formatted job report to attach to the record.
+</ParamField>
+
+<ParamField body="result" type="unknown">
+  Arbitrary result payload for the job.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const job = await client.jobs.update('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+  status: 'completed',
+  best_score: 0.91,
+  improvement: 0.12,
+  report_markdown: '## Results\n\nFinal model improved by 12%.',
+});
+
+console.log(job.id);
+console.log(job.status); // "completed"
+```
+
+---
+
+## `client.jobs.delete()`
+
+**Signature:** `client.jobs.delete(id: string, options?) -> Promise<void>`
+
+**Endpoint:** `DELETE /api/jobs/{id}/`
+
+Permanently deletes a job and all its associated iterations.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the job to delete.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+await client.jobs.delete('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log('Job deleted.');
+```

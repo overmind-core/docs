@@ -1,0 +1,195 @@
+---
+title: "Overmind API Authentication — Keys and Bearer Tokens"
+sidebarTitle: "Authentication"
+description: "Authenticate Overmind API requests using API keys. Learn how to create, pass, and revoke keys, and how to handle authentication errors."
+---
+
+Every request to the Overmind REST API must include a valid API key in the `Authorization` header using the `Bearer` scheme. You create and manage API keys through the Overmind console or directly via the API.
+
+## Getting an API key
+
+You can generate an API key programmatically by calling `POST /api/auth/api-keys/`. Pass an existing authentication token in the `Authorization` header, along with the UUID of the project you want the key scoped to.
+
+```bash
+curl https://api.overmindlab.ai/api/auth/api-keys/ \
+  -H 'Authorization: Bearer <existing-token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "project": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e"
+      }'
+```
+
+A successful response returns the new key. The `key` field contains the plaintext secret — **it is shown only once**. Copy it somewhere safe before closing the response.
+
+```json
+{
+  "id": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+  "created_at": "2019-12-27T18:11:19.117Z",
+  "key": "ovr_live_xxxxxxxxxxxxxxxxxxxx",
+  "name": "my-production-key",
+  "prefix": "ovr_live"
+}
+```
+
+You can also pass an optional `name` (max 255 characters) to label the key:
+
+```bash
+curl https://api.overmindlab.ai/api/auth/api-keys/ \
+  -H 'Authorization: Bearer <existing-token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "project": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+        "name": "my-production-key"
+      }'
+```
+
+## Making authenticated requests
+
+Include your API key in the `Authorization: Bearer` header on every request.
+
+```bash
+curl https://api.overmindlab.ai/api/agents/ \
+  -H 'Authorization: Bearer ovr_your_key_here'
+```
+
+The official SDKs accept the key at client initialization and attach the header automatically:
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab(api_key="ovr_your_key_here")
+agents = client.agents.list()
+```
+
+```typescript
+import OvermindLab from "overmind-lab";
+
+const client = new OvermindLab({ apiKey: "ovr_your_key_here" });
+const agents = await client.agents.list();
+```
+
+<Tip>
+  Store your key in the `OVERMIND_API_KEY` environment variable. The Python SDK,
+  TypeScript SDK, and the tracing SDK all read it automatically — you won't need
+  to pass it explicitly at initialization.
+
+  ```bash
+  export OVERMIND_API_KEY="ovr_your_key_here"
+  ```
+</Tip>
+
+## Listing API keys
+
+Use `GET /api/auth/api-keys/` to retrieve metadata for all API keys you have created. The plaintext secret is never returned by this endpoint — only the `prefix` and other non-sensitive fields are included.
+
+```bash
+curl https://api.overmindlab.ai/api/auth/api-keys/ \
+  -H 'Authorization: Bearer ovr_your_key_here'
+```
+
+The response is paginated. Use the `page` query parameter to move through pages:
+
+```json
+{
+  "count": 3,
+  "results": [
+    {
+      "id": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+      "created_at": "2019-12-27T18:11:19.117Z",
+      "prefix": "ovr_live",
+      "project": "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+      "expires_at": null,
+      "is_active": true,
+      "last_used_at": "2019-12-27T18:11:19.117Z",
+      "name": "my-production-key"
+    }
+  ],
+  "next": null,
+  "previous": null
+}
+```
+
+Supported query parameters:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | number | Page number within the paginated result set |
+| `ordering` | string | Field to sort results by |
+| `search` | string | Filter results by a search term |
+
+## Revoking API keys
+
+Permanently revoke a key by calling `DELETE /api/auth/api-keys/{id}/` with the key's UUID. Revocation is immediate and irreversible.
+
+```bash
+curl https://api.overmindlab.ai/api/auth/api-keys/182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e/ \
+  -X DELETE \
+  -H 'Authorization: Bearer ovr_your_key_here'
+```
+
+A successful response returns `204 No Content` with an empty body. Any subsequent request that uses the revoked key will receive a `401 Unauthorized` error.
+
+## Current user
+
+Call `GET /api/auth/me/` to retrieve the profile of the user associated with the current API key.
+
+```bash
+curl https://api.overmindlab.ai/api/auth/me/ \
+  -H 'Authorization: Bearer ovr_your_key_here'
+```
+
+## Authentication errors
+
+| Status | Cause | Resolution |
+|--------|-------|------------|
+| `401 Unauthorized` | The `Authorization` header is missing, malformed, or contains an invalid or revoked key. | Check that you are sending `Authorization: Bearer <key>` and that the key has not been revoked. |
+| `403 Forbidden` | The key is valid but does not have permission to perform the requested action (e.g., accessing a resource in a project the key is not scoped to). | Use a key scoped to the correct project, or contact your workspace admin to adjust permissions. |
+
+<Note>
+  If you receive a `403` when you expect a `404`, the resource likely exists but
+  your key does not have visibility into it. Check the project scoping of your
+  API key.
+</Note>
+
+## API key fields reference
+
+<ResponseField name="id" type="string (uuid)">
+  Unique identifier for the API key. Use this value as the `{id}` path parameter
+  when revoking the key.
+</ResponseField>
+
+<ResponseField name="created_at" type="string (date-time)">
+  ISO 8601 timestamp of when the key was created.
+</ResponseField>
+
+<ResponseField name="key" type="string">
+  The plaintext secret. Returned **only on creation** — it is never shown again.
+  Store it securely immediately after generating it.
+</ResponseField>
+
+<ResponseField name="prefix" type="string">
+  A short prefix (max 12 characters) of the key, safe to display in UIs for
+  identification purposes.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Optional human-readable label for the key (max 255 characters).
+</ResponseField>
+
+<ResponseField name="project" type="string (uuid)">
+  The project UUID this key is scoped to.
+</ResponseField>
+
+<ResponseField name="is_active" type="boolean">
+  Whether the key is currently active. A revoked key will no longer appear as
+  active.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string (date-time) | null">
+  Optional expiry timestamp. `null` means the key does not expire automatically.
+</ResponseField>
+
+<ResponseField name="last_used_at" type="string (date-time) | null">
+  Timestamp of the most recent successful request made with this key. Useful for
+  auditing unused keys.
+</ResponseField>

@@ -1,0 +1,310 @@
+---
+title: "TypeScript SDK Datasets — Create, Activate, and List"
+sidebarTitle: "Datasets"
+description: "TypeScript SDK reference for the datasets resource — create, list, retrieve, activate versioned datasets, and paginate datapoints using overmind-lab."
+---
+
+The `client.datasets` resource manages versioned evaluation datasets for Overmind agents. Each time you POST a new dataset, Overmind auto-increments the version number for that agent — you never edit datapoints in place. To update your data, create a new dataset version. Datapoints are write-only at creation time; after that you read them through `client.datasets.listDatapoints()` or by retrieving the dataset. Activate a version to point the agent's `active_dataset` at it.
+
+---
+
+## `client.datasets.list()`
+
+**Signature:** `client.datasets.list(query?, options?) -> Promise<DatasetListResponse>`
+
+**Endpoint:** `GET /api/datasets/`
+
+Returns a paginated list of dataset versions. Filter by agent, source type, model, and more.
+
+### Query parameters
+
+<ParamField query="agent" type="string" format="uuid">
+  Return datasets belonging to this agent UUID.
+</ParamField>
+
+<ParamField query="generator_model" type="string">
+  Filter by the model used to generate the dataset.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort by. Prefix with `-` for descending order.
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search term.
+</ParamField>
+
+<ParamField query="source" type="string">
+  Filter by dataset source: `seed`, `synthetic`, `augmented`, or `production`.
+</ParamField>
+
+<ParamField query="version" type="number">
+  Filter by exact version number.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const datasets = await client.datasets.list({
+  agent: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  ordering: '-version',
+});
+
+console.log(datasets.count);
+for (const ds of datasets.results) {
+  console.log(`v${ds.version}: ${ds.num_datapoints} datapoints — ${ds.source}`);
+}
+```
+
+---
+
+## `client.datasets.create()`
+
+**Signature:** `client.datasets.create(body, options?) -> Promise<DatasetCreateResponse>`
+
+**Endpoint:** `POST /api/datasets/`
+
+Creates a new dataset version for an agent. The version number is auto-incremented — you cannot set it manually. Pass `make_active: true` to immediately activate this version on the agent.
+
+<Note>
+  Datapoints are immutable after creation. To change the data, create a new dataset version with the updated datapoints and activate it.
+</Note>
+
+### Body parameters
+
+<ParamField body="agent" type="string" required format="uuid">
+  UUID of the agent to associate this dataset with.
+</ParamField>
+
+<ParamField body="datapoints" type="array" required>
+  Array of datapoint objects. Each datapoint can include:
+
+  - `input` — Input value for this datapoint (any JSON-serialisable type).
+  - `expected_output` — Expected output to compare against (any JSON-serialisable type).
+  - `order` — Sort order within the dataset (integer ≥ 0).
+  - `persona` — Persona label for this datapoint. Up to 128 characters.
+  - `tags` — Arbitrary tags (any JSON-serialisable type).
+</ParamField>
+
+<ParamField body="make_active" type="boolean">
+  If `true`, immediately sets this dataset as the agent's `active_dataset` after creation.
+</ParamField>
+
+<ParamField body="name" type="string">
+  Optional human-readable name for this dataset version. Up to 255 characters.
+</ParamField>
+
+<ParamField body="source" type="string">
+  Origin of the data. One of `seed`, `synthetic`, `augmented`, `production`.
+</ParamField>
+
+<ParamField body="generator_model" type="string">
+  Model identifier used to generate this dataset, if applicable. Up to 128 characters.
+</ParamField>
+
+<ParamField body="metadata" type="unknown">
+  Arbitrary metadata object to attach to the dataset version.
+</ParamField>
+
+<ParamField body="policy_hash" type="string">
+  Hash of the agent policy that was active when this dataset was generated. Up to 64 characters.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const dataset = await client.datasets.create({
+  agent: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  name: 'Q2 evaluation set',
+  source: 'production',
+  make_active: true,
+  datapoints: [
+    {
+      input: { query: 'What is your return policy?' },
+      expected_output: { answer: 'Returns are accepted within 30 days.' },
+      order: 0,
+      persona: 'frustrated-customer',
+    },
+    {
+      input: { query: 'How do I track my order?' },
+      expected_output: { answer: 'Use the tracking link in your confirmation email.' },
+      order: 1,
+    },
+  ],
+});
+
+console.log(dataset.id);
+console.log(`Created version ${dataset.version} with ${dataset.num_datapoints} datapoints.`);
+```
+
+---
+
+## `client.datasets.retrieve()`
+
+**Signature:** `client.datasets.retrieve(id: string, options?) -> Promise<DatasetRetrieveResponse>`
+
+**Endpoint:** `GET /api/datasets/{id}/`
+
+Fetches a single dataset version by UUID, including its embedded `datapoints` array and metadata.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the dataset version to retrieve.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const dataset = await client.datasets.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log(`Version: ${dataset.version}`);
+console.log(`Datapoints: ${dataset.num_datapoints}`);
+console.log(`Source: ${dataset.source}`);
+```
+
+---
+
+## `client.datasets.delete()`
+
+**Signature:** `client.datasets.delete(id: string, options?) -> Promise<void>`
+
+**Endpoint:** `DELETE /api/datasets/{id}/`
+
+Permanently deletes a dataset version and all its datapoints. This operation cannot be undone.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the dataset version to delete.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+await client.datasets.delete('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log('Dataset version deleted.');
+```
+
+---
+
+## `client.datasets.activate()`
+
+**Signature:** `client.datasets.activate(id: string, options?) -> Promise<DatasetActivateResponse>`
+
+**Endpoint:** `POST /api/datasets/{id}/activate/`
+
+Points the owning agent's `active_dataset` field at this dataset version. This is the same as setting `active_dataset` via `client.agents.update()`, but is scoped to the dataset for convenience.
+
+<Note>
+  Only one dataset version per agent can be active at a time. Activating a new version automatically deactivates the previous one.
+</Note>
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the dataset version to activate.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const activated = await client.datasets.activate('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log(activated.id);
+console.log(`Version ${activated.version} is now active.`);
+```
+
+---
+
+## `client.datasets.listDatapoints()`
+
+**Signature:** `client.datasets.listDatapoints(id: string, query?, options?) -> Promise<DatasetListDatapointsResponse>`
+
+**Endpoint:** `GET /api/datasets/{id}/datapoints/`
+
+Returns a paginated list of datapoints belonging to a dataset version. Use this for large datasets where embedding datapoints in the retrieve response would be impractical.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the dataset version whose datapoints to list.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="agent" type="string" format="uuid">
+  Filter to datapoints belonging to a specific agent.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field to sort by. Prefix with `-` for descending order.
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search term.
+</ParamField>
+
+<ParamField query="source" type="string">
+  Filter by dataset source: `augmented`, `production`, `seed`, or `synthetic`.
+</ParamField>
+
+<ParamField query="version" type="number">
+  Filter by exact dataset version number.
+</ParamField>
+
+<ParamField query="version_min" type="number">
+  Return datapoints from dataset versions at or above this number.
+</ParamField>
+
+<ParamField query="version_max" type="number">
+  Return datapoints from dataset versions at or below this number.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const datapoints = await client.datasets.listDatapoints(
+  '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  { ordering: 'order', page: 1 },
+);
+
+console.log(`Total datapoints: ${datapoints.count}`);
+
+for (const dp of datapoints.results) {
+  console.log(dp.id, dp.input, dp.expected_output);
+}
+```

@@ -1,0 +1,305 @@
+---
+title: "Python SDK Jobs — Create and Manage Optimization Jobs"
+sidebarTitle: "Jobs"
+description: "Python SDK reference for the jobs resource — create, list, retrieve, update, and delete Overmind optimization jobs using overmind_lab."
+---
+
+The `client.jobs` resource lets you launch and manage Overmind optimization jobs programmatically. A job runs one or more iterations against an agent, scoring candidate variants and tracking which configurations improve performance. Each job response embeds a nested `iterations` array so you can inspect per-iteration scores and decisions without making additional requests.
+
+---
+
+## `jobs.list()`
+
+**Signature:** `jobs.list(**kwargs) -> JobListResponse`  
+**Maps to:** `GET /api/jobs/`
+
+List all jobs visible to the authenticated user. Results are paginated.
+
+<ParamField query="agent" type="str">
+  UUID of the agent to filter jobs by.
+</ParamField>
+
+<ParamField query="analyzer_model" type="str">
+  Filter by the analyzer model name used in the job.
+</ParamField>
+
+<ParamField query="created_after" type="str | datetime">
+  Return only jobs created after this ISO 8601 timestamp.
+</ParamField>
+
+<ParamField query="created_before" type="str | datetime">
+  Return only jobs created before this ISO 8601 timestamp.
+</ParamField>
+
+<ParamField query="data_source" type="str">
+  Filter by the data source string attached to the job.
+</ParamField>
+
+<ParamField query="job_type" type="str">
+  Filter by job type. One of: `"inference"`, `"uploaded_outputs_setup"`, `"judge_scoring"`, `"prompt_tuning"`, `"model_backtesting"`.
+</ParamField>
+
+<ParamField query="ordering" type="str">
+  Field name to sort results by. Prefix with `-` for descending order.
+</ParamField>
+
+<ParamField query="page" type="int">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="project" type="str">
+  UUID of the project to filter jobs by.
+</ParamField>
+
+<ParamField query="prompt_slug" type="str">
+  Filter by the prompt slug associated with the job.
+</ParamField>
+
+<ParamField query="score_max" type="float">
+  Return only jobs whose best score is at or below this value.
+</ParamField>
+
+<ParamField query="score_min" type="float">
+  Return only jobs whose best score is at or above this value.
+</ParamField>
+
+<ParamField query="search" type="str">
+  Full-text search term.
+</ParamField>
+
+<ParamField query="status" type="str">
+  Filter by job status. One of: `"pending"`, `"running"`, `"completed"`, `"failed"`, `"cancelled"`.
+</ParamField>
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+jobs = client.jobs.list()
+print(jobs.count)
+
+# Filter for completed prompt-tuning jobs on a specific agent
+jobs = client.jobs.list(
+    agent="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    job_type="prompt_tuning",
+    status="completed",
+)
+for job in jobs.results:
+    print(job.id, job.best_score)
+```
+
+---
+
+## `jobs.create()`
+
+**Signature:** `jobs.create(**kwargs) -> JobCreateResponse`  
+**Maps to:** `POST /api/jobs/`
+
+Create and enqueue a new optimization job. All parameters are optional at the API level, but you should supply at minimum the `agent` UUID and `job_type` to produce a meaningful job.
+
+<ParamField body="agent" type="str">
+  UUID of the agent this job optimizes.
+</ParamField>
+
+<ParamField body="job_type" type="str">
+  Type of optimization to perform. One of: `"inference"`, `"uploaded_outputs_setup"`, `"judge_scoring"`, `"prompt_tuning"`, `"model_backtesting"`.
+</ParamField>
+
+<ParamField body="num_iterations" type="int">
+  Number of optimization iterations to run.
+</ParamField>
+
+<ParamField body="candidates_per_iteration" type="int">
+  Number of candidate agent variants to generate and evaluate per iteration.
+</ParamField>
+
+<ParamField body="analyzer_model" type="str">
+  LLM used by Overmind's analyzer to score candidates. Up to 128 characters.
+</ParamField>
+
+<ParamField body="project" type="str">
+  UUID of the project this job belongs to.
+</ParamField>
+
+<ParamField body="status" type="str">
+  Initial job status. One of: `"pending"`, `"running"`, `"completed"`, `"failed"`, `"cancelled"`. Defaults to `"pending"`.
+</ParamField>
+
+<ParamField body="data_source" type="str">
+  Data source identifier for the job. Between 1 and 20 characters.
+</ParamField>
+
+<ParamField body="prompt_slug" type="str">
+  Slug of the prompt configuration to use. Up to 255 characters.
+</ParamField>
+
+<ResponseField name="id" type="str">
+  UUID of the newly created job.
+</ResponseField>
+
+<ResponseField name="created_at" type="datetime">
+  ISO 8601 timestamp of job creation.
+</ResponseField>
+
+<ResponseField name="iterations" type="List[Iteration]">
+  Array of iteration objects. Each iteration tracks `id`, `iteration_name`, `avg_score`, `dimension_scores`, and `status` (`"keep"` or `"discard"`).
+</ResponseField>
+
+<ResponseField name="status" type="str">
+  Current job status: `"pending"`, `"running"`, `"completed"`, `"failed"`, or `"cancelled"`.
+</ResponseField>
+
+<ResponseField name="best_score" type="float | null">
+  Highest average score achieved across all completed iterations.
+</ResponseField>
+
+<ResponseField name="baseline_score" type="float | null">
+  Score of the original, unmodified agent used as a baseline for comparison.
+</ResponseField>
+
+<ResponseField name="improvement" type="float | null">
+  Percentage improvement of `best_score` over `baseline_score`.
+</ResponseField>
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+job = client.jobs.create(
+    agent="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    job_type="prompt_tuning",
+    num_iterations=5,
+    candidates_per_iteration=3,
+    analyzer_model="gpt-4o",
+)
+print(job.id)
+print(job.status)  # "pending"
+```
+
+---
+
+## `jobs.retrieve()`
+
+**Signature:** `jobs.retrieve(id: str) -> JobRetrieveResponse`  
+**Maps to:** `GET /api/jobs/{id}/`
+
+Fetch a single job by UUID. The response includes the full `iterations` array, making this the primary way to poll job progress and read per-iteration scores.
+
+<ParamField path="id" type="str" required>
+  UUID of the job to retrieve.
+</ParamField>
+
+<ResponseField name="id" type="str">
+  UUID of the job.
+</ResponseField>
+
+<ResponseField name="iterations" type="List[Iteration]">
+  Array of all iterations run so far. Each iteration includes:
+  - `id` — iteration UUID
+  - `iteration_name` — human-readable name
+  - `avg_score` — mean score across all datapoints for this iteration
+  - `dimension_scores` — per-dimension score breakdown as a dictionary
+  - `status` — `"keep"` if this iteration was selected as an improvement, `"discard"` otherwise
+  - `agent_code` — the agent code variant evaluated in this iteration
+</ResponseField>
+
+<ResponseField name="status" type="str">
+  Current overall job status.
+</ResponseField>
+
+<ResponseField name="best_score" type="float | null">
+  Highest `avg_score` seen across all `"keep"` iterations.
+</ResponseField>
+
+<ResponseField name="baseline_score" type="float | null">
+  Score of the original agent before any optimization.
+</ResponseField>
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+job = client.jobs.retrieve(
+    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+)
+print(job.status)
+print(job.best_score)
+
+for iteration in job.iterations:
+    print(
+        iteration.iteration_name,
+        iteration.avg_score,
+        iteration.status,  # "keep" or "discard"
+    )
+```
+
+---
+
+## `jobs.update()`
+
+**Signature:** `jobs.update(id: str, **kwargs) -> JobUpdateResponse`  
+**Maps to:** `PATCH /api/jobs/{id}/`
+
+Partially update a job record. Only the fields you supply are changed.
+
+<ParamField path="id" type="str" required>
+  UUID of the job to update.
+</ParamField>
+
+<ParamField body="status" type="str">
+  Updated job status. One of: `"pending"`, `"running"`, `"completed"`, `"failed"`, `"cancelled"`.
+</ParamField>
+
+<ParamField body="analyzer_model" type="str">
+  Updated analyzer model name. Up to 128 characters.
+</ParamField>
+
+<ParamField body="num_iterations" type="int">
+  Updated target iteration count.
+</ParamField>
+
+<ParamField body="candidates_per_iteration" type="int">
+  Updated candidates-per-iteration count.
+</ParamField>
+
+<ParamField body="report_markdown" type="str">
+  Markdown-formatted report text to attach to the job.
+</ParamField>
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+job = client.jobs.update(
+    id="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    status="cancelled",
+)
+print(job.id)
+```
+
+---
+
+## `jobs.delete()`
+
+**Signature:** `jobs.delete(id: str)`  
+**Maps to:** `DELETE /api/jobs/{id}/`
+
+Permanently delete a job record. This action cannot be undone.
+
+<ParamField path="id" type="str" required>
+  UUID of the job to delete.
+</ParamField>
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+client.jobs.delete(
+    "182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+)
+```

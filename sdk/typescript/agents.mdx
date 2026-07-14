@@ -1,0 +1,336 @@
+---
+title: "TypeScript SDK Agents — List, Create, Update, and Delete"
+sidebarTitle: "Agents"
+description: "TypeScript SDK reference for the agents resource — list, create, retrieve, update, soft-delete, and retrieve eval specs using overmind-lab."
+---
+
+The `client.agents` resource gives you full CRUD access to Overmind agents, plus a dedicated endpoint for fetching an agent's evaluation specification. Each method maps to a REST endpoint under `/api/agents/` and returns a fully typed response object.
+
+---
+
+## `client.agents.list()`
+
+**Signature:** `client.agents.list(query?, options?) -> Promise<AgentListResponse>`
+
+**Endpoint:** `GET /api/agents/`
+
+Returns a paginated list of agents visible to the authenticated user. All query parameters are optional — omit them to retrieve all agents.
+
+### Query parameters
+
+<ParamField query="model" type="string">
+  Filter by the model identifier associated with the agent.
+</ParamField>
+
+<ParamField query="name" type="string">
+  Filter by exact agent name.
+</ParamField>
+
+<ParamField query="ordering" type="string">
+  Field name to sort by. Prefix with `-` for descending order (e.g. `-created_at`).
+</ParamField>
+
+<ParamField query="page" type="number">
+  Page number within the paginated result set.
+</ParamField>
+
+<ParamField query="project" type="string" format="uuid">
+  Filter agents belonging to a specific project UUID.
+</ParamField>
+
+<ParamField query="search" type="string">
+  Full-text search term applied across agent fields.
+</ParamField>
+
+<ParamField query="slug" type="string">
+  Filter by exact agent slug.
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by agent status string.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+// List all agents
+const agents = await client.agents.list();
+console.log(agents.count);
+console.log(agents.results[0].id);
+
+// Filter to a specific project
+const filtered = await client.agents.list({
+  project: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  ordering: '-created_at',
+});
+console.log(filtered.results);
+```
+
+---
+
+## `client.agents.create()`
+
+**Signature:** `client.agents.create(body, options?) -> Promise<AgentCreateResponse>`
+
+**Endpoint:** `POST /api/agents/`
+
+Creates a new agent. `name`, `project`, and `slug` are required; all other fields are optional.
+
+### Body parameters
+
+<ParamField body="name" type="string" required>
+  Human-readable agent name. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="project" type="string" required format="uuid">
+  UUID of the project that owns this agent.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  URL-safe identifier for the agent. Between 1 and 255 characters. Must be unique within the project.
+</ParamField>
+
+<ParamField body="display_name" type="string">
+  Human-friendly display name shown in the Overmind UI. Up to 512 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Free-text description of what the agent does.
+</ParamField>
+
+<ParamField body="agent_path" type="string">
+  File path or module path to the agent's entry point. Up to 512 characters.
+</ParamField>
+
+<ParamField body="analyzer_model" type="string">
+  Model identifier used by the Overmind analyzer for this agent. Up to 128 characters.
+</ParamField>
+
+<ParamField body="model" type="string">
+  Primary LLM model identifier for the agent. Up to 128 characters.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Agent lifecycle status (e.g. `active`, `archived`). Between 1 and 20 characters.
+</ParamField>
+
+<ParamField body="policy_markdown" type="string">
+  Markdown-formatted policy document governing the agent's behaviour.
+</ParamField>
+
+<ParamField body="active_dataset" type="string | null" format="uuid">
+  UUID of the dataset currently active for this agent.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const agent = await client.agents.create({
+  name: 'customer-support-agent',
+  project: '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+  slug: 'customer-support-agent',
+  display_name: 'Customer Support Agent',
+  description: 'Handles tier-1 customer support queries.',
+  model: 'gpt-4o',
+  analyzer_model: 'gpt-4o-mini',
+  status: 'active',
+});
+
+console.log(agent.id);
+console.log(agent.created_at);
+```
+
+---
+
+## `client.agents.retrieve()`
+
+**Signature:** `client.agents.retrieve(id: string, options?) -> Promise<AgentRetrieveResponse>`
+
+**Endpoint:** `GET /api/agents/{id}/`
+
+Fetches a single agent by its UUID. The response includes the full set of agent fields including any associated metadata.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the agent to retrieve.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const agent = await client.agents.retrieve('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log(agent.id);
+console.log(agent.name);
+console.log(agent.status);
+console.log(agent.active_dataset);
+```
+
+---
+
+## `client.agents.update()`
+
+**Signature:** `client.agents.update(id: string, body?, options?) -> Promise<AgentUpdateResponse>`
+
+**Endpoint:** `PATCH /api/agents/{id}/`
+
+Partially updates an agent. All body fields are optional — only the fields you provide are updated.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the agent to update.
+</ParamField>
+
+### Body parameters
+
+<ParamField body="name" type="string">
+  Updated agent name. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="slug" type="string">
+  Updated slug. Between 1 and 255 characters.
+</ParamField>
+
+<ParamField body="display_name" type="string">
+  Updated display name. Up to 512 characters.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Updated free-text description.
+</ParamField>
+
+<ParamField body="agent_path" type="string">
+  Updated agent entry-point path. Up to 512 characters.
+</ParamField>
+
+<ParamField body="analyzer_model" type="string">
+  Updated analyzer model identifier. Up to 128 characters.
+</ParamField>
+
+<ParamField body="model" type="string">
+  Updated primary LLM model identifier. Up to 128 characters.
+</ParamField>
+
+<ParamField body="status" type="string">
+  Updated status string. Between 1 and 20 characters.
+</ParamField>
+
+<ParamField body="policy_markdown" type="string">
+  Updated policy document in Markdown.
+</ParamField>
+
+<ParamField body="active_dataset" type="string | null" format="uuid">
+  UUID of the dataset to set as active, or `null` to clear.
+</ParamField>
+
+<ParamField body="project" type="string" format="uuid">
+  UUID of the project to reassign the agent to.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const agent = await client.agents.update('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e', {
+  status: 'active',
+  model: 'gpt-4o',
+  policy_markdown: '## Updated policy\n\nAlways respond in English.',
+});
+
+console.log(agent.id);
+console.log(agent.updated_at);
+```
+
+---
+
+## `client.agents.delete()`
+
+**Signature:** `client.agents.delete(id: string, options?) -> Promise<void>`
+
+**Endpoint:** `DELETE /api/agents/{id}/`
+
+<Note>
+  This is a **soft-delete** — it sets `is_deleted: true` on the agent record rather than permanently removing it. The agent can be recovered programmatically by updating `is_deleted` back to `false` via `client.agents.update()`.
+</Note>
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the agent to soft-delete.
+</ParamField>
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+await client.agents.delete('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log('Agent soft-deleted successfully.');
+```
+
+---
+
+## `client.agents.retrieveEvalSpec()`
+
+**Signature:** `client.agents.retrieveEvalSpec(id: string, options?) -> Promise<AgentRetrieveEvalSpecResponse>`
+
+**Endpoint:** `GET /api/agents/{id}/eval_spec/`
+
+Returns the evaluation specification for an agent. The eval spec defines the scoring schema that Overmind uses when running optimization jobs — including fixed and optimizable elements, tool configuration, weighting, and the input/output schemas.
+
+### Path parameters
+
+<ParamField path="id" type="string" required format="uuid">
+  UUID of the agent whose eval spec to retrieve.
+</ParamField>
+
+### Response fields
+
+| Field                  | Type     | Description                                          |
+|------------------------|----------|------------------------------------------------------|
+| `agent_description`    | `string` | Human-readable description of the agent.             |
+| `agent_path`           | `string` | Entry-point path for the agent.                      |
+| `consistency_rules`    | `unknown`| Rules enforcing output consistency.                  |
+| `fixed_elements`       | `unknown`| Elements of the agent that must not be changed.      |
+| `input_schema`         | `unknown`| JSON schema for expected agent inputs.               |
+| `optimizable_elements` | `unknown`| Elements eligible for automated optimization.        |
+| `output_fields`        | `unknown`| Definitions of the agent's output fields.            |
+| `structure_weight`     | `number` | Weight assigned to structural scoring dimension.     |
+| `tool_config`          | `unknown`| Tool use configuration.                              |
+| `tool_usage_weight`    | `number` | Weight assigned to tool-usage scoring dimension.     |
+| `total_points`         | `number` | Total scoring points available for this eval spec.   |
+
+### Example
+
+```typescript
+import OvermindLab from 'overmind-lab';
+
+const client = new OvermindLab();
+
+const evalSpec = await client.agents.retrieveEvalSpec('182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e');
+
+console.log(evalSpec.agent_description);
+console.log(evalSpec.total_points);
+console.log(evalSpec.structure_weight);
+console.log(evalSpec.tool_usage_weight);
+```

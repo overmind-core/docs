@@ -1,0 +1,81 @@
+---
+title: "Overmind: Autonomous AI Agent Optimization Platform"
+sidebarTitle: "Home"
+description: "Overmind automatically improves your production AI agents — better prompts, better tools, better models — with regression-safe optimization loops."
+---
+
+Overmind is an autonomous optimization platform for production AI agents. Point it at your agent code, and it runs structured loops that diagnose failures, generate candidate code fixes, and keep only the changes that measurably improve outcomes — without breaking what already works.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="bolt" href="/docs/quickstart">
+    Install Overmind and run your first optimization in 10 minutes
+  </Card>
+  <Card title="Platform Overview" icon="map" href="/docs/platform-overview">
+    Learn how the Optimizer, Tracing SDKs, and Fine-tuning fit together
+  </Card>
+  <Card title="Optimizer Reference" icon="gears" href="/docs/optimizer/how-it-works">
+    Deep dive into policies, the optimization loop, and safeguards
+  </Card>
+  <Card title="Tracing" icon="chart-line" href="/docs/tracing/overview">
+    Instrument your LLM stack with zero code changes
+  </Card>
+</CardGroup>
+
+## How it works
+
+Overmind improves agents by running structured optimization loops driven by your own policy and test data.
+
+<Steps>
+  <Step title="Register your agent">
+    Run `/overmind-register-agent` in Cursor or Claude Code. Overmind reads your code, identifies the entrypoint, and registers the agent in the console.
+  </Step>
+  <Step title="Generate policy, spec & dataset">
+    Run `/overmind-generate-spec-and-dataset`. Overmind infers (or imports) a policy document, builds scoring criteria, and creates a test dataset — all in one pass.
+  </Step>
+  <Step title="Optimize">
+    Run `/overmind-optimize-agent`. Overmind evaluates every test case, diagnoses failures, generates candidate code fixes, and accepts only changes that pass regression checks.
+  </Step>
+  <Step title="Review results">
+    View score history, traces, improvement reports, and diffs at [console.overmindlab.ai](https://console.overmindlab.ai/agents).
+  </Step>
+</Steps>
+
+## Key capabilities
+
+<CardGroup cols={3}>
+  <Card title="Policy-Driven" icon="shield-check">
+    Optimization respects your business rules — not just metric scores
+  </Card>
+  <Card title="Full-Stack Fixes" icon="layer-group">
+    Modifies prompts, tool descriptions, model selection, and agent logic together
+  </Card>
+  <Card title="Regression-Safe" icon="circle-check">
+    Rejects candidates that improve averages but harm individual test cases
+  </Card>
+  <Card title="Automatic Tracing" icon="satellite-dish">
+    Zero-code-change instrumentation for OpenAI, Anthropic, Gemini, and Agno
+  </Card>
+  <Card title="IDE-Native Workflow" icon="terminal">
+    Three slash commands in Cursor or Claude Code drive the entire workflow
+  </Card>
+  <Card title="Multi-File Agents" icon="folder-tree">
+    Resolves import graphs and applies targeted per-file edits
+  </Card>
+</CardGroup>
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Agent Skills" icon="wand-magic-sparkles" href="/docs/optimizer/agent-skills">
+    Use slash commands to register, configure, and optimize agents from your IDE
+  </Card>
+  <Card title="Python Tracing SDK" icon="python" href="/docs/tracing/python-sdk">
+    Full reference for `init()`, decorators, custom spans, and context helpers
+  </Card>
+  <Card title="JS/TS Tracing SDK" icon="js" href="/docs/tracing/js-sdk">
+    Instrument OpenAI, Anthropic, and Gemini with one `initTracing()` call
+  </Card>
+  <Card title="REST API Reference" icon="code" href="/api-reference/overview">
+    Browse all public endpoints for agents, jobs, datasets, traces, and projects
+  </Card>
+</CardGroup>

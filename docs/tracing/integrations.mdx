@@ -1,0 +1,94 @@
+---
+title: "Overmind Integrations — Supported LLM Providers and OTLP"
+sidebarTitle: "Integrations"
+description: "Overmind supports OpenAI, Anthropic, Google Gemini, and Agno via auto-instrumentation. Send traces from any language using the OTLP HTTP endpoint."
+---
+
+Overmind auto-instruments your LLM provider calls in Python and JavaScript/TypeScript — no changes to your existing code are required. Call `init()` (Python) or `initTracing()` (JS/TS) once at startup and every subsequent call to a supported provider is captured, attributed, and exported to your Overmind dashboard. For languages outside the native SDKs, Overmind accepts standard OpenTelemetry trace data at its OTLP HTTP endpoint, so any OpenTelemetry-compatible SDK can send traces directly.
+
+---
+
+## Python providers
+
+The Python SDK supports the following LLM providers:
+
+| Provider | Supported |
+|---|:---:|
+| OpenAI | ✓ |
+| Anthropic | ✓ |
+| Google Gemini | ✓ |
+| Agno | ✓ |
+
+Call `overmind.init()` once at startup with the providers you use. Your existing LLM client code stays unchanged — no import swaps, no proxy routing:
+
+```python
+from overmind import init
+
+init(service_name="my-service", providers=["openai", "anthropic"])
+```
+
+Pass an empty `providers` list or omit the parameter entirely to auto-detect and instrument all installed providers.
+
+---
+
+## JavaScript / TypeScript providers
+
+The JS/TS SDK supports the following providers via `initTracing()`:
+
+| Provider | `enabledProviders` key | npm package |
+|---|---|---|
+| OpenAI | `openai: OpenAI` | `openai` |
+| Anthropic | `anthropic: Anthropic` | `@anthropic-ai/sdk` |
+| Google Gemini | `googleGenAI: GoogleGenAI` | `@google/genai` |
+
+Pass the imported provider module to `initTracing({ enabledProviders: { ... } })`. Your existing LLM call sites work unchanged.
+
+---
+
+## Frameworks
+
+| Framework | Status | Notes |
+|---|---|---|
+| Agno | Supported | Traces agent runs, tool calls, and reasoning steps |
+| OpenAI Agents SDK | Supported | Traces agent tool calls and reasoning steps |
+
+---
+
+## What gets captured per provider
+
+### Python
+
+After `init()`, the Python SDK uses OpenTelemetry auto-instrumentation to capture the following for each provider:
+
+- **OpenAI** — all chat completion, response, and embedding calls, including prompts, completions, model parameters, token usage, latency, and errors
+- **Anthropic** — all message calls, including input messages, output content, model parameters, token usage, latency, and errors
+- **Google Gemini** — all `generate_content` calls, including contents, model parameters, token usage, latency, and errors
+- **Agno** — agent runs, tool calls, and model interactions, including reasoning steps and sub-agent spans
+
+### JavaScript / TypeScript
+
+After `initTracing()`, the JS/TS SDK captures the following for each provider:
+
+- **OpenAI** — chat completions, completions, and image generation calls, including prompts, completions, model name, temperature, top-p, max tokens, token usage, latency, and errors
+- **Anthropic** — all message calls, including messages, model parameters, token usage, latency, and errors
+- **Google Gemini** — all `generateContent` and streaming calls, including contents, model parameters, token usage, latency, and errors
+
+---
+
+## OTLP endpoint
+
+If you are not using Python or JavaScript, you can send traces to Overmind directly using any OpenTelemetry SDK — Go, Java, Ruby, .NET, and more. Configure your SDK's OTLP exporter to use the following endpoint and headers:
+
+```
+POST https://api.overmindlab.ai/api/v1/traces
+X-Api-Key: ovr_your_token_here
+Content-Type: application/x-protobuf
+```
+
+The endpoint accepts standard OpenTelemetry OTLP trace data in protobuf format. Any OpenTelemetry SDK that supports OTLP HTTP export can send traces to Overmind this way.
+
+---
+
+<Note>
+  Don't see the integration you need? Reach out to [support@overmindlab.ai](mailto:support@overmindlab.ai) to request support for additional providers or frameworks.
+</Note>

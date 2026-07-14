@@ -1,0 +1,139 @@
+---
+title: "Agent Skills: IDE Slash Commands for Agent Optimization"
+sidebarTitle: "Agent Skills"
+description: "Run the full Overmind workflow using three slash commands in Cursor or Claude Code — register, spec, and optimize your agent without leaving your editor."
+---
+
+Agent Skills are slash commands that run directly in your Cursor or Claude Code chat panel. They give you the complete Overmind workflow — registering your agent, generating a policy and dataset, and running the full optimization loop — without leaving your editor. Install Overmind once, run `overmind init` to set up your project, and then three commands take you from source code to optimized agent.
+
+## Prerequisites
+
+Install Overmind and initialize your project from your agent's root directory:
+
+```bash
+pip install overmind
+overmind init
+```
+
+`overmind init` creates the `.overmind/` configuration directory, collects your API keys, sets your analyzer model, and installs the Agent Skills into your IDE. It asks which platform you're using and places the skill files in the right location:
+
+| Platform | Skills location |
+|---|---|
+| Cursor | `.cursor/skills/` |
+| Claude Code | `.claude/skills/` |
+
+You can re-run `overmind init` at any time to update the skills to the latest version.
+
+## The three skills
+
+The following three skills cover the full workflow in order. Run them in sequence — each one builds on the output of the previous step.
+
+<Steps>
+  <Step title="/overmind-register-agent path/to/your/agent.py">
+    Type the following in your Cursor or Claude Code chat panel:
+
+    ```
+    /overmind-register-agent path/to/your/agent.py
+    ```
+
+    The assistant reads your agent source to understand its interface, then guides you through registration. It will:
+
+    - Ask whether you already have an Overmind-compatible entrypoint or need one created
+    - Confirm the agent name (defaults to the parent folder name)
+    - Ask which LLM provider your agent uses, so it can scaffold environment variable placeholders
+    - Run registration against the Overmind backend and verify it with a smoke check
+
+    If you already have a dataset, the assistant reconciles field names with your codebase before finalizing registration. Registered agents are stored in `.overmind/agents.toml`.
+  </Step>
+  <Step title="/overmind-generate-spec-and-dataset my-agent">
+    Once your agent is registered, type:
+
+    ```
+    /overmind-generate-spec-and-dataset my-agent
+    ```
+
+    The assistant analyzes your agent code to determine input/output fields and the tools it uses, then works through the following in a single pass:
+
+    1. **Policy** — Generates or imports a policy document describing what correct behavior looks like. If you have an existing policy, provide the path and the assistant uses it; otherwise it infers one from your code. Either way, you refine the policy in a conversational loop before approving it.
+    2. **Eval spec** — Builds a machine-readable evaluation spec with scoring criteria, weights, and domain rules — all derived from the policy.
+    3. **Dataset** — Generates a synthetic test dataset from the policy and agent description, or imports your existing data if you provide a path.
+
+    A preview of the policy and eval spec is shown before anything is saved. You can edit either before confirming. Once approved, all three artifacts are pushed to the Overmind backend and are immediately visible at [console.overmindlab.ai/agents](https://console.overmindlab.ai/agents).
+
+    <Note>
+      The dataset is versioned in the console. Each run of `/overmind-generate-spec-and-dataset` creates a new dataset version. The active version is what the optimizer uses during the next optimization run.
+    </Note>
+  </Step>
+  <Step title="/overmind-optimize-agent my-agent">
+    With your agent registered and its spec and dataset in place, start the full optimization loop:
+
+    ```
+    /overmind-optimize-agent my-agent
+    ```
+
+    The assistant runs the complete optimization pipeline end to end — evaluating your agent on the dataset, generating parallel candidate code edits in git worktrees, scoring each candidate, and applying regression-aware acceptance. You can stick with the defaults or adjust settings (number of iterations, candidates per round, early stopping patience) before the loop starts. Results are pushed to the console as each iteration completes.
+  </Step>
+</Steps>
+
+## Review results
+
+After optimization, navigate to [console.overmindlab.ai/agents](https://console.overmindlab.ai/agents) and select your agent to review the following artifacts:
+
+| Artifact | Description |
+|---|---|
+| **Policy** | Agent policy document (human-editable) |
+| **Evaluation spec** | Machine-readable scoring criteria |
+| **Dataset** | Test dataset used for optimization |
+| **Best agent** | The highest-scoring agent version |
+| **Score history** | Score per iteration |
+| **Traces** | Detailed traces of every agent run |
+| **Report** | Summary with scores, improvements, and diffs |
+
+Each optimization job shows the baseline score, the best score achieved, and a full iteration log with descriptions of every accepted and rejected change. You can edit the policy or eval spec from the console and re-run `/overmind-optimize-agent` to continue improving from where you left off.
+
+## Using your own data
+
+When `/overmind-generate-spec-and-dataset` asks whether you have existing data, provide the path to your JSON file. The expected format is a JSON array where each element has an `input` and an `expected_output`:
+
+```json
+[
+  {
+    "input": {
+      "company_name": "Acme Corp",
+      "inquiry": "Need enterprise pricing for our sales team"
+    },
+    "expected_output": {
+      "category": "hot",
+      "lead_score": 85
+    }
+  }
+]
+```
+
+10–50 diverse cases is typically enough. If you don't have data yet, the skill generates synthetic cases from your policy and agent description — no data required to get started.
+
+## Full workflow diagram
+
+The complete Overmind workflow from installation to results:
+
+```
+1. pip install overmind && overmind init             (terminal — one time per project)
+     │
+     ▼
+2. /overmind-register-agent path/to/agent.py         (Cursor / Claude Code chat)
+     │
+     ▼
+3. /overmind-generate-spec-and-dataset my-agent      (Cursor / Claude Code chat)
+     │
+     ▼
+4. /overmind-optimize-agent my-agent                 (Cursor / Claude Code chat)
+     │
+     ▼
+   console.overmindlab.ai/agents                     (view results)
+```
+
+All commands run from the directory that contains `.overmind/`.
+
+<Note>
+  The skill files installed by `overmind init` are plain Markdown files. You can open and edit them directly to customize how the AI agent handles a specific step. Find them at `.cursor/skills/<skill-name>/SKILL.md` for Cursor, or `.claude/skills/<skill-name>/SKILL.md` for Claude Code.
+</Note>

@@ -1,0 +1,304 @@
+---
+title: "Overmind Python API Library — Installation and Usage"
+sidebarTitle: "Overview"
+description: "Install and configure overmind_lab, the Python REST client for Overmind, with sync and async clients, automatic retries, and Pydantic models."
+---
+
+`overmind_lab` is a type-safe Python client for the Overmind REST API. It supports Python 3.9 and above, provides both synchronous and asynchronous clients powered by [httpx](https://github.com/encode/httpx), and is generated with [Stainless](https://www.stainless.com/) for full type coverage across all request parameters and response fields.
+
+<Note>
+  This is the programmatic REST API library (`overmind_lab`). If you want to instrument your LLM calls and send traces to Overmind, see the [Python Tracing SDK](/docs/tracing/python-sdk) instead.
+</Note>
+
+## Installation
+
+Install the library from the staging repository:
+
+```bash
+pip install git+ssh://git@github.com/stainless-sdks/overmind-lab-python.git
+```
+
+<Note>
+  Once the package is published to PyPI, installation will simplify to `pip install overmind_lab`.
+</Note>
+
+## Basic usage
+
+Instantiate the synchronous `OvermindLab` client and call any resource method directly:
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab(
+    # defaults to "production"
+    environment="environment_1",
+)
+
+response = client.auth.retrieve_current_user()
+print(response.id)
+```
+
+## Async usage
+
+Import `AsyncOvermindLab` and use `await` with each API call. The async client is otherwise identical to the synchronous one:
+
+```python
+import asyncio
+from overmind_lab import AsyncOvermindLab
+
+client = AsyncOvermindLab(
+    # defaults to "production"
+    environment="environment_1",
+)
+
+async def main() -> None:
+    response = await client.auth.retrieve_current_user()
+    print(response.id)
+
+asyncio.run(main())
+```
+
+### With aiohttp
+
+By default, the async client uses `httpx`. For improved concurrency performance you can switch to `aiohttp` as the HTTP backend. Install the extra first:
+
+```bash
+pip install 'overmind_lab[aiohttp] @ git+ssh://git@github.com/stainless-sdks/overmind-lab-python.git'
+```
+
+Then pass `DefaultAioHttpClient()` when constructing the client:
+
+```python
+import asyncio
+from overmind_lab import AsyncOvermindLab, DefaultAioHttpClient
+
+async def main() -> None:
+    async with AsyncOvermindLab(
+        http_client=DefaultAioHttpClient(),
+    ) as client:
+        response = await client.auth.retrieve_current_user()
+        print(response.id)
+
+asyncio.run(main())
+```
+
+## Authentication
+
+Pass your API key directly to the constructor, or set the `OVERMIND_LAB_API_KEY` environment variable and the client will pick it up automatically:
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab(api_key="My API Key")
+```
+
+We recommend storing your key in a `.env` file and loading it with [python-dotenv](https://pypi.org/project/python-dotenv/) so it never ends up in source control:
+
+```bash
+# .env
+OVERMIND_LAB_API_KEY="My API Key"
+```
+
+```python
+from dotenv import load_dotenv
+from overmind_lab import OvermindLab
+
+load_dotenv()
+client = OvermindLab()  # reads OVERMIND_LAB_API_KEY from the environment
+```
+
+## Response types
+
+All responses are [Pydantic models](https://docs.pydantic.dev), which gives you autocomplete, editor type-checking, and helper methods:
+
+- **`.to_json()`** — serialize the response back to a JSON string
+- **`.to_dict()`** — convert the response to a plain Python dictionary
+- **`.model_fields_set`** — distinguish an explicitly `null` field from a field that was absent entirely
+
+```python
+response = client.agents.retrieve("182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e")
+
+if response.description is None:
+    if "description" not in response.model_fields_set:
+        print('Field was absent from the JSON response entirely.')
+    else:
+        print('Field was present and explicitly set to null.')
+```
+
+To enable inline type errors in VS Code, set `python.analysis.typeCheckingMode` to `basic`.
+
+## Error handling
+
+The client raises exceptions from the `overmind_lab` error hierarchy whenever something goes wrong:
+
+| Status code | Exception class |
+|-------------|----------------|
+| 400 | `BadRequestError` |
+| 401 | `AuthenticationError` |
+| 403 | `PermissionDeniedError` |
+| 404 | `NotFoundError` |
+| 422 | `UnprocessableEntityError` |
+| 429 | `RateLimitError` |
+| ≥500 | `InternalServerError` |
+| N/A | `APIConnectionError` |
+
+All exceptions inherit from `overmind_lab.APIError`. Network failures raise a subclass of `overmind_lab.APIConnectionError`; non-2xx HTTP responses raise a subclass of `overmind_lab.APIStatusError`, which exposes `status_code` and `response` properties.
+
+```python
+import overmind_lab
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+try:
+    client.agents.create(
+        name="x",
+        project="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+        slug="slug",
+    )
+except overmind_lab.APIConnectionError as e:
+    print("The server could not be reached")
+    print(e.__cause__)  # the underlying httpx exception
+except overmind_lab.RateLimitError as e:
+    print("Rate limited — back off and retry.")
+except overmind_lab.APIStatusError as e:
+    print("Non-2xx response received")
+    print(e.status_code)
+    print(e.response)
+```
+
+## Retries
+
+The client automatically retries failed requests **2 times** by default, using exponential backoff. The following error types trigger a retry:
+
+- Connection errors
+- `408 Request Timeout`
+- `409 Conflict`
+- `429 Rate Limit`
+- `>=500` server errors
+
+Use `max_retries` to adjust or disable retries globally or per request:
+
+```python
+from overmind_lab import OvermindLab
+
+# Disable retries globally
+client = OvermindLab(max_retries=0)
+
+# Override retries for a single request
+client.with_options(max_retries=5).agents.create(
+    name="x",
+    project="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    slug="slug",
+)
+```
+
+## Timeouts
+
+Requests time out after **1 minute** by default. Pass a float (seconds) or an `httpx.Timeout` object to `timeout`:
+
+```python
+import httpx
+from overmind_lab import OvermindLab
+
+# Simple global timeout
+client = OvermindLab(timeout=20.0)
+
+# Fine-grained control
+client = OvermindLab(
+    timeout=httpx.Timeout(60.0, read=5.0, write=10.0, connect=2.0),
+)
+
+# Per-request override
+client.with_options(timeout=5.0).agents.create(
+    name="x",
+    project="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    slug="slug",
+)
+```
+
+Requests that time out raise `APITimeoutError` and are retried twice by default.
+
+## Raw responses
+
+Prefix any method call with `.with_raw_response.` to get the underlying `APIResponse` object, which gives you access to response headers before the body is parsed:
+
+```python
+from overmind_lab import OvermindLab
+
+client = OvermindLab()
+
+raw = client.agents.with_raw_response.create(
+    name="x",
+    project="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    slug="slug",
+)
+print(raw.headers.get("X-My-Header"))
+
+agent = raw.parse()  # returns the same AgentCreateResponse you'd get normally
+print(agent.id)
+```
+
+Use `.with_streaming_response` when you need to stream the body rather than reading it all at once. The context manager ensures the connection is closed reliably:
+
+```python
+with client.agents.with_streaming_response.create(
+    name="x",
+    project="182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e",
+    slug="slug",
+) as response:
+    print(response.headers.get("X-My-Header"))
+    for line in response.iter_lines():
+        print(line)
+```
+
+## Logging
+
+Set the `OVERMIND_LAB_LOG` environment variable to enable logging via the standard library `logging` module:
+
+```bash
+# info-level logs
+export OVERMIND_LAB_LOG=info
+
+# verbose debug logs
+export OVERMIND_LAB_LOG=debug
+```
+
+## Advanced
+
+### Custom HTTP client
+
+Override the underlying `httpx` client to configure proxies, custom transports, or any other advanced option:
+
+```python
+import httpx
+from overmind_lab import OvermindLab, DefaultHttpxClient
+
+client = OvermindLab(
+    base_url="http://my.test.server.example.com:8083",
+    http_client=DefaultHttpxClient(
+        proxy="http://my.test.proxy.example.com",
+        transport=httpx.HTTPTransport(local_address="0.0.0.0"),
+    ),
+)
+```
+
+You can also override the HTTP client on a per-request basis:
+
+```python
+client.with_options(http_client=DefaultHttpxClient(...))
+```
+
+### Managing HTTP connections
+
+By default the client closes its underlying HTTP connections when it is garbage-collected. Close the client explicitly with `.close()`, or use it as a context manager:
+
+```python
+from overmind_lab import OvermindLab
+
+with OvermindLab() as client:
+    # make requests here
+    ...
+
+# HTTP connections are now closed
+```

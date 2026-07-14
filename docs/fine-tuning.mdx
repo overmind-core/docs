@@ -1,0 +1,65 @@
+---
+title: "Fine-tune Private AI Models with Overmind — Beta Guide"
+sidebarTitle: "Fine-tuning"
+description: "Overmind fine-tuning trains private models on your production traces. Currently in beta — learn how to get access and the recommended setup path."
+---
+
+Overmind fine-tuning trains private models directly on your production traces and evaluation workflows. This gives your agents a model that reflects your real workloads — not generic benchmarks. Fine-tuning is **currently in beta** and is not available for self-serve use.
+
+## Availability
+
+<Warning>
+  Fine-tuning is in private beta and requires manual access approval. Contact
+  [support@overmindlab.ai](mailto:support@overmindlab.ai) to discuss access for
+  your team.
+</Warning>
+
+## What fine-tuning offers
+
+Fine-tuning your agents with Overmind gives you:
+
+- **Private model customization** — models trained exclusively on your data, never shared across tenants
+- **Production-grounded training** — training corpus is built from your real production traces, not synthetic or generic data
+- **Eval workflow integration** — fine-tuning plugs directly into your existing Overmind eval setup, so you can measure improvement without rebuilding your pipeline
+
+## Recommended path
+
+Follow these steps to set yourself up for a successful fine-tuning engagement.
+
+<Steps>
+  <Step title="Enable tracing in production">
+    Instrument your agent to emit traces before requesting fine-tuning access.
+    Fine-tuning quality depends directly on the volume and quality of captured
+    traces. See the [Tracing Overview](/docs/tracing/overview) to get started.
+  </Step>
+  <Step title="Optimize critical flows with the Overmind Optimizer">
+    Run the Optimizer on your most important agent workflows to generate
+    high-quality iteration data. This data forms part of the training corpus for
+    fine-tuning. See [How the Optimizer Works](/docs/optimizer/how-it-works) for
+    details.
+  </Step>
+  <Step title="Contact us to discuss fine-tuning beta access">
+    Once you have tracing enabled and at least one optimization job complete,
+    reach out to [support@overmindlab.ai](mailto:support@overmindlab.ai). Include
+    a brief description of your use case and the agent flows you want to
+    fine-tune.
+  </Step>
+</Steps>
+
+## Related guides
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" href="/docs/quickstart">
+    Install Overmind and run your first optimization in 10 minutes.
+  </Card>
+  <Card title="Optimizer: How It Works" href="/docs/optimizer/how-it-works">
+    Understand policies, safeguards, and the output artifacts the Optimizer
+    produces.
+  </Card>
+  <Card title="Tracing Overview" href="/docs/tracing/overview">
+    Learn how to capture production LLM traces with Overmind.
+  </Card>
+  <Card title="Python Tracing SDK" href="/docs/tracing/python-sdk">
+    Reference docs for the Overmind Python tracing SDK.
+  </Card>
+</CardGroup>

@@ -1,0 +1,99 @@
+---
+title: "Overmind Platform Overview: Optimizer, Tracing & Fine-tuning"
+sidebarTitle: "Platform Overview"
+description: "An overview of all Overmind products: the Optimizer for autonomous agent improvement, Tracing SDKs for LLM observability, and Fine-tuning (beta)."
+---
+
+Overmind is made up of three products that work together: the **Optimizer**, which autonomously improves your Python agents through structured iteration loops; the **Tracing SDKs** for Python and JavaScript/TypeScript, which instrument your LLM stack and feed production telemetry back into the optimizer; and **Fine-tuning (Beta)**, which trains private models on your accumulated traces and evaluation data. You can use them independently or together — most teams start with tracing or the optimizer and add fine-tuning later.
+
+## Overmind Optimizer
+
+The Overmind Optimizer autonomously improves Python agents that run on real, structured data. It runs structured optimization loops — executing your agent on a test dataset, scoring outputs against an evaluation spec, diagnosing failures with a reasoning model, and generating candidate code fixes — and keeps only the changes that measurably improve outcomes. The optimizer works at the source-code level, so it is compatible with any Python agentic framework:
+
+- LangChain
+- LlamaIndex
+- Agno
+- CrewAI
+- AutoGen
+- OpenAI Agents SDK
+- Plain Python
+
+You drive the full workflow through **Agent Skills** — slash commands you run directly in the Cursor or Claude Code AI chat panel. Run `overmind init` once to install the skills into your IDE, then use them in order:
+
+```bash
+/overmind-register-agent path/to/your/agent.py
+/overmind-generate-spec-and-dataset my-agent
+/overmind-optimize-agent my-agent
+```
+
+### What gets optimized
+
+The optimizer can modify any of the following in a single run:
+
+- **Prompts and instructions** — more precise system prompts, better output format enforcement, improved few-shot examples
+- **Tool descriptions** — clearer parameter definitions, better usage guidance, improved error handling
+- **Model selection** — finding the right quality/cost tradeoff per task
+- **Agent logic** — tool-call ordering, retry strategies, iteration limits, output parsing, and orchestration control flow
+- **Policy compliance** — alignment with your domain rules, edge-case handling, and consistency constraints
+
+### How Overmind compares to other approaches
+
+| Approach | Limitation | Overmind |
+| --- | --- | --- |
+| Manual prompt tuning | Slow, subjective, doesn't scale, no systematic regression checks | Automated diagnosis and codegen with regression-aware acceptance |
+| Generic prompt optimizers (DSPy, etc.) | Optimize prompts in isolation, ignore tool use and agent logic | Optimizes prompts, tools, code, and model selection together |
+| Eval-only / observability frameworks (Braintrust, LangSmith, generic LLM trace platforms) | Show traces and slow runs; tell you _what's wrong_ but not how to fix it; the engineer is still in the inner loop | Diagnoses failures and generates concrete code fixes autonomously; engineer reviews the diff and report, not each run |
+| Fine-tuning | Requires large datasets, expensive, loses generality | Works with small test sets (10–50 cases), keeps the agent's flexibility |
+| Manual A/B testing | Time-consuming, requires infrastructure | Automated best-of-N candidate evaluation with statistical safeguards |
+
+## Tracing SDKs
+
+The Overmind Tracing SDKs for Python and JavaScript/TypeScript instrument your LLM stack and send telemetry to Overmind. Tracing feeds the optimizer with real production signal and provides standalone visibility into how your application behaves at runtime — independently of whether you're running optimization.
+
+Call `init()` (Python) or `initTracing()` (JS/TS) once at startup and every supported LLM call is captured automatically with **zero code changes** to your existing provider calls. What gets captured on each call:
+
+- Model name and request parameters (temperature, top-p, max tokens)
+- Full prompt inputs and completion outputs, including tool calls
+- Token usage — input, output, and total
+- Latency
+- Errors and exceptions
+
+On top of automatic provider instrumentation, the Python SDK provides decorators (`@entry_point`, `@workflow`, `@tool`, `@observe`) and a `start_span()` context manager so you can trace your own functions, tools, and multi-step workflows — turning a flat list of LLM calls into a structured, readable trace tree.
+
+<CardGroup cols={2}>
+  <Card title="Python SDK Reference" icon="python" href="/docs/tracing/python-sdk">
+    Full parameter tables for `init()`, every decorator and span helper, `set_user()`, `set_tag()`, `capture_exception()`, and `PromptString`.
+  </Card>
+  <Card title="JS/TS SDK Reference" icon="js" href="/docs/tracing/js-sdk">
+    JavaScript and TypeScript tracing — supported providers, batching, environment variables, and shutdown patterns.
+  </Card>
+</CardGroup>
+
+## Fine-tuning (Beta)
+
+Overmind Fine-tuning trains private models on your production traces and evaluation workflows. Rather than using a generic base model, fine-tuning lets you create a model customized to your agent's specific domain, inputs, and expected outputs — using the traces and scored examples you've already accumulated through the optimizer and tracing.
+
+<Note>
+  Fine-tuning is **currently in beta** and is not available for self-serve use. The recommended path is to enable tracing in production first, optimize your critical flows with the Optimizer, and then contact us to discuss fine-tuning access.
+
+  Reach out at [support@overmindlab.ai](mailto:support@overmindlab.ai) to discuss availability.
+</Note>
+
+See the [Fine-tuning (Beta)](/docs/fine-tuning) page for full availability details and how to get access.
+
+## Use-case examples
+
+Overmind is built for teams shipping data-backed agents with defined input/output contracts and a clear notion of "correct." Here are representative examples:
+
+- **Lead qualifier** — scores inbound sales inquiries against company size, intent signals, and CRM data
+- **Support triage router** — classifies incoming tickets and drafts initial responses across product categories
+- **Contract clause extractor** — pulls defined clause types from long legal documents with structured output
+- **Clinical coder** — converts encounter notes into ICD/CPT billing codes with policy and compliance constraints
+- **AP invoice agent** — makes payment approval decisions using policy rules and fraud signals
+- **On-call triage agent** — investigates alerts, correlates signals, and routes incidents to the right team
+- **Returns concierge** — applies return policy rules, makes eligibility decisions, and writes customer-facing copy
+- **Research-brief multi-agent** — coordinates multiple sub-agents to produce marketing or SEO research outputs
+
+<Tip>
+  If your agent runs against real data, has a defined input/output contract, and you care about regression-safe improvement over weeks and months — Overmind is built for it. If you only have a throwaway chatbot or a one-shot demo, start with [tracing](/docs/tracing/overview) and add optimization when the workflow is worth it.
+</Tip>
