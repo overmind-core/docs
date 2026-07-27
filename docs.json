@@ -49,7 +49,8 @@
       {
         "group": "Overview",
         "pages": [
-          "index"
+          "index",
+          "quickstart"
         ]
       },
       {
@@ -72,6 +73,13 @@
         "pages": [
           "models/training",
           "models/inference"
+        ]
+      },
+      {
+        "group": "Platform",
+        "pages": [
+          "platform/administration",
+          "platform/glossary"
         ]
       }
     ]
