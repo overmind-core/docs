@@ -64,6 +64,7 @@ The same evaluator can serve in both roles. A set is runnable as soon as it has 
 An eval run is a controlled experiment: **one data source × N variants × M evaluators.**
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
 flowchart LR
     DS["Data source<br/>(dataset commit or trace filter)"] --> R[Eval run]
     V1["Variant A — baseline<br/>(e.g. incumbent model)"] --> R

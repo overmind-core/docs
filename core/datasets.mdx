@@ -85,6 +85,7 @@ Fixes come in three kinds — a deterministic transform, a targeted row patch, o
 Every dataset carries a commit log from its initial seed onward. Each commit records what kind of change it was (seed, fix, restore, or manual edit), how many rows were added, removed, or modified, a compact row diff, and the score and verdict at that point — so the history doubles as a score timeline. You can compare any two commits, and restore an older state at any time. A restore mints a new commit on top rather than rewriting history, so nothing is ever lost.
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
 flowchart LR
     A[Seed] --> B[Fix: dedupe rows]
     B --> C[Edit: relabel 12 rows]

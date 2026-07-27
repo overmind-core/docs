@@ -87,17 +87,29 @@ body {
   letter-spacing: 0;
 }
 
-/* Mondwest needs a touch of negative tracking, like in the app */
-#content-area :is(h1, h2, h3, h4, h5, h6) {
-  letter-spacing: -0.015em;
-  font-weight: 400; /* single Mondwest master — never synthesize weight */
-  line-height: 1.15;
+/* Headings — NeueBit pixel display for H1–H3, on the real Bold master.
+ * Bitmap face rules: larger nominal sizes to hit the intended visual
+ * weight, positive tracking, no synthesized weights. Body text stays in
+ * PP Neue Montreal; deeper heading levels (unused in these docs) too. */
+#content-area :is(h1, h2, h3) {
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1.05;
 }
-
-/* Headings — explicit H1 size mirrors the frontend's "tighter, sharper" scale */
 #content-area h1 {
-  font-size: clamp(2.25rem, 1.6rem + 2vw, 3.25rem);
-  letter-spacing: -0.025em;
+  font-size: clamp(2.7rem, 1.9rem + 2.4vw, 4rem);
+}
+#content-area h2 {
+  font-size: 2rem;
+}
+#content-area h3 {
+  font-size: 1.6rem;
+}
+#content-area :is(h4, h5, h6) {
+  font-weight: 600; /* Montreal SemiBold master */
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 /* Content emphasis lands on the real SemiBold master */
@@ -208,87 +220,91 @@ div:has(> #navigation-items) {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
 }
 
-/* Groups — no boxes; a snug 16px rhythm between clusters */
+/* Groups — flat clusters separated by hairlines, one shared left rhythm.
+ * The eyebrow, its pixel marker, and every row start at the same 10px
+ * inset, so nothing staggers. No tree lines, no boxes. */
 #navigation-items div:has(> .sidebar-group-header) {
   margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
-  margin-bottom: 16px;
+  margin-bottom: 0;
+  padding: 14px 0;
+}
+#navigation-items div:has(> .sidebar-group-header):not(:first-of-type) {
+  border-top: 1px solid var(--om-border-light);
+}
+.dark #navigation-items div:has(> .sidebar-group-header):not(:first-of-type) {
+  border-top-color: var(--om-border-dark);
+}
+#navigation-items div:has(> .sidebar-group-header):first-of-type {
+  padding-top: 0;
 }
 
-/* Rows hang off a warm tree line under each eyebrow — terminal style */
 #navigation-items ul.sidebar-group {
-  border-left: 1px solid var(--om-border-light);
-  margin-left: 2px;
-}
-.dark #navigation-items ul.sidebar-group {
-  border-left-color: var(--om-border-dark);
+  border-left: 0;
+  margin-left: 0;
 }
 
-/* Group eyebrow — NeueBit uppercase with a copper pixel-square marker */
+/* Group eyebrow — NeueBit uppercase behind a copper pixel-square marker */
 #navigation-items .sidebar-group-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: var(--om-nav-label-size);
+  font-size: 15px;
   font-weight: 400 !important;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   line-height: 1.2;
-  color: var(--om-rust) !important;
+  color: rgb(from var(--om-rust) r g b / 0.85) !important;
   margin-bottom: 6px !important;
-  padding-left: 0.75rem !important;
+  padding: 0 10px !important;
 }
 .dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-orange) r g b / 0.8) !important;
+  color: rgb(from var(--om-orange) r g b / 0.7) !important;
 }
 
 #navigation-items .sidebar-group-header::before {
   content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 2px;
+  flex: none;
+  width: 5px;
+  height: 5px;
   background: var(--om-copper);
 }
 .dark #navigation-items .sidebar-group-header::before {
   background: var(--om-orange);
 }
 
-/* Rows — dense pixel-terminal pills */
+/* Rows — full-width pills on the same inset as the eyebrow */
 #navigation-items .sidebar-group li a {
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
   font-size: var(--om-nav-item-size);
   letter-spacing: 0.04em;
   line-height: 1.1;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  border-radius: 3px;
+  padding: 6px 10px !important;
+  border-radius: 4px;
   transition:
     background-color 120ms ease,
     color 120ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
-  background: rgb(from var(--om-copper) r g b / 0.08);
+  background: rgb(from var(--om-copper) r g b / 0.07);
 }
 .dark #navigation-items .sidebar-group li a:hover {
-  background: rgb(from var(--om-orange) r g b / 0.1);
+  background: rgb(from var(--om-orange) r g b / 0.09);
 }
 
-/* Active row — copper pill on the tree line, real NeueBit Bold */
-#navigation-items .sidebar-group li:has(> a[aria-current="page"]) {
-  box-shadow: inset 2px 0 0 var(--om-copper); /* copper segment of the tree line */
-}
+/* Active row — copper pill with an inset bar, real NeueBit Bold */
 #navigation-items .sidebar-group li a[aria-current="page"] {
   font-weight: 700;
   text-shadow: none !important;
   color: var(--om-copper) !important;
   background: rgb(from var(--om-copper) r g b / 0.1);
-  border-radius: 0 3px 3px 0;
-}
-.dark #navigation-items .sidebar-group li:has(> a[aria-current="page"]) {
-  box-shadow: inset 2px 0 0 var(--om-orange);
+  box-shadow: inset 2px 0 0 var(--om-copper);
 }
 .dark #navigation-items .sidebar-group li a[aria-current="page"] {
   color: var(--om-orange) !important;
   background: rgb(from var(--om-orange) r g b / 0.11);
+  box-shadow: inset 2px 0 0 var(--om-orange);
 }
 
 /* ─── In-page TOC — same register as the sidebar ───────────────────────── */
@@ -536,23 +552,58 @@ ul.toc .toc-item a {
   border-color: rgb(from var(--om-orange) r g b / 0.45) !important;
 }
 
-/* Accordions — warm border, gentle hover, copper caret */
+/* Accordions — warm layered surface; the open row answers in copper,
+ * echoing the sidebar's active pill */
 #content-area :is(.accordion, .accordion-group) {
   border-color: var(--om-border-light) !important;
 }
 .dark #content-area :is(.accordion, .accordion-group) {
   border-color: var(--om-border-dark) !important;
 }
+#content-area .accordion {
+  background: rgb(from var(--om-cream) r g b / 0.35) !important;
+}
+.dark #content-area .accordion {
+  background: rgb(from var(--om-brown-deep) r g b / 0.45) !important;
+}
 #content-area [data-component-part="accordion-button"]:hover {
-  background: rgb(from var(--om-copper) r g b / 0.05) !important;
+  background: rgb(from var(--om-copper) r g b / 0.06) !important;
 }
 .dark #content-area [data-component-part="accordion-button"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.07) !important;
+  background: rgb(from var(--om-orange) r g b / 0.08) !important;
 }
-#content-area [data-component-part="accordion-caret-right"] {
+#content-area [data-component-part="accordion-title"] {
+  color: var(--om-brown-deep) !important;
+}
+.dark #content-area [data-component-part="accordion-title"] {
+  color: rgb(from var(--om-cream) r g b / 0.9) !important;
+}
+#content-area [data-component-part="accordion-caret-right"],
+#content-area [data-component-part="accordion-caret-right"] svg {
+  color: var(--om-copper) !important;
+  fill: var(--om-copper) !important;
+}
+.dark #content-area [data-component-part="accordion-caret-right"],
+.dark #content-area [data-component-part="accordion-caret-right"] svg {
+  color: var(--om-orange) !important;
+  fill: var(--om-orange) !important;
+}
+#content-area details[open] > summary {
+  background: rgb(from var(--om-copper) r g b / 0.05) !important;
+  box-shadow: inset 2px 0 0 var(--om-copper);
+}
+.dark #content-area details[open] > summary {
+  background: rgb(from var(--om-orange) r g b / 0.07) !important;
+  box-shadow: inset 2px 0 0 var(--om-orange);
+}
+#content-area details[open] > summary [data-component-part="accordion-title"] {
   color: var(--om-copper) !important;
 }
-.dark #content-area [data-component-part="accordion-caret-right"] {
+.dark
+  #content-area
+  details[open]
+  > summary
+  [data-component-part="accordion-title"] {
   color: var(--om-orange) !important;
 }
 
@@ -566,6 +617,135 @@ ul.toc .toc-item a {
 }
 #content-area [data-component-part="tab-button"][data-active="false"]:hover {
   border-bottom-color: rgb(from var(--om-copper) r g b / 0.35) !important;
+}
+
+/* Code blocks — one boundary, not two: the code-block wrapper carries the
+ * border and warm shadow; the inner pre (bordered by the "Content depth"
+ * rule above for bare code fences) goes borderless inside it */
+#content-area [data-component-part="code-block-root"] {
+  border: 1px solid var(--om-border-light);
+  border-radius: 6px;
+  box-shadow: var(--om-shadow-light);
+  overflow: hidden;
+}
+.dark #content-area [data-component-part="code-block-root"] {
+  border-color: var(--om-border-dark);
+  box-shadow: var(--om-shadow-dark);
+}
+#content-area [data-component-part="code-block-root"] pre {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── Code syntax — the brand-warm token palette ─────────────────────────
+ * The highlighter inlines GitHub-Light hexes (light) and Dark+ hexes via
+ * --shiki-dark (dark). The docs only ship Python, TypeScript, and shell,
+ * so the emitted set is small and mapped 1:1 to warm equivalents. Dark
+ * rules key off the --shiki-dark hex and out-specify the light rules via
+ * the .dark ancestor. The `i` flag absorbs the highlighter's mixed casing.
+ */
+
+/* Surfaces — warm paper instead of pure white / cool near-black */
+#content-area [style*="--shiki-dark-bg" i] {
+  background-color: #fffaf3 !important;
+}
+.dark #content-area [style*="--shiki-dark-bg" i] {
+  background-color: #150d07 !important;
+}
+
+/* Light tokens (GitHub Light → warm ink) */
+#content-area pre span[style*="color:#1F2328" i] {
+  color: #2f1606 !important; /* plain text */
+}
+#content-area pre span[style*="color:#CF222E" i] {
+  color: #b3400b !important; /* keywords */
+}
+#content-area pre span[style*="color:#0A3069" i] {
+  color: #9a4d00 !important; /* strings */
+}
+#content-area pre span[style*="color:#953800" i] {
+  color: #79380d !important; /* identifiers */
+}
+#content-area pre span[style*="color:#0550AE" i] {
+  color: #8a5a00 !important; /* constants, numbers */
+}
+#content-area pre span[style*="color:#8250DF" i] {
+  color: #a3540a !important; /* functions */
+}
+
+/* Dark tokens (Dark+ → warm glow) */
+.dark #content-area pre span[style*="--shiki-dark:#D4D4D4" i] {
+  color: #efe0d1 !important; /* plain text */
+}
+.dark #content-area pre span[style*="--shiki-dark:#C586C0" i] {
+  color: #ed670f !important; /* control keywords */
+}
+.dark #content-area pre span[style*="--shiki-dark:#569CD6" i] {
+  color: #d9822b !important; /* declaration keywords */
+}
+.dark #content-area pre span[style*="--shiki-dark:#CE9178" i] {
+  color: #f69a5b !important; /* strings */
+}
+.dark #content-area pre span[style*="--shiki-dark:#9CDCFE" i] {
+  color: #f0c9a6 !important; /* identifiers, properties */
+}
+.dark #content-area pre span[style*="--shiki-dark:#DCDCAA" i] {
+  color: #e6b45e !important; /* functions */
+}
+.dark #content-area pre span[style*="--shiki-dark:#B5CEA8" i] {
+  color: #d9a83c !important; /* numbers */
+}
+.dark #content-area pre span[style*="--shiki-dark:#4FC1FF" i] {
+  color: #f2a25c !important; /* constants */
+}
+.dark #content-area pre span[style*="--shiki-dark:#D7BA7D" i] {
+  color: #d9a83c !important; /* regex, special */
+}
+.dark #content-area pre span[style*="--shiki-dark:#6A9955" i] {
+  color: #9a7a55 !important; /* comments — muted, stays secondary */
+}
+#content-area pre span[style*="color:#59636E" i],
+#content-area pre span[style*="color:#6E7781" i] {
+  color: #8a6f5a !important; /* comments (light) */
+}
+
+/* ── "On this page" component rows (injected by toc-components.js) ────── */
+ul.toc .om-toc-comps {
+  list-style: none;
+  margin: 1px 0 6px;
+  padding-left: 1.1rem;
+}
+ul.toc .om-toc-comps a {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 2px 0;
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: rgb(from var(--om-rust) r g b / 0.75);
+  transition: color 120ms ease;
+}
+.dark ul.toc .om-toc-comps a {
+  color: rgb(from var(--om-orange) r g b / 0.55);
+}
+ul.toc .om-toc-comps a:hover {
+  color: var(--om-copper);
+}
+.dark ul.toc .om-toc-comps a:hover {
+  color: var(--om-orange);
+}
+.om-toc-glyph {
+  color: var(--om-copper);
+  font-size: 11px;
+  line-height: 1;
+}
+.dark .om-toc-glyph {
+  color: var(--om-orange);
+}
+[id^="om-comp-"] {
+  scroll-margin-top: 7rem;
 }
 
 /* Code blocks — copy button answers hover in brand, nothing else changes */
@@ -645,6 +825,7 @@ ul.toc .toc-item a {
     "PP Neue Montreal",
     system-ui,
     sans-serif !important;
+  font-weight: 500 !important; /* the Medium master — reads at diagram scale */
   color: var(--om-brown-deep) !important;
 }
 .dark #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),

@@ -35,6 +35,7 @@ You also set a **run budget**: how many optimization iterations, and how many ca
 ## How a run works
 
 ```mermaid
+%%{init: {"flowchart": {"nodeSpacing": 44, "rankSpacing": 50, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
 flowchart TD
     S[Smoke test] --> B[Baseline: run and score the agent as-is]
     B --> G[Generate candidate diffs]
