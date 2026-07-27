@@ -724,15 +724,42 @@ ul.toc .om-toc-comps a:hover {
   scroll-margin-top: 7rem;
 }
 
-/* Code blocks — copy button answers hover in brand, nothing else changes */
+/* Code copy button — a warm chip on the code paper, not a white pill.
+ * The floating overlay that keeps it readable over long lines takes the
+ * same paper color as the block, so nothing cool shows through. */
 #content-area [data-testid="copy-code-button"] {
+  border-radius: 4px !important;
+  background: #fffaf3 !important; /* the light code paper */
+  border: 1px solid var(--om-border-light);
+  color: var(--om-rust) !important;
   transition:
     background-color 120ms ease,
-    color 120ms ease;
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.dark #content-area [data-testid="copy-code-button"] {
+  background: #150d07 !important; /* the dark code paper */
+  border-color: var(--om-border-dark);
+  color: rgb(from var(--om-orange) r g b / 0.75) !important;
 }
 #content-area [data-testid="copy-code-button"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.14) !important;
+  background: rgb(from var(--om-copper) r g b / 0.1) !important;
+  border-color: rgb(from var(--om-copper) r g b / 0.4);
+  color: var(--om-copper) !important;
+}
+.dark #content-area [data-testid="copy-code-button"]:hover {
+  background: rgb(from var(--om-orange) r g b / 0.12) !important;
+  border-color: rgb(from var(--om-orange) r g b / 0.4);
   color: var(--om-orange) !important;
+}
+#content-area [data-floating-buttons] {
+  background: transparent !important;
+}
+#content-area [data-fade-overlay] {
+  background: #fffaf3 !important;
+}
+.dark #content-area [data-fade-overlay] {
+  background: #150d07 !important;
 }
 
 /* Tables — no frames, no nesting: a header strip, hairline rows, and
