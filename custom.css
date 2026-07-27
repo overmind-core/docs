@@ -188,21 +188,29 @@ body {
   }
 }
 
-/* ─── Sidebar — grouped panels, pixel-terminal chrome ─────────────────────
- * Each navigation group becomes its own layered card: eyebrow label with a
- * copper pixel marker on top, dense rows inside, active row as a copper pill.
- * This breaks the "one long list" feel and makes the hierarchy legible.
+/* ─── Sidebar — the console's sidebar contract (design.md §6.6) ──────────
+ * The rail sits directly on the page canvas: no tinted panel, no boxes.
+ * Rows are NeueBit with 150ms color transitions; hover is a 4% foreground
+ * wash; the active row is an 8% foreground wash plus bold — monochrome
+ * ink, never an accent color, never a bar. Two text levels only:
+ * categories in full ink (the loudest thing on the rail), pages in
+ * muted-foreground. Sentence case, 2px radii, no shadows.
  */
+:root {
+  --om-ink: #231a14; /* design.md --foreground */
+  --om-ink-muted: #75685f; /* design.md --muted-foreground */
+}
+.dark {
+  --om-ink: #f5f3ee;
+  --om-ink-muted: #a9a39a;
+}
 
-/* The whole rail is one quiet layered surface with a hairline edge —
- * groups live on it as eyebrow + tree-line clusters instead of boxes */
 div:has(> #navigation-items) {
-  background: rgb(from var(--om-cream) r g b / 0.35);
-  border-right: 1px solid var(--om-border-light);
+  background: transparent; /* the rail is the canvas */
+  border-right: 1px solid rgb(from var(--om-rust) r g b / 0.12);
 }
 .dark div:has(> #navigation-items) {
-  background: rgb(from var(--om-brown-deep) r g b / 0.35);
-  border-right: 1px solid var(--om-border-dark);
+  border-right-color: transparent; /* dark separates by tone alone */
 }
 
 /* Container — reclaim the airy default padding and hide the gutter the
@@ -220,13 +228,10 @@ div:has(> #navigation-items) {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
 }
 
-/* Groups — pure text hierarchy. No bars, pills, markers, or dividers:
- * prominence comes from ink alone. Categories sit in strong bold ink,
- * children one register quieter, the current page in copper. Generous
- * space between groups does the structural work. */
+/* Groups — space does the structural work; no markers, no dividers */
 #navigation-items div:has(> .sidebar-group-header) {
   margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
-  margin-bottom: 26px;
+  margin-bottom: 28px;
 }
 
 #navigation-items ul.sidebar-group {
@@ -234,53 +239,45 @@ div:has(> #navigation-items) {
   margin-left: 0;
 }
 
-/* Category — the loudest thing on the rail */
+/* Category — the loudest ink on the rail */
 #navigation-items .sidebar-group-header {
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 700 !important;
-  letter-spacing: 0.03em;
-  line-height: 1.15;
-  color: var(--om-brown-deep) !important;
-  margin-bottom: 6px !important;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  color: var(--om-ink) !important;
+  margin-bottom: 4px !important;
   padding: 0 8px !important;
 }
-.dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-cream) r g b / 0.92) !important;
-}
 
-/* Pages — quieter than their category; hover restores full ink */
+/* Pages — one register quieter; hover washes, never recolors */
 #navigation-items .sidebar-group li a {
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
   font-size: 17px;
   font-weight: 400;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   line-height: 1.2;
-  padding: 4px 8px !important;
-  border-radius: 4px;
-  background: transparent !important;
-  color: rgb(from var(--om-rust) r g b / 0.8) !important;
-  transition: color 120ms ease;
-}
-.dark #navigation-items .sidebar-group li a {
-  color: rgb(from var(--om-orange) r g b / 0.55) !important;
+  padding: 6px 8px !important;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--om-ink-muted) !important;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
-  color: var(--om-brown-deep) !important;
-}
-.dark #navigation-items .sidebar-group li a:hover {
-  color: rgb(from var(--om-cream) r g b / 0.9) !important;
+  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
+  color: var(--om-ink) !important;
 }
 
-/* Current page — copper ink, nothing else */
+/* Current page — 8% foreground wash + bold. Monochrome ink, no accent. */
 #navigation-items .sidebar-group li a[aria-current="page"] {
   font-weight: 700;
   text-shadow: none !important;
-  color: var(--om-copper) !important;
-}
-.dark #navigation-items .sidebar-group li a[aria-current="page"] {
-  color: var(--om-orange) !important;
+  color: var(--om-ink) !important;
+  background: color-mix(in srgb, var(--om-ink) 8%, transparent);
 }
 
 /* ─── In-page TOC — same register as the sidebar ───────────────────────── */
@@ -528,59 +525,47 @@ ul.toc .toc-item a {
   border-color: rgb(from var(--om-orange) r g b / 0.45) !important;
 }
 
-/* Accordions — warm layered surface; the open row answers in copper,
- * echoing the sidebar's active pill */
+/* Accordions — one flat surface. Closed rows sit in muted ink; hover is a
+ * 4% foreground wash; the open row is a 6% wash with the title stepping
+ * up to full ink and real SemiBold. No accent color, no bars, no per-row
+ * fills — hairline dividers carry the structure. */
 #content-area :is(.accordion, .accordion-group) {
-  border-color: var(--om-border-light) !important;
-}
-.dark #content-area :is(.accordion, .accordion-group) {
-  border-color: var(--om-border-dark) !important;
+  border-color: rgb(from var(--om-ink) r g b / 0.14) !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 #content-area .accordion {
-  background: rgb(from var(--om-cream) r g b / 0.35) !important;
-}
-.dark #content-area .accordion {
-  background: rgb(from var(--om-brown-deep) r g b / 0.45) !important;
+  background: transparent !important;
 }
 #content-area [data-component-part="accordion-button"]:hover {
-  background: rgb(from var(--om-copper) r g b / 0.06) !important;
-}
-.dark #content-area [data-component-part="accordion-button"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.08) !important;
+  background: color-mix(in srgb, var(--om-ink) 4%, transparent) !important;
 }
 #content-area [data-component-part="accordion-title"] {
-  color: var(--om-brown-deep) !important;
-}
-.dark #content-area [data-component-part="accordion-title"] {
-  color: rgb(from var(--om-cream) r g b / 0.9) !important;
+  color: var(--om-ink-muted) !important;
+  font-weight: 500;
+  transition: color 150ms ease;
 }
 #content-area [data-component-part="accordion-caret-right"],
 #content-area [data-component-part="accordion-caret-right"] svg {
-  color: var(--om-copper) !important;
-  fill: var(--om-copper) !important;
-}
-.dark #content-area [data-component-part="accordion-caret-right"],
-.dark #content-area [data-component-part="accordion-caret-right"] svg {
-  color: var(--om-orange) !important;
-  fill: var(--om-orange) !important;
+  color: var(--om-ink-muted) !important;
+  fill: var(--om-ink-muted) !important;
 }
 #content-area details[open] > summary {
-  background: rgb(from var(--om-copper) r g b / 0.05) !important;
-  box-shadow: inset 2px 0 0 var(--om-copper);
-}
-.dark #content-area details[open] > summary {
-  background: rgb(from var(--om-orange) r g b / 0.07) !important;
-  box-shadow: inset 2px 0 0 var(--om-orange);
+  background: color-mix(in srgb, var(--om-ink) 6%, transparent) !important;
+  box-shadow: none;
 }
 #content-area details[open] > summary [data-component-part="accordion-title"] {
-  color: var(--om-copper) !important;
+  color: var(--om-ink) !important;
+  font-weight: 600; /* Montreal SemiBold master */
 }
-.dark
-  #content-area
+#content-area details[open] > summary [data-component-part="accordion-caret-right"],
+#content-area
   details[open]
   > summary
-  [data-component-part="accordion-title"] {
-  color: var(--om-orange) !important;
+  [data-component-part="accordion-caret-right"]
+  svg {
+  color: var(--om-ink) !important;
+  fill: var(--om-ink) !important;
 }
 
 /* Tabs — the active tab is already copper via the primary color; just
