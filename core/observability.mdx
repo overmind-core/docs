@@ -21,7 +21,7 @@ For model-call spans, Overmind captures the prompt and response, the model reque
 
 There are four ways to get telemetry flowing, and they're not mutually exclusive.
 
-### 1. The tracing SDKs
+### The tracing SDKs
 
 Add the SDK, initialize it once at startup, and every call to a supported provider (OpenAI, Anthropic, Google Gemini; Python also supports Agno) is captured automatically — no call-site rewrites, no proxy in front of your model provider.
 
@@ -60,11 +60,11 @@ await overmind.shutdown(); // flush before a short-lived process exits
 
 Install with `pip install overmind` or `npm install @overmind-lab/trace-sdk`. You'll need an Overmind API key, created under **Settings → API keys** (see [Projects & Administration](/platform/administration#api-keys)).
 
-### 2. OpenTelemetry directly
+### OpenTelemetry directly
 
 Overmind's ingest speaks standard OTLP. If your app is in another language, or you already have an OpenTelemetry pipeline, point any OTel exporter at Overmind with your API key and traces flow without the SDK. The SDKs themselves are built on OpenTelemetry — there is no proprietary wire format to adopt or escape from.
 
-### 3. Importing from observability tools
+### Importing from observability tools
 
 If your traces already live somewhere else, connect that tool under **Settings** and Overmind imports them. Supported connectors include **Langfuse, LangSmith, Braintrust, Opik, Helicone, and Arize Phoenix**; credentials are encrypted at rest and used only to read traces.
 
@@ -74,7 +74,7 @@ A connection moves through visible sync states: the first enable runs a full his
 Imported traces behave like native ones for browsing and dataset-building, with one exception: live trace scoring applies only to telemetry that arrives through the Overmind SDK or OTLP path. Connector-imported traces are not scored on arrival.
 </Note>
 
-### 4. The instrumentation PR
+### The instrumentation PR
 
 When a repository scan finds that your code isn't instrumented — or only partially — Overmind can write the missing instrumentation itself and open a pull request against your branch. Coverage is reported per component, so you can see exactly which parts of the agent are silent before and after. Closing the gap becomes a code review rather than a project.
 
