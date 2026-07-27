@@ -434,80 +434,77 @@ ul.toc .toc-item a {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.3) transparent;
 }
 
-/* ─── MDX components — brand chrome for every component the docs use ─────
+
+/* ─── MDX components — a quiet warm pass, nothing loud ───────────────────
  * Steps, Cards, Accordions, Tabs, Callouts, CodeGroups, tables, kbd, and
- * mermaid flowcharts. Hooks are Mintlify's stable data-component-part
- * attributes plus the semantic .card/.callout/.accordion/.steps classes;
- * utility-class selectors are avoided except to defeat a default (e.g. the
- * rounded-2xl radius, which is off-language).
+ * mermaid flowcharts keep Mintlify's layout and typography; this only
+ * replaces the cool grays with the warm palette and lets interactive
+ * states answer in copper. Hooks are the stable data-component-part
+ * attributes plus the semantic .card/.callout/.accordion classes.
  */
 
-/* Shared: sharp brand radii instead of the theme's soft 2xl */
-#content-area :is(.card, .callout, .accordion, .accordion-group) {
-  border-radius: 6px !important;
-}
-
-/* ── Callouts — warm surface, 3px accent spine, no cool grays ──────────── */
+/* Callouts — soft warm tints per type instead of saturated blue/yellow */
 #content-area .callout {
   --om-acc: var(--om-copper); /* Note (blue in the default theme) */
-  border: 1px solid rgb(from var(--om-acc) r g b / 0.3) !important;
-  background: rgb(from var(--om-acc) r g b / 0.06) !important;
-  box-shadow: inset 3px 0 0 var(--om-acc);
+  border-color: rgb(from var(--om-acc) r g b / 0.25) !important;
+  background: rgb(from var(--om-acc) r g b / 0.05) !important;
 }
 #content-area .callout[class*="border-neutral"] {
   --om-acc: var(--om-rust); /* Info */
 }
 #content-area .callout[class*="border-green"] {
-  --om-acc: #4e7a45; /* Tip — moss, warmed to sit on cream */
+  --om-acc: #4e7a45; /* Tip — moss, sits naturally on cream */
 }
 #content-area .callout[class*="border-yellow"] {
-  --om-acc: #b3820f; /* Warning — goldenrod, not lemon */
+  --om-acc: #a97a10; /* Warning — goldenrod, not lemon */
 }
 #content-area .callout[class*="border-red"] {
-  --om-acc: #a83a1c; /* Danger — brick in the rust family */
+  --om-acc: #a83a1c; /* Danger — brick, in the rust family */
 }
 .dark #content-area .callout {
-  --om-acc: var(--om-orange);
+  border-color: rgb(from var(--om-acc) r g b / 0.35) !important;
   background: rgb(from var(--om-acc) r g b / 0.08) !important;
-}
-.dark #content-area .callout[class*="border-neutral"] {
-  --om-acc: rgb(from var(--om-orange) r g b / 0.85);
-}
-.dark #content-area .callout[class*="border-green"] {
-  --om-acc: #86a878;
-}
-.dark #content-area .callout[class*="border-yellow"] {
-  --om-acc: #d9a83c;
-}
-.dark #content-area .callout[class*="border-red"] {
-  --om-acc: #d0673f;
 }
 #content-area .callout [data-component-part="callout-icon"],
 #content-area .callout [data-component-part="callout-icon"] svg {
   color: var(--om-acc) !important;
   fill: var(--om-acc) !important;
 }
+.dark #content-area .callout [data-component-part="callout-icon"],
+.dark #content-area .callout [data-component-part="callout-icon"] svg {
+  color: rgb(from var(--om-acc) r g b / 0.9) !important;
+  fill: rgb(from var(--om-acc) r g b / 0.9) !important;
+}
 
-/* ── Steps — pixel-square markers on a warm tree line ──────────────────── */
+/* Callout text reads in the page's warm ink, never the type color —
+ * the accent lives only in the border and the icon. Links keep primary. */
+#content-area .callout [data-component-part="callout-content"],
+#content-area .callout [data-component-part="callout-content"] :is(p, li, strong, em) {
+  color: var(--om-brown-deep) !important;
+}
+.dark #content-area .callout [data-component-part="callout-content"],
+.dark
+  #content-area
+  .callout
+  [data-component-part="callout-content"]
+  :is(p, li, strong, em) {
+  color: rgb(from var(--om-cream) r g b / 0.92) !important;
+}
+
+/* Steps — the default circle, warmed: copper number, warm connecting line */
 #content-area .step div[class*="step-indicator"] {
-  border-radius: 2px !important; /* the brand marker is a square, not a dot */
-  background: rgb(from var(--om-copper) r g b / 0.12) !important;
-  border: 1px solid rgb(from var(--om-copper) r g b / 0.4);
+  background: rgb(from var(--om-copper) r g b / 0.09) !important;
   color: var(--om-copper) !important;
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif;
-  font-size: 17px;
-  font-weight: 700;
 }
 .dark #content-area .step div[class*="step-indicator"] {
-  background: rgb(from var(--om-orange) r g b / 0.14) !important;
-  border-color: rgb(from var(--om-orange) r g b / 0.45);
+  background: rgb(from var(--om-orange) r g b / 0.12) !important;
   color: var(--om-orange) !important;
 }
 #content-area .step [data-component-part="step-line"],
 #content-area .step > div > div[class*="w-px"] {
   background: linear-gradient(
     to bottom,
-    rgb(from var(--om-rust) r g b / 0.28),
+    rgb(from var(--om-rust) r g b / 0.22),
     transparent
   ) !important;
 }
@@ -515,52 +512,31 @@ ul.toc .toc-item a {
 .dark #content-area .step > div > div[class*="w-px"] {
   background: linear-gradient(
     to bottom,
-    rgb(from var(--om-orange) r g b / 0.28),
+    rgb(from var(--om-orange) r g b / 0.2),
     transparent
   ) !important;
 }
-#content-area [data-component-part="step-title"] {
-  font-weight: 600; /* real SemiBold master */
-  letter-spacing: -0.01em;
-}
 
-/* ── Cards — quiet warm panels that answer hover in copper ─────────────── */
+/* Cards — warm hairline and surface; hover answers with a copper edge */
 #content-area .card {
   border-color: var(--om-border-light) !important;
-  background: rgb(from var(--om-cream) r g b / 0.4) !important;
+  background: rgb(from var(--om-cream) r g b / 0.35) !important;
   transition:
     border-color 140ms ease,
     box-shadow 140ms ease;
 }
 .dark #content-area .card {
   border-color: var(--om-border-dark) !important;
-  background: rgb(from var(--om-orange) r g b / 0.04) !important;
+  background: rgb(from var(--om-orange) r g b / 0.03) !important;
 }
 #content-area .card:hover {
-  border-color: rgb(from var(--om-copper) r g b / 0.55) !important;
-  box-shadow:
-    0 0 0 1px rgb(from var(--om-copper) r g b / 0.3),
-    var(--om-shadow-light);
+  border-color: rgb(from var(--om-copper) r g b / 0.45) !important;
 }
 .dark #content-area .card:hover {
-  border-color: rgb(from var(--om-orange) r g b / 0.55) !important;
-  box-shadow:
-    0 0 0 1px rgb(from var(--om-orange) r g b / 0.3),
-    var(--om-shadow-dark);
-}
-#content-area [data-component-part="card-icon"] {
-  color: var(--om-copper) !important;
-  fill: var(--om-copper) !important;
-}
-.dark #content-area [data-component-part="card-icon"] {
-  color: var(--om-orange) !important;
-  fill: var(--om-orange) !important;
-}
-#content-area [data-component-part="card-title"] {
-  font-weight: 600;
+  border-color: rgb(from var(--om-orange) r g b / 0.45) !important;
 }
 
-/* ── Accordions — terminal-register headers, copper caret ──────────────── */
+/* Accordions — warm border, gentle hover, copper caret */
 #content-area :is(.accordion, .accordion-group) {
   border-color: var(--om-border-light) !important;
 }
@@ -568,21 +544,10 @@ ul.toc .toc-item a {
   border-color: var(--om-border-dark) !important;
 }
 #content-area [data-component-part="accordion-button"]:hover {
-  background: rgb(from var(--om-copper) r g b / 0.07) !important;
+  background: rgb(from var(--om-copper) r g b / 0.05) !important;
 }
 .dark #content-area [data-component-part="accordion-button"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.09) !important;
-}
-#content-area [data-component-part="accordion-title"] {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 19px;
-  font-weight: 400 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--om-rust) !important;
-}
-.dark #content-area [data-component-part="accordion-title"] {
-  color: rgb(from var(--om-orange) r g b / 0.85) !important;
+  background: rgb(from var(--om-orange) r g b / 0.07) !important;
 }
 #content-area [data-component-part="accordion-caret-right"] {
   color: var(--om-copper) !important;
@@ -591,65 +556,36 @@ ul.toc .toc-item a {
   color: var(--om-orange) !important;
 }
 
-/* ── Content tabs — NeueBit rail; active tab is already copper (primary) ─ */
+/* Tabs — the active tab is already copper via the primary color; just
+ * warm the rail and the inactive hover */
 #content-area [data-component-part="tabs-list"] {
   border-bottom-color: var(--om-border-light) !important;
 }
 .dark #content-area [data-component-part="tabs-list"] {
   border-bottom-color: var(--om-border-dark) !important;
 }
-#content-area [data-component-part="tab-button"] {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 17px;
-  font-weight: 400 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-#content-area [data-component-part="tab-button"][data-active="false"] {
-  color: var(--om-rust) !important;
-}
-.dark #content-area [data-component-part="tab-button"][data-active="false"] {
-  color: rgb(from var(--om-orange) r g b / 0.65) !important;
-}
 #content-area [data-component-part="tab-button"][data-active="false"]:hover {
-  border-bottom-color: rgb(from var(--om-copper) r g b / 0.4) !important;
-}
-#content-area [data-component-part="tab-button"][data-active="true"] {
-  box-shadow: inset 0 -1px 0 currentColor; /* thicken the 1px underline */
+  border-bottom-color: rgb(from var(--om-copper) r g b / 0.35) !important;
 }
 
-/* ── Code groups — language tabs and the copy button in brand chrome ───── */
-#content-area [data-component-part="code-group-tab-bar"] [role="tab"] {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 15px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
+/* Code blocks — copy button answers hover in brand, nothing else changes */
 #content-area [data-testid="copy-code-button"] {
-  border-radius: 3px !important;
   transition:
     background-color 120ms ease,
     color 120ms ease;
 }
 #content-area [data-testid="copy-code-button"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.16) !important;
+  background: rgb(from var(--om-orange) r g b / 0.14) !important;
   color: var(--om-orange) !important;
 }
 
-/* ── Tables — eyebrow-register headers, warm hairlines, copper row hover ─ */
+/* Tables — warm hairlines and a faint header tint; typography untouched */
 #content-area table th {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 16px;
-  font-weight: 400 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--om-rust) !important;
-  background: rgb(from var(--om-cream) r g b / 0.5);
+  background: rgb(from var(--om-cream) r g b / 0.45);
   border-bottom: 1px solid var(--om-border-light) !important;
 }
 .dark #content-area table th {
-  color: rgb(from var(--om-orange) r g b / 0.8) !important;
-  background: rgb(from var(--om-orange) r g b / 0.05);
+  background: rgb(from var(--om-orange) r g b / 0.04);
   border-bottom-color: var(--om-border-dark) !important;
 }
 #content-area table td {
@@ -658,49 +594,39 @@ ul.toc .toc-item a {
 .dark #content-area table td {
   border-color: var(--om-border-dark) !important;
 }
-#content-area table tbody tr:hover td {
-  background: rgb(from var(--om-copper) r g b / 0.04);
-}
-.dark #content-area table tbody tr:hover td {
-  background: rgb(from var(--om-orange) r g b / 0.05);
-}
 
-/* ── kbd — pixel keycap ─────────────────────────────────────────────────── */
+/* kbd — quiet warm keycap in the body face */
 #content-area kbd {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 15px;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border: 1px solid var(--om-border-light);
-  border-bottom-width: 2px;
-  border-radius: 3px;
-  background: rgb(from var(--om-cream) r g b / 0.6);
+  border-radius: 4px;
+  background: rgb(from var(--om-cream) r g b / 0.55);
   color: var(--om-rust);
+  font-size: 0.85em;
 }
 .dark #content-area kbd {
   border-color: var(--om-border-dark);
-  background: rgb(from var(--om-orange) r g b / 0.07);
+  background: rgb(from var(--om-orange) r g b / 0.06);
   color: rgb(from var(--om-orange) r g b / 0.85);
 }
 
-/* ── Mermaid flowcharts — the console's pixel-terminal look ──────────────
- * Mermaid injects its own per-diagram stylesheet with id selectors, so
- * every override here needs !important. Diagrams hydrate client-side; the
- * svg is matched by its aria-roledescription. Node labels take NeueBit —
- * it is narrower than the font mermaid measured with, so text always fits
- * the boxes. If a future mermaid bump misbehaves, swap the label
- * font-family back to "PP Neue Montreal".
+/* ─── Mermaid flowcharts — brand colors, default typography ──────────────
+ * Mermaid injects a per-diagram stylesheet with id selectors, so overrides
+ * need !important. Diagrams hydrate client-side; the svg is matched by its
+ * aria-roledescription. Colors only — fonts and sizing are left to mermaid
+ * so boxes always fit their labels.
  */
 #content-area svg[aria-roledescription] {
   max-width: 100%;
 }
 
-/* Node shapes — cream fill, rust outline (dark: brown fill, orange line) */
+/* Nodes — faint copper fill, rust outline; orange-on-brown in the dark */
 #content-area
   svg[aria-roledescription]
   .node
   :is(rect, polygon, circle, path) {
-  fill: rgb(from var(--om-copper) r g b / 0.08) !important;
-  stroke: rgb(from var(--om-rust) r g b / 0.55) !important;
+  fill: rgb(from var(--om-copper) r g b / 0.07) !important;
+  stroke: rgb(from var(--om-rust) r g b / 0.45) !important;
   stroke-width: 1px !important;
 }
 .dark
@@ -708,16 +634,17 @@ ul.toc .toc-item a {
   svg[aria-roledescription]
   .node
   :is(rect, polygon, circle, path) {
-  fill: rgb(from var(--om-orange) r g b / 0.1) !important;
-  stroke: rgb(from var(--om-orange) r g b / 0.5) !important;
+  fill: rgb(from var(--om-orange) r g b / 0.08) !important;
+  stroke: rgb(from var(--om-orange) r g b / 0.4) !important;
 }
 
-/* Labels — NeueBit terminal register, brand ink */
+/* Labels — brand ink, body face inherited from the page */
 #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),
 #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel) p {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 16px !important;
-  line-height: 1.15 !important;
+  font-family:
+    "PP Neue Montreal",
+    system-ui,
+    sans-serif !important;
   color: var(--om-brown-deep) !important;
 }
 .dark #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),
@@ -725,43 +652,40 @@ ul.toc .toc-item a {
   color: var(--om-cream) !important;
 }
 
-/* Edges and arrowheads — rust lines, orange in the dark */
-#content-area svg[aria-roledescription]
+/* Edges and arrowheads */
+#content-area
+  svg[aria-roledescription]
   :is(.edgePath path, path.flowchart-link) {
-  stroke: rgb(from var(--om-rust) r g b / 0.7) !important;
-  stroke-width: 1.5px !important;
+  stroke: rgb(from var(--om-rust) r g b / 0.6) !important;
 }
-.dark #content-area svg[aria-roledescription]
+.dark
+  #content-area
+  svg[aria-roledescription]
   :is(.edgePath path, path.flowchart-link) {
-  stroke: rgb(from var(--om-orange) r g b / 0.65) !important;
+  stroke: rgb(from var(--om-orange) r g b / 0.55) !important;
 }
 #content-area svg[aria-roledescription] .marker,
 #content-area svg[aria-roledescription] marker path {
-  fill: rgb(from var(--om-rust) r g b / 0.8) !important;
-  stroke: rgb(from var(--om-rust) r g b / 0.8) !important;
+  fill: rgb(from var(--om-rust) r g b / 0.7) !important;
+  stroke: rgb(from var(--om-rust) r g b / 0.7) !important;
 }
 .dark #content-area svg[aria-roledescription] .marker,
 .dark #content-area svg[aria-roledescription] marker path {
-  fill: rgb(from var(--om-orange) r g b / 0.75) !important;
-  stroke: rgb(from var(--om-orange) r g b / 0.75) !important;
+  fill: rgb(from var(--om-orange) r g b / 0.65) !important;
+  stroke: rgb(from var(--om-orange) r g b / 0.65) !important;
 }
 
-/* Edge labels sit flat on the page background, so lines pass cleanly */
+/* Edge labels sit flat on the page background so lines pass cleanly */
 #content-area svg[aria-roledescription] .edgeLabel,
 #content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
   background-color: #fdf6ec !important;
   fill: #fdf6ec !important;
+  color: var(--om-rust) !important;
 }
 .dark #content-area svg[aria-roledescription] .edgeLabel,
 .dark #content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
   background-color: #120b06 !important;
   fill: #120b06 !important;
-}
-/* ...but keep the label text readable over that patch */
-#content-area svg[aria-roledescription] .edgeLabel :is(p, span) {
-  color: var(--om-rust) !important;
-}
-.dark #content-area svg[aria-roledescription] .edgeLabel :is(p, span) {
   color: rgb(from var(--om-orange) r g b / 0.85) !important;
 }
 
