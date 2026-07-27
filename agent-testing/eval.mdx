@@ -1,58 +1,113 @@
 ---
 title: Eval
-description: Define what "good" means for your agent, score it on real data, and compare versions.
+description: Define what "good" means for each agent, score it on real data, and compare models and prompts with evidence instead of impressions.
 ---
 
-Evaluation tells you whether your agent is any good, and whether a change made it better or worse. You pick what to measure, choose the data to measure on, and Overmind scores your agent example by example. You can run several models at once and compare them side by side.
+Eval is how quality becomes a number you can plan around. You define what a good response looks like for a specific agent, and Overmind scores that agent's outputs against it — in batch runs that compare models and prompts side by side, and continuously on production traces as they arrive. The same evaluators serve both, which is the point: the score that gates an [optimization](/agent-testing/optimizers) or a [fine-tune](/models/training) is the same score you watch in production, so a gain measured offline means something online.
 
-{/* TODO(screenshot): Evaluation run comparison grid with scores per example */}
+The Evaluations area of the console has three surfaces: **Runs** (the experiments you've executed), **Eval Sets** (the named groupings that define what scores an agent), and the **Eval Library** (every evaluator available to you, shipped and self-authored).
 
-## Evaluators and metrics
+## Evaluators
 
-A metric is one question you ask about a response, such as "is this correct?" or "did it call the right tool?". Overmind answers these with evaluators, and there are a few different kinds, suited to different questions.
+An evaluator is one reusable question asked of a response — *is this correct? did it call the right tool? is the JSON valid?* Evaluators are versioned: editing one creates a new version, so a run scored last month still means what it meant then.
 
-An LLM judge has a model grade the response against a rubric written in plain language. It works well for quality, tone, safety, and correctness, where there is no single exact answer. The judge returns a score along with its reasoning and a breakdown by rubric item.
+Different questions need different machinery, so evaluators come in several kinds:
 
-A deterministic check applies a fixed rule with no model involved, such as exact match, contains, valid JSON, a tool-selection check, or thresholds on latency and cost. These are fast and unambiguous.
+<AccordionGroup>
+  <Accordion title="LLM judge">
+    A model grades the response against a rubric you write in plain language. The rubric is compiled into a checklist of atomic, weighted questions — some can be marked as gates that force a fail regardless of the rest of the score. Judges return their reasoning and per-item sub-scores alongside the number, so a low mark is an explanation, not a mystery. For higher-stakes metrics you can configure a panel of judges rather than a single model.
+  </Accordion>
+  <Accordion title="Deterministic">
+    A fixed rule with no model involved: exact match, contains, valid JSON, tool-selection checks. Fast, free, and unambiguous — use these wherever the question has a mechanical answer.
+  </Accordion>
+  <Accordion title="Trajectory">
+    Judges the *path* the agent took — the sequence of steps and tool calls — rather than just the final output. Useful when a right answer reached the wrong way is still a problem.
+  </Accordion>
+  <Accordion title="Agentic">
+    An LLM judge built for long, multi-step agent runs, where there is a lot of trajectory to read and summarize before scoring.
+  </Accordion>
+  <Accordion title="Statistical">
+    Scores a whole dataset at once rather than one example at a time: accuracy, precision, recall, F1, and text-similarity measures.
+  </Accordion>
+  <Accordion title="Decision graph">
+    Evaluates structured decision logic — whether the agent's choices followed the expected branching for the situation.
+  </Accordion>
+</AccordionGroup>
 
-A statistical measure scores a whole dataset at once instead of one example at a time. This covers measures like accuracy, precision and recall, F1, and text-similarity scores such as BLEU and ROUGE.
+Every evaluator declares its **scope** (final output, a single turn, a step, the whole trajectory, or the dataset), its **score type** (numeric, categorical, or boolean) and its **pass threshold**. Evaluators also declare what evidence they need — a reference answer, the full trajectory, the model output. If a run can't supply that evidence, the evaluator is marked *not applicable* rather than scoring garbage, and the console warns you at authoring time.
 
-A trajectory check looks at the sequence of steps and tool calls an agent made, and judges whether it followed a sensible path. It can compare against a reference path or have a model judge the path directly.
+### The built-in library
 
-An agentic judge is an LLM judge tuned for long, multi-step agent runs, where there is a lot of trajectory to read through.
+Overmind ships evaluators for the questions teams ask most: Correctness, Faithfulness, Hallucination, Answer Relevance, Conciseness, Toxicity, Role Adherence, Policy Compliance, Task Completion, Tool Selection Quality, Trajectory Accuracy, Exact Match, JSON Validity, and Translation Quality. Some (Correctness, Faithfulness, Exact Match among them) require a reference answer in your data; the console tells you which. Use them as-is, adjust them, or treat them as templates for your own.
 
-## Ready-made metrics
+The library distinguishes **generic** evaluators (project-wide or platform-shipped) from **bespoke** ones scoped to a single agent. A triage agent and a planner shouldn't share scoring criteria, and scoping keeps them from doing so accidentally.
 
-Overmind ships a library of metrics you can use right away, with no setup. They cover the things teams most often need to check, from correctness and safety to tool use and task completion. You can browse the current library in the console, use a metric as it is, adjust it, or write your own. The library grows over time, so treat the console as the source of truth for what is available today.
+### Writing and generating evaluators
 
-## Writing your own evaluator
+You can author an evaluator by hand — name it, write the rubric, review the compiled checklist, preview it against sample data before committing. Or you can have Overmind **generate evaluators** for you: it reads the agent's capability profile and the dataset you point it at, drafts deterministic checks for the mechanical criteria and LLM-judge rubrics for the semantic ones, and presents them as suggestions with a coverage summary. Nothing is saved until you accept the ones you want. Generated evaluators are grounded in what *your* agent is supposed to do — its tools, its output contract, its failure modes — which is what makes them worth reviewing rather than discarding.
 
-To build an evaluator, give it a name and describe in plain English what a good response looks like. Overmind turns that description into a checklist of specific criteria, which you can review and edit before saving. From then on, the evaluator scores responses against that checklist and explains each result. You can also preview an evaluator on a sample to see how it scores before you commit to it.
+{/* TODO(screenshot): Generated evaluator suggestions with the accept checkboxes and coverage rollup */}
 
-{/* TODO(screenshot): The evaluator builder with a plain-language rubric and the generated checklist */}
+## Eval sets
 
-## Running an evaluation
+An eval set is a named group of an agent's evaluators — the working definition of "good" for that agent. An agent can hold several sets, with one marked **active**; the active set is what scores optimization candidates, gates fine-tunes, and is preselected in run wizards.
 
-An evaluation run brings three things together: a dataset to test on, the metrics to apply, and the models to compare.
+Each member of a set carries a role:
 
-You start by choosing an agent and a dataset, and Overmind suggests metrics that fit the data. You then pick the models you want to compare, which become the columns of your results. The first model is the baseline, and the others are measured against it. You can set how many examples to run, and Overmind shows a cost estimate before you start. When you launch, Overmind runs each model on every example and scores the output.
+- **Generative** members score outputs produced during eval runs and experiments.
+- **Trace scoring** members run on live production traces as they arrive, putting quality scores directly into [Observability](/core/observability#scores-on-arrival).
 
-The models you can choose from include a curated set from the major model providers, any models you have fine-tuned, and a wider catalog of available models with their context lengths and prices. The console shows the current options when you set up a run.
+The same evaluator can serve in both roles. A set is runnable as soon as it has members — there is no separate approval step.
 
-{/* TODO(screen-recording): Walk through the run setup, pick a dataset, metrics, and models, then launch */}
+## Eval runs
 
-## Reading the results
+An eval run is a controlled experiment: **one data source × N variants × M evaluators.**
 
-While a run is in progress, Overmind shows live progress as it generates responses, scores them, and aggregates the totals, with partial results appearing as they come in.
+```mermaid
+flowchart LR
+    DS["Data source<br/>(dataset commit or trace filter)"] --> R[Eval run]
+    V1["Variant A — baseline<br/>(e.g. incumbent model)"] --> R
+    V2["Variant B<br/>(e.g. fine-tune or new prompt)"] --> R
+    E["Evaluators<br/>(frozen snapshots)"] --> R
+    R --> REP["Report: per-variant scores,<br/>deltas vs baseline, per-example grid"]
+```
 
-When the run finishes, you get a summary card for each model with its average score, pass rate, and number of examples, and a grid showing the score for every example against every model. You can switch between metrics, drill into a single example to see the full conversation, and read the judge's reasoning for each score. Scores are shown as a percentage, and where a failure cascades through a run, Overmind marks which step was the root cause and which were knock-on effects.
+**The data source** is either a dataset — with the exact dataset commit recorded, so the run stays reproducible even as the dataset evolves — or a trace filter that draws directly from captured production traffic. You can cap how many items are drawn.
 
-## Good to know
+**Variants** are the columns of your experiment. A variant either grades **existing** traces as-is or **generates** fresh outputs by re-running the model on each datapoint. Each variant pins a model — a catalog model, a registered endpoint, or one of your fine-tunes — and optionally a prompt version. One variant is the **baseline**, and every other variant's results are reported as deltas against it. Comparing your production setup against a candidate model is exactly this: two variants, one run.
 
-The metric library works out of the box, and you control what "good" means through the rubric on each judged metric. Some metrics need a reference answer in your dataset, and some apply to a whole dataset instead of a single example, so Overmind points you toward the metrics that fit your data. To get useful results, start from a dataset that reflects the cases you care about, and pick metrics that match what matters most for your agent.
+**Evaluators** are attached as frozen snapshots at run creation. Edits or deletions in the library afterward can't quietly change what a completed run measured.
 
-## Next steps
+Runs move through pending, running, and completed states, can be cancelled mid-flight, and show live progress while running: per-variant generation progress, scores so far, errors so far, and the latest responses streaming in as they're produced.
 
-- [Optimizers](/evaluation/optimizers) uses these metrics to improve your agent automatically.
-- [Datasets and Traces](/context/datasets-and-traces) builds the test data you evaluate against.
-- [Agents](/context/agents) shows the metrics chosen for each agent.
+### Reading the report
+
+A finished run reports per-variant rollups — average score, pass rate, example count — plus a ranking and deltas against the baseline, per metric. From there you drill down: a per-datapoint table, and inside each datapoint the full picture of what the model did versus what the reference did, with each evaluator's score and reasoning attached. Dataset-level statistical scores are called out separately from per-example ones, so aggregates never masquerade as individual judgments.
+
+Two details in the scoring model are worth understanding:
+
+- **Outcomes are typed.** Each score is Scored, Abstained, Not applicable, Skipped, or Error — and only *Scored* results feed the averages and pass rates. An evaluator that couldn't fairly judge an example doesn't drag the numbers down.
+- **Samples can be degraded.** Before scoring, each trace is normalized into a canonical transcript. If a trace can't be faithfully reconstructed, its sample is marked degraded and excluded from aggregates rather than counted as a model failure — surfaced separately so you can see what was left out. Long-trace samples also record how much of the trace the judge actually saw.
+
+Run reports can be shared by link. Links are auth-gated — viewers must be signed in and either be project members or, if you explicitly widen the link, any authenticated user. Links can be labeled, expired, and revoked; there are no anonymous public URLs.
+
+{/* TODO(screenshot): Run report with variant comparison and a sample drill-down open */}
+
+### Score history
+
+Evaluator scores accumulate into a history per agent, which powers the trend charts on the agent page and the "latest score" column on eval sets. This is the long-term payoff: after a few weeks of runs, "did the agent get better this month?" has a chart instead of an argument.
+
+## Calibrating judges
+
+LLM judges are only as trustworthy as their agreement with you. Samples accept **annotations** — human labels with an optional note — which give you a ground-truth signal to compare judge behavior against. When a judge and your annotations disagree consistently, tighten the rubric; the checklist compilation makes it easy to see which specific criterion is drifting.
+
+## How Eval connects
+
+- **Datasets** supply the rows, and the Workshop's readiness verdict tells you whether a dataset can support the evaluators you've chosen — see [Datasets](/core/datasets).
+- **Observability** displays live trace scores from the active set's trace-scoring members, and eval runs can draw directly from trace filters — see [Observability](/core/observability).
+- **The Optimizer** scores every candidate change with the agent's pinned eval set, so optimization is measured exactly like evaluation — see [Optimizers](/agent-testing/optimizers).
+- **Training** runs judge evals against your production model before, during, and after a fine-tune, using the rubric you select at launch — see [Training](/models/training).
+
+## Getting started sensibly
+
+Begin with three to five metrics, not fifteen. Pick one or two deterministic checks for your output contract (JSON validity, tool selection), one judged metric for the quality dimension you actually care about, and — if you have references — Correctness. Run them against a small real dataset, read the per-example reasoning, and adjust the rubric where the judge misunderstood you. Only then scale up the dataset and add metrics. Teams that start with a wall of metrics tend to trust none of them; teams that start with three they've verified tend to keep all three for a year.
