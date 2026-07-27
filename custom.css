@@ -220,22 +220,13 @@ div:has(> #navigation-items) {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
 }
 
-/* Groups — flat clusters separated by hairlines, one shared left rhythm.
- * The eyebrow, its pixel marker, and every row start at the same 10px
- * inset, so nothing staggers. No tree lines, no boxes. */
+/* Groups — pure text hierarchy. No bars, pills, markers, or dividers:
+ * prominence comes from ink alone. Categories sit in strong bold ink,
+ * children one register quieter, the current page in copper. Generous
+ * space between groups does the structural work. */
 #navigation-items div:has(> .sidebar-group-header) {
   margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
-  margin-bottom: 0;
-  padding: 14px 0;
-}
-#navigation-items div:has(> .sidebar-group-header):not(:first-of-type) {
-  border-top: 1px solid var(--om-border-light);
-}
-.dark #navigation-items div:has(> .sidebar-group-header):not(:first-of-type) {
-  border-top-color: var(--om-border-dark);
-}
-#navigation-items div:has(> .sidebar-group-header):first-of-type {
-  padding-top: 0;
+  margin-bottom: 26px;
 }
 
 #navigation-items ul.sidebar-group {
@@ -243,68 +234,53 @@ div:has(> #navigation-items) {
   margin-left: 0;
 }
 
-/* Group eyebrow — NeueBit uppercase behind a copper pixel-square marker */
+/* Category — the loudest thing on the rail */
 #navigation-items .sidebar-group-header {
-  display: flex;
-  align-items: center;
-  gap: 7px;
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 15px;
-  font-weight: 400 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  line-height: 1.2;
-  color: rgb(from var(--om-rust) r g b / 0.85) !important;
+  font-size: 19px;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  color: var(--om-brown-deep) !important;
   margin-bottom: 6px !important;
-  padding: 0 10px !important;
+  padding: 0 8px !important;
 }
 .dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-orange) r g b / 0.7) !important;
+  color: rgb(from var(--om-cream) r g b / 0.92) !important;
 }
 
-#navigation-items .sidebar-group-header::before {
-  content: "";
-  flex: none;
-  width: 5px;
-  height: 5px;
-  background: var(--om-copper);
-}
-.dark #navigation-items .sidebar-group-header::before {
-  background: var(--om-orange);
-}
-
-/* Rows — full-width pills on the same inset as the eyebrow */
+/* Pages — quieter than their category; hover restores full ink */
 #navigation-items .sidebar-group li a {
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: var(--om-nav-item-size);
-  letter-spacing: 0.04em;
-  line-height: 1.1;
-  padding: 6px 10px !important;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  padding: 4px 8px !important;
   border-radius: 4px;
-  transition:
-    background-color 120ms ease,
-    color 120ms ease;
+  background: transparent !important;
+  color: rgb(from var(--om-rust) r g b / 0.8) !important;
+  transition: color 120ms ease;
+}
+.dark #navigation-items .sidebar-group li a {
+  color: rgb(from var(--om-orange) r g b / 0.55) !important;
 }
 
 #navigation-items .sidebar-group li a:hover {
-  background: rgb(from var(--om-copper) r g b / 0.07);
+  color: var(--om-brown-deep) !important;
 }
 .dark #navigation-items .sidebar-group li a:hover {
-  background: rgb(from var(--om-orange) r g b / 0.09);
+  color: rgb(from var(--om-cream) r g b / 0.9) !important;
 }
 
-/* Active row — copper pill with an inset bar, real NeueBit Bold */
+/* Current page — copper ink, nothing else */
 #navigation-items .sidebar-group li a[aria-current="page"] {
   font-weight: 700;
   text-shadow: none !important;
   color: var(--om-copper) !important;
-  background: rgb(from var(--om-copper) r g b / 0.1);
-  box-shadow: inset 2px 0 0 var(--om-copper);
 }
 .dark #navigation-items .sidebar-group li a[aria-current="page"] {
   color: var(--om-orange) !important;
-  background: rgb(from var(--om-orange) r g b / 0.11);
-  box-shadow: inset 2px 0 0 var(--om-orange);
 }
 
 /* ─── In-page TOC — same register as the sidebar ───────────────────────── */
@@ -759,20 +735,49 @@ ul.toc .om-toc-comps a:hover {
   color: var(--om-orange) !important;
 }
 
-/* Tables — warm hairlines and a faint header tint; typography untouched */
+/* Tables — no frames, no nesting: a header strip, hairline rows, and
+ * faint zebra striping carry the whole structure */
+#content-area table,
+#content-area [data-table-wrapper] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 #content-area table th {
-  background: rgb(from var(--om-cream) r g b / 0.45);
-  border-bottom: 1px solid var(--om-border-light) !important;
+  padding: 10px 14px !important;
+  font-size: 0.875rem;
+  background: rgb(from var(--om-cream) r g b / 0.6);
+  border-bottom: 1px solid rgb(from var(--om-rust) r g b / 0.28) !important;
+  color: var(--om-brown-deep) !important;
 }
 .dark #content-area table th {
-  background: rgb(from var(--om-orange) r g b / 0.04);
-  border-bottom-color: var(--om-border-dark) !important;
+  background: rgb(from var(--om-orange) r g b / 0.07);
+  border-bottom-color: rgb(from var(--om-orange) r g b / 0.3) !important;
+  color: rgb(from var(--om-cream) r g b / 0.95) !important;
 }
+
 #content-area table td {
-  border-color: var(--om-border-light) !important;
+  padding: 10px 14px !important;
+  vertical-align: top;
+  border-color: rgb(from var(--om-rust) r g b / 0.1) !important;
 }
 .dark #content-area table td {
-  border-color: var(--om-border-dark) !important;
+  border-color: rgb(from var(--om-orange) r g b / 0.09) !important;
+}
+
+#content-area table tbody tr:nth-child(even) td {
+  background: rgb(from var(--om-cream) r g b / 0.3);
+}
+.dark #content-area table tbody tr:nth-child(even) td {
+  background: rgb(from var(--om-orange) r g b / 0.03);
+}
+#content-area table tbody tr:hover td {
+  background: rgb(from var(--om-copper) r g b / 0.06);
+}
+.dark #content-area table tbody tr:hover td {
+  background: rgb(from var(--om-orange) r g b / 0.07);
 }
 
 /* kbd — quiet warm keycap in the body face */
