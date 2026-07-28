@@ -7,7 +7,7 @@ Inference is where your fine-tuned models live once they're trained: deployed on
 
 ## Deployment lifecycle
 
-Deployment starts automatically when a training run succeeds. A model moves through **Queued → Deploying → Warming → Ready**, and only Ready models accept traffic. Idle models cost you nothing to keep around and wake quickly when called again.
+Deployment starts automatically when a training run succeeds. A model moves through **Queued → Quantizing → Deploying → Warming → Ready**, and only Ready models accept traffic. Idle models cost you nothing to keep around and wake quickly when called again.
 
 Removing a model is a **delete**, and it is irreversible. The weights go with it, which is why the console keeps it behind a confirmation and why downloading the weights first is worth considering. A failed deployment can be retried from the console without retraining anything.
 
@@ -22,7 +22,7 @@ Opening a model shows its full picture:
 - **Weights**: the final trained weights, downloadable, so you can run the model anywhere.
 
 <Note>
-Latency here measures model inference time only. Queueing, network, and cold starts are excluded, and requests that hit a cold model are tracked separately and left out of the warm averages. The numbers describe steady-state behavior without blending in wake-up time.
+Latency here measures model inference time only. Queueing, network, and cold starts are excluded, and requests that hit a cold model are tracked separately and left out of the warm averages. The numbers describe steady-state behaviour without blending in wake-up time.
 </Note>
 
 {/* TODO(screenshot): Model detail with lineage, metrics charts, and the weights download */}
@@ -88,7 +88,7 @@ curl https://api.overmindlab.ai/api/v1/chat/completions \
 
 Chat completions support the parameters you'd expect: `messages`, `stream`, `temperature`, `max_tokens`, `top_p`, `frequency_penalty`, and `presence_penalty`.
 
-Frontier models are callable through the same API alongside your fine-tunes, from the same catalog used for eval judging and run variants. Comparing your model against a frontier one is a change of the `model` field, not a second integration. `GET /api/v1/models` is the live source of truth for what you can call.
+Frontier models are callable through the same API alongside your fine-tunes, from the same catalogue used for eval judging and run variants. Comparing your model against a frontier one is a change of the `model` field, not a second integration. `GET /api/v1/models` is the live source of truth for what you can call.
 
 ### Errors worth handling
 

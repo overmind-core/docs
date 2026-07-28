@@ -3,15 +3,15 @@ title: Agents
 description: How Overmind discovers the agents in your codebase, and how everything else connects to them.
 ---
 
-An agent in Overmind is a model of an agent you already run: the support triager, the lead qualifier, the document extractor that lives in your repository and serves real traffic. You don't build agents inside Overmind. Overmind discovers them, reads how they work, and keeps a live picture of the prompts, the tools, the control flow, and the behavior they actually exhibit in production.
+An agent in Overmind is a model of an agent you already run: the support triager, the lead qualifier, the document extractor that lives in your repository and serves real traffic. You don't build agents inside Overmind. Overmind discovers them, reads how they work, and keeps a live picture of the prompts, the tools, the control flow, and the behaviour they actually exhibit in production.
 
-That picture is the reference point for the rest of the platform. Traces attach to an agent. Datasets are checked for fit against an agent. Evaluators are scoped to an agent's job. Optimization runs edit an agent's code, and fine-tuned models are trained to replace an agent's production model. The agent page is the best place to see how the pieces fit.
+That picture is the reference point for the rest of the platform. Traces attach to an agent. Datasets are checked for fit against an agent. Evaluators are scoped to an agent's job. Optimisation runs edit an agent's code, and fine-tuned models are trained to replace an agent's production model. The agent page is the best place to see how the pieces fit.
 
-## Why agents are modeled from code
+## Why agents are modelled from code
 
-Traces tell you what your agent did. Only the code tells you what it *could do*: which tools exist, which branches never fire, what the output contract is supposed to be. Overmind reads both sides and joins them, static structure from your repository with runtime behavior from your telemetry. Comparing the two often surfaces problems: a tool that's defined but never called, or a code path production traffic never hits.
+Traces tell you what your agent did. Only the code tells you what it *could and should do*: which tools exist, which branches never fire, what the output contract is supposed to be. Overmind reads both sides and joins them, static structure from your repository with runtime behaviour from your telemetry. Comparing the two often surfaces problems: a tool that's defined but never called, or a code path production traffic never hits.
 
-Working from code also means improvements land as code. When the [Optimizer](/agent-testing/optimizers) finds a better prompt or a sharper tool description, the result is a reviewable diff against your actual repository, not a suggestion you have to transcribe by hand.
+Working from code also means improvements land as code. When the [Optimiser](/agent-testing/optimisers) finds a better prompt or a sharper tool description, the result is a reviewable diff against your actual repository, not a suggestion you have to transcribe by hand.
 
 ## How agents get into Overmind
 
@@ -25,7 +25,7 @@ flowchart LR
     C --> D[Traces]
     C --> E[Datasets]
     C --> F[Eval sets]
-    C --> G[Optimization runs]
+    C --> G[Optimisation runs]
     C --> H[Fine-tuned models]
 ```
 
@@ -35,20 +35,20 @@ Connecting a repository gives Overmind the structural half of the picture.
 
 <Steps>
   <Step title="Connect GitHub">
-    For a private repository, install the Overmind GitHub App from **Settings**. During installation you choose exactly which repositories Overmind can see; it never gets blanket access. For a public repository, paste its URL instead. No GitHub account connection is needed for that.
+    You're prompted to connect GitHub when you create a project, which is where most teams install the Overmind GitHub App for the first time; you can also install it, or manage which repositories it can see, from **Settings** afterwards. During installation you choose exactly which repositories Overmind can see; it never gets blanket access. For a public repository, paste its URL instead. No GitHub account connection is needed for that.
   </Step>
   <Step title="Pick a repository and branch">
     Choose the repository and the branch that represents the agent you want to work on. The default branch is preselected.
   </Step>
   <Step title="Let the scan run">
-    Overmind clones the branch and reads the codebase. The status updates as it works, and a live label tells you what it is doing at that moment, such as searching for agents or mapping tools. If something fails, you get a short explanation and can run the scan again.
+    Overmind clones the branch and reads the codebase. The status updates as it works, and a live label tells you what it is doing at that moment, such as searching for agents or mapping tools. If something fails, the repository's panel under **Settings** shows what went wrong, and you can run the scan again.
   </Step>
   <Step title="Review the discovered agents">
     Each agent found in the code appears in your project with its prompt, tools, and control flow already mapped. Confirm the picture matches your understanding of the code before you build on top of it.
   </Step>
 </Steps>
 
-The scan works with the common Python agent frameworks (LangGraph and LangChain, CrewAI, the OpenAI Agents SDK, AutoGen, PydanticAI, smolagents) as well as plain Python. Framework awareness matters most later, when the Optimizer needs to edit the code safely.
+The scan works with the common Python agent frameworks (LangGraph and LangChain, CrewAI, the OpenAI Agents SDK, AutoGen, PydanticAI, smolagents) as well as plain Python. Framework awareness matters most later, when the Optimiser needs to edit the code safely.
 
 {/* TODO(screenshot): Repository scan in progress with the live status label */}
 
@@ -72,22 +72,22 @@ Beyond the agent entry itself, a completed scan yields a set of artifacts you'll
   <Card title="System prompt" icon="file-lines">
     The exact prompt the agent runs with, lifted from the code and shown beside the flow graph. The fastest way to review what the agent is actually being told.
   </Card>
-  <Card title="Proposed evaluation criteria" icon="list-check">
-    A first draft of what to measure for this specific agent, derived from its purpose, tools, and failure modes. You review these in [Eval](/agent-testing/eval).
+  <Card title="Starter evaluators" icon="list-check">
+    A first set of evaluators for this specific agent, derived from its purpose, tools, and failure modes, and saved automatically, not held for approval. Review and edit them in [Eval](/agent-testing/eval), or remove them from the set if they don't fit.
   </Card>
 </CardGroup>
 
-The scan also produces an evaluation spec for the agent: its input schema, expected output fields, tool configuration, and consistency rules, along with which parts of the agent are **optimizable** and which are **fixed**. That boundary is what keeps an optimization run inside the lines you set. The Optimizer may rewrite an optimizable prompt, but it will not touch an element you've marked fixed.
+The scan also produces an evaluation spec for the agent: its input schema, expected output fields, tool configuration, and consistency rules, along with which parts of the agent are **optimisable** and which are **fixed**, inferred automatically from the scan. That boundary is what keeps an optimisation run inside the lines the spec sets; the Optimiser may rewrite an optimisable prompt, but it will not touch an element the spec marks fixed. There's currently no way to adjust that boundary from the console.
 
 ## Inside an agent
 
-Open an agent from the **Agents** list to see everything Overmind knows about it. The header carries the agent's name, editable display name, a link to its source repository, and quick actions: copy the agent ID (you'll need it for trace attribution), jump to its traces in Observability, or archive it.
+Open an agent from the **Agents** list to see everything Overmind knows about it. The header carries the agent's name, editable display name, and quick actions: copy the agent ID (you'll need it for trace attribution), jump to its traces in Observability, or archive it.
 
-The page is organized into four tabs.
+The page is organised into four tabs.
 
 ### Overview
 
-The facts bar summarizes the agent's identity and configuration at a glance, including the model it runs in production. Overmind calls that model the **incumbent**, and it becomes the baseline that fine-tuned models are later measured against. Below the facts bar sit the system prompt card, the flow graph, and the components explorer. This tab is the fastest way to sanity-check that Overmind read your code correctly, and the first place to look when an agent is unfamiliar.
+A row at the top of the tab shows the agent's key facts at a glance: **Model**, **Source**, **Built from**, and **Trace coverage**. Overmind calls the production model the **baseline**: the point fine-tuned models are later measured against. Below that sit the system prompt card, the flow graph, and the components explorer. This tab is the fastest way to sanity-check that Overmind read your code correctly, and the first place to look when an agent is unfamiliar.
 
 {/* TODO(screenshot): Agent Overview tab with the flow graph and components explorer */}
 
@@ -97,30 +97,32 @@ The datasets attached to this agent, built from its traces or uploaded, ready to
 
 ### Eval metrics
 
-This tab holds the agent's evaluators and its **eval sets**, the named groupings of evaluators that define what "good" means for this agent. The **Optimize** button lives here too, because starting an optimization only makes sense once the agent has a way to be judged. See [Eval](/agent-testing/eval) for the full model.
+This tab holds the agent's evaluators and its **eval sets**, the named groupings of evaluators that define what "good" means for this agent. From here you can only **Add from library**, attaching an evaluator that already exists; to author a brand new one, follow the **Eval library** link through to Agent Testing → Evaluations → Eval Library. The **Optimise** button lives here too, because starting an optimisation only makes sense once the agent has a way to be judged. See [Eval](/agent-testing/eval) for the full model.
 
 ### Models
 
-The models associated with the agent: the incumbent it runs today and any models fine-tuned from its data. From here you can jump into a deployed model's [Inference](/models/inference) page or start a new [Training](/models/training) run pinned to this agent.
+The models associated with the agent: the baseline it runs today and any models fine-tuned from its data. From here you can jump into a deployed model's [Inference](/models/inference) page or start a new [Training](/models/training) run pinned to this agent.
 
 ## Keeping the picture current
 
-Overmind remembers the commit it last scanned and compares it against the head of your branch. When the branch moves on, the agent shows as out of sync and prompts you to re-analyze. Re-analysis rebuilds the discovered structure from the current code and, at the same time, re-assesses what the code needs for observability coverage. You'll also be told if the branch was deleted or the repository became unreachable.
-
-The console can also warn you when the CLI version last seen from your environment is behind, which matters for [optimization runs](/agent-testing/optimizers) that execute locally.
+Overmind remembers the commit it last scanned and compares it against the head of your branch. When the branch moves on, the agent shows as out of sync and prompts you to re-analyse. Re-analysis rebuilds the discovered structure from the current code and, at the same time, re-assesses what the code needs for observability coverage. You'll also be told if the branch was deleted or the repository became unreachable.
 
 <Note>
-Archiving an agent hides it from the list but does not destroy anything; it can be restored later. There is no hard delete of an agent from the console.
+Re-analysis does not currently flag your existing evaluators or eval sets as outdated when the underlying code changes. If a code change shifts what the agent actually does, review your evaluation criteria manually after re-analysing rather than assuming they still fit.
+</Note>
+
+<Note>
+Archiving an agent hides it from the list but does not delete anything underneath it, and there's no hard delete of an agent from the console. There's currently no console page to view or restore an archived agent, though, so archive with that in mind.
 </Note>
 
 ## Typical adoption path
 
-Most teams follow roughly the same arc. First they connect a repository and check the flow graph against reality, which usually takes minutes and sometimes reveals something unexpected about their own code. Then they turn on tracing so the agent's page fills with production behavior. From there the order varies: some teams go straight to curating a dataset from traces, others start by reviewing the proposed evaluation criteria. Either way, the agent page becomes the main view, where data, metrics, runs, and models for an agent stay together.
+Most teams follow roughly the same arc. First they connect a repository and check the flow graph against reality, which usually takes minutes and sometimes reveals something unexpected about their own code. Then they turn on tracing so the agent's page fills with production behaviour. From there the order varies: some teams go straight to curating a dataset from traces, others start by reviewing the proposed evaluation criteria. Either way, the agent page becomes the main view, where data, metrics, runs, and models for an agent stay together.
 
 ## Where agents connect
 
 - Traces carry an agent identity, and the agent's page links straight into its filtered trace view. See [Observability](/core/observability).
 - Datasets can be bound to an agent, which unlocks agent-fit checks in the Data Workshop. See [Datasets](/core/datasets).
 - Evaluators and eval sets are scoped per agent, so a triage agent is never scored on a planner's criteria. See [Eval](/agent-testing/eval).
-- The [Optimizer](/agent-testing/optimizers) edits the agent's code within its optimizable elements and opens the winning change as a pull request.
-- [Training](/models/training) benchmarks every fine-tune against the agent's incumbent model before you switch anything over.
+- The [Optimiser](/agent-testing/optimisers) edits the agent's code within its optimisable elements and opens the winning change as a pull request.
+- [Training](/models/training) benchmarks every fine-tune against the agent's baseline model before you switch anything over.
