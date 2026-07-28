@@ -33,7 +33,7 @@ Intent is immutable. To use eval data for fine-tuning (or vice versa), you re-in
     Drag a file anywhere onto the Datasets page, or use the create dialog. CSV, TSV, JSON, and JSONL are accepted. Uploads are the usual path for seed sets, labeled ground truth, and data exported from another system.
   </Tab>
   <Tab title="From a connector">
-    Traces synced from a connected observability tool (Langfuse, LangSmith, and others; see [Observability](/core/observability#importing-from-observability-tools)) land as traces first, then follow the same select-and-promote path as native traces.
+    Traces synced from a connected observability tool (Langfuse, LangSmith, and others; see [Observability](/core/observability#importing-from-observability-tools)) land as traces first, then follow the same select-and-create path as native traces.
   </Tab>
 </Tabs>
 
@@ -114,8 +114,8 @@ A dataset is locked while a training job is using it. Edits are rejected until t
 - **Eval** runs draw their rows from an eval-intent dataset and pin the commit they ran against. The Workshop's readiness verdict tells you whether the dataset can support the evaluators you plan to use. See [Eval](/agent-testing/eval).
 - **Optimization** replays your agent over the dataset's datapoints, so the dataset defines the situations the Optimizer is judged on. See [Optimizers](/agent-testing/optimizers).
 - **Training** consumes fine-tuning-intent datasets, validates them with the same checks at ingest and at training time, and excludes any row whose source trace also appears in your chosen eval dataset. That guard is what keeps benchmarks trustworthy. See [Training](/models/training).
-- **Observability** is the upstream supply: keep tracing on and you always have fresh, real examples to promote. See [Observability](/core/observability).
+- **Observability** is the upstream supply: keep tracing on and you always have fresh, real examples to add. See [Observability](/core/observability).
 
 ## Getting the most out of it
 
-Start small and real. Ten to fifty representative examples taken from traces beat a thousand synthetic rows for almost every purpose except pre-training. Let the Workshop's verdict guide what to fix first (hard gates, then high-severity insights), and waive consciously. When the same defect keeps appearing in fresh trace promotions, that's usually a signal about the agent itself, not the data.
+Start small and real. Ten to fifty representative examples taken from traces beat a thousand synthetic rows for almost every purpose except pre-training. Let the Workshop's verdict guide what to fix first (hard gates, then high-severity insights), and waive consciously. When the same defect keeps appearing in fresh trace batches, that's usually a signal about the agent itself, not the data.

@@ -1,6 +1,6 @@
 ---
 title: Eval
-description: Define what "good" means for each agent, score it on real data, and compare models and prompts side by side.
+description: Define what "good" means for your agent, score it on real data, and compare models and prompts side by side.
 ---
 
 Eval is where you measure your agent's quality. You define what a good response looks like for a specific agent, and Overmind scores that agent's outputs against it, both in batch runs that compare models and prompts side by side and continuously on production traces as they arrive. The same evaluators score offline runs and live traffic, so an improvement measured offline holds up in production.
@@ -79,7 +79,7 @@ flowchart LR
 
 **Evaluators** are attached as frozen snapshots at run creation. Edits or deletions in the library afterward can't quietly change what a completed run measured.
 
-Runs move through pending, running, and completed states, can be cancelled mid-flight, and show live progress while running: per-variant generation progress, scores so far, errors so far, and the latest responses streaming in as they're produced.
+Runs move through pending, running, and completed states, can be canceled mid-flight, and show live progress while running: per-variant generation progress, scores so far, errors so far, and the latest responses streaming in as they're produced.
 
 ### Reading the report
 
