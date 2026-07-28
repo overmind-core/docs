@@ -4,9 +4,9 @@ title: Introduction
 
 ## What is Overmind?
 
-Overmind helps you understand and improve the AI agents you run in production. It reads your agent's code, watches its real traffic, and gives you the machinery to turn that evidence into better agents: curated datasets, evaluators you trust, and optimization runs that ship as pull requests. When the scaffolding stops paying, it trains models of your own on your own data and benchmarks them against the model you run today.
+Overmind helps you understand and improve the AI agents you run in production. Overmind reads your agent's code and watches its production traffic. From that data you build test datasets, measure quality with evaluators, and ship improvements as pull requests. When prompt and code changes stop improving the score, Overmind can fine-tune a model on your own data and benchmark it against the model you use today.
 
-The through-line is one loop, and every part of the platform is a stage in it:
+Everything in Overmind is one loop, and each product area is a step in it:
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
@@ -20,7 +20,7 @@ flowchart TB
     I -. "calls are traced" .-> O
 ```
 
-Improvements always end in a review. An observability PR, an optimization PR, or a model-swap PR lands in your repository for you to judge; Overmind never silently changes what you ship.
+Every change Overmind proposes arrives as a pull request in your repository: an observability PR, an optimization PR, or a model-swap PR. You review and merge it. Overmind never silently changes what you ship.
 
 ## Who it's for
 
@@ -39,7 +39,7 @@ Teams with an agent doing a real job against real data: a support triager, a lea
     Every production run, with tokens, cost, latency, and quality scores on arrival.
   </Card>
   <Card title="Eval" href="/agent-testing/eval" icon="clipboard-check">
-    Evaluators, eval sets, and runs. Quality as a number you can plan around.
+    Evaluators, eval sets, and runs. Define what good looks like and score your agent against it.
   </Card>
   <Card title="Optimizers" href="/agent-testing/optimizers" icon="wand-magic-sparkles">
     Candidate code changes, tested against your data, shipped as a PR.
@@ -60,4 +60,4 @@ Teams with an agent doing a real job against real data: a support triager, a lea
 
 ## Where to start
 
-The [Quickstart](/quickstart) takes you from a fresh account to an agent with traces, a scored dataset, and a first measurement in about fifteen minutes. If you'd rather read first, start with [Agents](/core/agents), which explains the model everything else hangs off, then follow the loop: [Observability](/core/observability), [Datasets](/core/datasets), [Eval](/agent-testing/eval).
+The [Quickstart](/quickstart) takes you from a fresh account to an agent with traces, a scored dataset, and a first measurement in about fifteen minutes. If you'd rather read first, start with [Agents](/core/agents), since every other page builds on it, then follow the loop: [Observability](/core/observability), [Datasets](/core/datasets), [Eval](/agent-testing/eval).

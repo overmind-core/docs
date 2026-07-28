@@ -9,7 +9,7 @@ This is the alternative to the manual inner loop of reading the failing trace, t
 
 ## What it can change
 
-Candidates may touch prompts and instructions, tool definitions, model selection, and orchestration logic. The boundary is set by the agent's evaluation spec, which divides the agent into **optimizable elements** and **fixed elements** (see [Agents](/core/agents#what-a-scan-produces)). Anything marked fixed is off-limits no matter how tempting the score gain. This is how you keep business rules, compliance-critical wording, or a mandated model out of the blast radius.
+Candidates may touch prompts and instructions, tool definitions, model selection, and orchestration logic. The boundary is set by the agent's evaluation spec, which divides the agent into **optimizable elements** and **fixed elements** (see [Agents](/core/agents#what-a-scan-produces)). Anything marked fixed is off-limits no matter how tempting the score gain. This is how you keep business rules, compliance-critical wording, or a mandated model beyond the Optimizer's reach.
 
 ## Before you start
 
@@ -23,7 +23,7 @@ An optimization run has four prerequisites, and the setup wizard walks them as a
     The run replays the agent over the datapoints of the dataset you pick in the wizard. The inputs must be a shape the agent can be invoked with (text, object, or messages); the console blocks the run and explains why when they aren't. See [Datasets](/core/datasets).
   </Step>
   <Step title="An eval set to score with">
-    Candidates are graded by the eval set you choose, pinned when the run is created so later edits can't change an in-flight run's yardstick. A run without runnable evaluators technically completes, but its scores mean little. Set up metrics first. See [Eval](/agent-testing/eval).
+    Candidates are graded by the eval set you choose, pinned when the run is created so later edits can't change an in-flight run's scoring. A run without runnable evaluators technically completes, but its scores mean little. Set up metrics first. See [Eval](/agent-testing/eval).
   </Step>
   <Step title="A connected CLI">
     Your agent executes in your environment, not Overmind's. The `overmind` CLI runs a local executioner that applies candidate diffs and runs the agent against your repo, authenticated with your API key. The wizard shows the command to run and the live connection status; the run page shows which machine and CLI version are connected.
@@ -57,7 +57,7 @@ Then it measures the **baseline**: your agent exactly as it is, scored across th
 
 Each subsequent **iteration** generates a batch of candidate diffs, each biased toward a different area of the agent. One might rework the system prompt, another the tool descriptions, another the control flow. Candidates are validated (does the code still parse, does the entrypoint still exist, does it survive a quick sample?) before the expensive full replay, then run across every datapoint and scored with your evaluators. The best surviving candidate becomes the new starting point only if it genuinely improves on the best score so far.
 
-Improvement is judged conservatively. A candidate that lifts the average while tanking a handful of individual cases is usually memorizing the test set, so per-case regressions count against acceptance. A held-out slice of data the loop never sees is used to check the final result for overfitting, and candidates are penalized for bloating prompts or code, since "solving" a dataset by stuffing it into the prompt is a cheap trick that shouldn't pay. Expected outputs are kept away from the model that writes the fixes, so candidates can't copy the answers in.
+Improvement is judged conservatively. A candidate that lifts the average while tanking a handful of individual cases is usually memorizing the test set, so per-case regressions count against acceptance. A held-out slice of data the loop never sees is used to check the final result for overfitting, and candidates are penalized for bloating prompts or code, since "solving" a dataset by stuffing it into the prompt is not a real improvement. Expected outputs are kept away from the model that writes the fixes, so candidates can't copy the answers in.
 
 When iterations stop producing gains, the run ends, either by exhausting its budget or by early-stopping after consecutive stalls.
 
@@ -73,15 +73,15 @@ Runs can be cancelled at any point, and the executioner's status is always visib
 
 A finished run reports the winning diff with its score and the improvement over the baseline, summarized alongside what was tried and rejected. **Create PR** opens a pull request in your connected repository containing the winning change, with the baseline-versus-candidate scores in the description. From there it's your normal review process: read the diff, run your CI, merge or close. Overmind never pushes changes into your codebase on its own.
 
-Because candidates were scored with the same evaluators you use everywhere else, the number on the PR is directly comparable to your eval runs and your live trace scores. One yardstick, end to end.
+Because candidates were scored with the same evaluators you use everywhere else, the number on the PR is directly comparable to your eval runs and your live trace scores.
 
-## When optimization stops paying
+## When optimization hits its ceiling
 
-Prompt and logic changes have a ceiling. When runs start plateauing and the best score refuses to move across experiments, the honest reading is that the remaining gap lives in the model, not the scaffolding around it. The run page says so explicitly and points you toward [Training](/models/training). A model fine-tuned on this agent's own data is usually the next meaningful step, and by this point you already have everything it needs: a curated dataset and a trusted eval set.
+Prompt and logic changes have a ceiling. When runs start plateauing and the best score stops moving across experiments, the remaining gap is in the model itself, not in the prompts and code around it. The run page says so explicitly and points you toward [Training](/models/training). A model fine-tuned on this agent's own data is usually the next meaningful step, and by this point you already have everything it needs: a curated dataset and a trusted eval set.
 
 ## Good to know
 
 - The quality of a run is bounded by what you measure. If your evaluators don't capture what you actually care about, the Optimizer will faithfully improve the wrong thing. Spend the time in [Eval](/agent-testing/eval) first.
 - Runs execute your agent for real, on your data, many times. Model costs from those executions are yours, and the run's budget (iterations × candidates × datapoints) is the lever to control them.
-- The eval set is pinned at creation, but the *dataset* defines the situations explored. A narrow dataset produces improvements narrow to match, so promote fresh traces into it periodically and optimization keeps chasing reality.
+- The eval set is pinned at creation, but the *dataset* defines the situations explored. A narrow dataset produces improvements narrow to match, so add fresh traces to it periodically and optimization is always tested against current traffic.
 - Pausing and resuming is supported. A resumed run continues from its recorded state instead of starting over.

@@ -1,15 +1,15 @@
 ---
 title: Agents
-description: How Overmind builds a working model of the agents in your codebase, and how that model anchors everything else on the platform.
+description: How Overmind discovers the agents in your codebase, and how everything else connects to them.
 ---
 
 An agent in Overmind is a model of an agent you already run: the support triager, the lead qualifier, the document extractor that lives in your repository and serves real traffic. You don't build agents inside Overmind. Overmind discovers them, reads how they work, and keeps a live picture of the prompts, the tools, the control flow, and the behavior they actually exhibit in production.
 
-That picture is the reference point for the rest of the platform. Traces attach to an agent. Datasets are checked for fit against an agent. Evaluators are scoped to an agent's job. Optimization runs edit an agent's code, and fine-tuned models are trained to replace an agent's production model. If you understand the agent page, you understand how the platform hangs together.
+That picture is the reference point for the rest of the platform. Traces attach to an agent. Datasets are checked for fit against an agent. Evaluators are scoped to an agent's job. Optimization runs edit an agent's code, and fine-tuned models are trained to replace an agent's production model. The agent page is the best place to see how the pieces fit.
 
 ## Why agents are modeled from code
 
-A pile of traces tells you what your agent *did*. Only the code tells you what it *could do*: which tools exist, which branches never fire, what the output contract is supposed to be. Overmind reads both sides and joins them, static structure from your repository with runtime behavior from your telemetry. The gap between the two is often where the interesting problems live, such as a tool that is defined but never called, or a code path production traffic never exercises.
+Traces tell you what your agent did. Only the code tells you what it *could do*: which tools exist, which branches never fire, what the output contract is supposed to be. Overmind reads both sides and joins them, static structure from your repository with runtime behavior from your telemetry. Comparing the two often surfaces problems: a tool that's defined but never called, or a code path production traffic never hits.
 
 Working from code also means improvements land as code. When the [Optimizer](/agent-testing/optimizers) finds a better prompt or a sharper tool description, the result is a reviewable diff against your actual repository, not a suggestion you have to transcribe by hand.
 
@@ -93,7 +93,7 @@ The facts bar summarizes the agent's identity and configuration at a glance, inc
 
 ### Dataset
 
-The datasets attached to this agent, promoted from its traces or uploaded, ready to inspect, curate, and point runs at. Building and curating datasets is covered in [Datasets](/core/datasets).
+The datasets attached to this agent, built from its traces or uploaded, ready to inspect, curate, and point runs at. Building and curating datasets is covered in [Datasets](/core/datasets).
 
 ### Eval metrics
 
@@ -115,7 +115,7 @@ Archiving an agent hides it from the list but does not destroy anything; it can 
 
 ## Typical adoption path
 
-Most teams follow roughly the same arc. First they connect a repository and check the flow graph against reality, which usually takes minutes and occasionally surfaces a surprise about their own code. Then they turn on tracing so the agent's page fills with production behavior. From there the order varies: some teams go straight to curating a dataset from traces, others start by reviewing the proposed evaluation criteria. Either way, the agent page becomes home base, the one view where data, metrics, runs, and models for an agent stay together.
+Most teams follow roughly the same arc. First they connect a repository and check the flow graph against reality, which usually takes minutes and sometimes reveals something unexpected about their own code. Then they turn on tracing so the agent's page fills with production behavior. From there the order varies: some teams go straight to curating a dataset from traces, others start by reviewing the proposed evaluation criteria. Either way, the agent page becomes the main view, where data, metrics, runs, and models for an agent stay together.
 
 ## Where agents connect
 
