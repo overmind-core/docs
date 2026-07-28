@@ -807,35 +807,29 @@ ul.toc .om-toc-comps a:hover {
   color: rgb(from var(--om-orange) r g b / 0.85);
 }
 
-/* ─── Mermaid flowcharts — brand colors, default typography ──────────────
+/* ─── Mermaid flowcharts — the ink contract, applied to diagrams ─────────
  * Mermaid injects a per-diagram stylesheet with id selectors, so overrides
  * need !important. Diagrams hydrate client-side; the svg is matched by its
  * aria-roledescription. Colors only — fonts and sizing are left to mermaid
- * so boxes always fit their labels.
+ * so boxes always fit their labels. --om-ink flips with .dark on its own,
+ * so only the edge-label backing (the literal page canvas) needs a dark
+ * variant.
  */
 #content-area svg[aria-roledescription] {
   max-width: 100%;
 }
 
-/* Nodes — faint copper fill, rust outline; orange-on-brown in the dark */
+/* Nodes — a quiet ink wash with an ink outline */
 #content-area
   svg[aria-roledescription]
   .node
   :is(rect, polygon, circle, path) {
-  fill: rgb(from var(--om-copper) r g b / 0.07) !important;
-  stroke: rgb(from var(--om-rust) r g b / 0.45) !important;
+  fill: color-mix(in srgb, var(--om-ink) 5%, transparent) !important;
+  stroke: color-mix(in srgb, var(--om-ink) 35%, transparent) !important;
   stroke-width: 1px !important;
 }
-.dark
-  #content-area
-  svg[aria-roledescription]
-  .node
-  :is(rect, polygon, circle, path) {
-  fill: rgb(from var(--om-orange) r g b / 0.08) !important;
-  stroke: rgb(from var(--om-orange) r g b / 0.4) !important;
-}
 
-/* Labels — brand ink, body face inherited from the page */
+/* Labels — full ink in nodes, body face */
 #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),
 #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel) p {
   font-family:
@@ -843,48 +837,33 @@ ul.toc .om-toc-comps a:hover {
     system-ui,
     sans-serif !important;
   font-weight: 500 !important; /* the Medium master — reads at diagram scale */
-  color: var(--om-brown-deep) !important;
-}
-.dark #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),
-.dark #content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel) p {
-  color: var(--om-cream) !important;
+  color: var(--om-ink) !important;
 }
 
-/* Edges and arrowheads */
+/* Edges and arrowheads — one register quieter than the nodes */
 #content-area
   svg[aria-roledescription]
   :is(.edgePath path, path.flowchart-link) {
-  stroke: rgb(from var(--om-rust) r g b / 0.6) !important;
-}
-.dark
-  #content-area
-  svg[aria-roledescription]
-  :is(.edgePath path, path.flowchart-link) {
-  stroke: rgb(from var(--om-orange) r g b / 0.55) !important;
+  stroke: var(--om-ink-muted) !important;
 }
 #content-area svg[aria-roledescription] .marker,
 #content-area svg[aria-roledescription] marker path {
-  fill: rgb(from var(--om-rust) r g b / 0.7) !important;
-  stroke: rgb(from var(--om-rust) r g b / 0.7) !important;
-}
-.dark #content-area svg[aria-roledescription] .marker,
-.dark #content-area svg[aria-roledescription] marker path {
-  fill: rgb(from var(--om-orange) r g b / 0.65) !important;
-  stroke: rgb(from var(--om-orange) r g b / 0.65) !important;
+  fill: var(--om-ink-muted) !important;
+  stroke: var(--om-ink-muted) !important;
 }
 
-/* Edge labels sit flat on the page background so lines pass cleanly */
+/* Edge labels sit flat on the page canvas so lines pass cleanly */
 #content-area svg[aria-roledescription] .edgeLabel,
 #content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
   background-color: #fdf6ec !important;
   fill: #fdf6ec !important;
-  color: var(--om-rust) !important;
+  color: var(--om-ink-muted) !important;
 }
 .dark #content-area svg[aria-roledescription] .edgeLabel,
 .dark #content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
   background-color: #120b06 !important;
   fill: #120b06 !important;
-  color: rgb(from var(--om-orange) r g b / 0.85) !important;
+  color: var(--om-ink-muted) !important;
 }
 
 /* ─── Custom animated cursor — Overmind signature, same as the platform ──

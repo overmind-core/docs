@@ -74,9 +74,9 @@ A connection moves through visible sync states: the first enable runs a full his
 Imported traces behave like native ones for browsing and dataset-building, with one exception: live trace scoring applies only to telemetry that arrives through the Overmind SDK or OTLP path. Connector-imported traces are not scored on arrival.
 </Note>
 
-### The instrumentation PR
+### The observability PR
 
-When a repository scan finds that your code isn't instrumented — or only partially — Overmind can write the missing instrumentation itself and open a pull request against your branch. Coverage is reported per component, so you can see exactly which parts of the agent are silent before and after. Closing the gap becomes a code review rather than a project.
+When a repository scan finds that your code isn't instrumented — or only partially — Overmind can write the missing tracing code itself and open a pull request against your branch. Coverage is reported per component, so you can see exactly which parts of the agent are silent before and after. Closing the gap becomes a code review rather than a project.
 
 ## Attributing traces to an agent
 
@@ -101,13 +101,13 @@ Trace rows show name, time, duration, tokens, cost, model, status, scores, and a
 
 ### Reading a single trace
 
-Opening a trace shows its span tree beside a flame-chart timeline, so you can see both the logical structure and where the time went. Selecting a span opens its detail: attributes, events, inputs and outputs, and — for model calls — the full chat transcript rendered as a conversation. This is where "the agent gave a weird answer" turns into "the retrieval step returned nothing, so the model improvised."
+Opening a trace shows its span tree beside a timeline, so you can see both the logical structure and where the time went. Selecting a span opens its detail: attributes, events, inputs and outputs, and — for model calls — the full chat transcript rendered as a conversation. This is where "the agent gave a weird answer" turns into "the retrieval step returned nothing, so the model improvised."
 
-{/* TODO(screenshot): Trace detail with span tree, flame chart, and an LLM span's transcript open */}
+{/* TODO(screenshot): Trace detail with span tree, timeline, and an LLM span's transcript open */}
 
 ### Scores on arrival
 
-If the owning agent's active eval set includes trace-scoring evaluators, each incoming trace is scored automatically and the results appear in the **Scores** column and on the trace itself. This turns the trace list into a quality monitor: filter to low-scoring traces from the last hour, read them, and you're doing failure analysis on live traffic without having built any pipeline. How trace-scoring evaluators are defined is covered in [Eval](/agent-testing/eval#eval-sets).
+If the owning agent has evaluators marked for trace scoring, each incoming trace is scored automatically and the results appear in the **Scores** column and on the trace itself. This turns the trace list into a quality monitor: filter to low-scoring traces from the last hour, read them, and you're doing failure analysis on live traffic without having built any pipeline. How trace-scoring evaluators are defined is covered in [Eval](/agent-testing/eval#eval-sets).
 
 ### From traces to datasets
 

@@ -21,7 +21,7 @@ Keys are created and revoked under **Settings → API keys**. Treat them like pa
 
 ### GitHub
 
-The GitHub connection powers repository scans, instrumentation PRs, Optimizer PRs, and Model PRs. You install the Overmind GitHub App on the specific repositories you choose — never account-wide by default — and the connection status is visible here, including in-between states like a pending installation approval or a suspended installation. Disconnecting removes Overmind's access and uninstalls the app.
+The GitHub connection powers repository scans, observability PRs, Optimizer PRs, and Model PRs. You install the Overmind GitHub App on the specific repositories you choose — never account-wide by default — and the connection status is visible here, including in-between states like a pending installation approval or a suspended installation. Disconnecting removes Overmind's access and uninstalls the app.
 
 ### Tracing connectors
 
@@ -37,7 +37,7 @@ You rarely need to start anything from Jobs; it exists so nothing you kicked off
 
 Overmind runs on a subscription plus credits model. The **Free** plan covers instrumenting agents and trying every vertical within monthly limits; **Pro** raises the limits for teams shipping in production. Current plans and limits are on the [pricing page](https://overmindlab.ai/pricing).
 
-Work that consumes compute — dataset analysis, evaluator generation, eval runs, optimization runs, training jobs, model deployments — draws on your project's credits. The balance, top-ups, and a full usage history live under **Settings**. When credits run out, paid actions stop with an explicit "insufficient credits" message rather than degrading quietly; browsing, traces, and everything already computed remain available.
+Work that consumes compute — dataset analysis, evaluator generation, eval runs, optimization runs, training jobs, model deployments — draws on your project's credits. The **Settings** page shows your balance alongside a full usage history, and **Add credits** lives right there: top up whenever you need more headroom, without leaving the console or touching your plan. When credits run out, paid actions stop with an explicit "insufficient credits" message rather than degrading quietly; browsing, traces, and everything already computed remain available.
 
 <Note>
 Model calls made by *your own* application — including calls the Optimizer's local executioner makes while replaying your agent — go to your model provider under your keys. Overmind credits cover the work Overmind performs on its side.

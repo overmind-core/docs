@@ -7,14 +7,9 @@ Inference is where your fine-tuned models live once they're trained: deployed on
 
 ## Deployment lifecycle
 
-Deployment starts automatically when a training run succeeds; you can also redeploy a model you previously took down. A model moves through **Queued → Deploying → Warming → Ready**, and only Ready models accept traffic. Idle models cost you nothing to keep around and wake quickly when called again.
+Deployment starts automatically when a training run succeeds. A model moves through **Queued → Deploying → Warming → Ready**, and only Ready models accept traffic. Idle models cost you nothing to keep around and wake quickly when called again.
 
-Two removal operations exist, and the difference matters:
-
-- **Undeploy** stops routing requests but preserves the trained weights. Redeploying later brings the model back as it was.
-- **Delete** is irreversible — it removes the weights. The console keeps it behind a confirmation for a reason.
-
-A failed deployment can be retried from the console without retraining anything.
+Removing a model is a **delete**, and it is irreversible — the weights go with it, which is why the console keeps it behind a confirmation and why downloading the weights first is worth considering. A failed deployment can be retried from the console without retraining anything.
 
 ## The models table
 
@@ -24,13 +19,13 @@ Opening a model shows its full picture:
 
 - **Lineage** — base model, agent, and training job, each linked. Any served model traces back to the exact dataset commit and eval scores that produced it.
 - **Metrics** — request activity, throughput, and latency over time, with adjustable granularity.
-- **Weights and checkpoints** — downloadable, so the model is never captive to the platform.
+- **Weights** — the final trained weights, downloadable, so the model is never captive to the platform.
 
 <Note>
 Latency here measures model inference time only — queueing, network, and cold starts are excluded. Requests that hit a cold model are tracked separately and left out of the warm averages, so the numbers describe steady-state behavior rather than blending in wake-up time.
 </Note>
 
-{/* TODO(screenshot): Model detail with lineage, metrics charts, and checkpoint list */}
+{/* TODO(screenshot): Model detail with lineage, metrics charts, and the weights download */}
 
 ## Calling your model
 

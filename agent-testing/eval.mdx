@@ -50,7 +50,7 @@ You can author an evaluator by hand — name it, write the rubric, review the co
 
 ## Eval sets
 
-An eval set is a named group of an agent's evaluators — the working definition of "good" for that agent. An agent can hold several sets, with one marked **active**; the active set is what scores optimization candidates, gates fine-tunes, and is preselected in run wizards.
+An eval set is a named group of an agent's evaluators — the working definition of "good" for that agent. An agent can hold several sets — a broad one for regression coverage, a focused one for a specific behavior — and you pick which set an optimization run or a training benchmark measures with when you set it up.
 
 Each member of a set carries a role:
 
@@ -105,7 +105,7 @@ LLM judges are only as trustworthy as their agreement with you. Samples accept *
 ## How Eval connects
 
 - **Datasets** supply the rows, and the Workshop's readiness verdict tells you whether a dataset can support the evaluators you've chosen — see [Datasets](/core/datasets).
-- **Observability** displays live trace scores from the active set's trace-scoring members, and eval runs can draw directly from trace filters — see [Observability](/core/observability).
+- **Observability** displays live trace scores from the agent's trace-scoring evaluators, and eval runs can draw directly from trace filters — see [Observability](/core/observability).
 - **The Optimizer** scores every candidate change with the agent's pinned eval set, so optimization is measured exactly like evaluation — see [Optimizers](/agent-testing/optimizers).
 - **Training** runs judge evals against your production model before, during, and after a fine-tune, using the rubric you select at launch — see [Training](/models/training).
 

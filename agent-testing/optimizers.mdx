@@ -20,10 +20,10 @@ An optimization run has four prerequisites, and the setup wizard walks them as a
     The agent must come from a connected repository, since candidates are edits to that code. See [Agents](/core/agents).
   </Step>
   <Step title="A dataset to replay">
-    The run replays the agent over a dataset's datapoints — its active dataset by default. The inputs must be a shape the agent can be invoked with (text, object, or messages); the console blocks the run and explains why when they aren't. See [Datasets](/core/datasets).
+    The run replays the agent over the datapoints of the dataset you pick in the wizard. The inputs must be a shape the agent can be invoked with (text, object, or messages); the console blocks the run and explains why when they aren't. See [Datasets](/core/datasets).
   </Step>
   <Step title="An eval set to score with">
-    Candidates are graded by the agent's eval set — the active one by default, pinned when the run is created so a later switch of the active set can't change an in-flight run's yardstick. A run without runnable evaluators technically completes, but its scores mean little; set up metrics first. See [Eval](/agent-testing/eval).
+    Candidates are graded by the eval set you choose, pinned when the run is created so later edits can't change an in-flight run's yardstick. A run without runnable evaluators technically completes, but its scores mean little; set up metrics first. See [Eval](/agent-testing/eval).
   </Step>
   <Step title="A connected CLI">
     Your agent executes in your environment, not Overmind's. The `overmind` CLI runs a local executioner that applies candidate diffs and runs the agent against your repo, authenticated with your API key. The wizard shows the command to run and the live connection status; the run page shows which machine and CLI version are connected.

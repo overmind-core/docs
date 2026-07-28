@@ -69,8 +69,8 @@ Beyond the agent entry itself, a completed scan yields a set of artifacts you'll
   <Card title="Components with provenance" icon="code">
     Every tool and supporting component the scan found, each linked back to the file that defines it in your repository.
   </Card>
-  <Card title="Policy" icon="scale-balanced">
-    A plain-language description of how the agent is supposed to behave, drafted from the code and editable by you. This is the reference for what counts as correct downstream.
+  <Card title="System prompt" icon="file-lines">
+    The exact prompt the agent runs with, lifted from the code and shown beside the flow graph — the fastest way to review what the agent is actually being told.
   </Card>
   <Card title="Proposed evaluation criteria" icon="list-check">
     A first draft of what to measure for this specific agent, derived from its purpose, tools, and failure modes. You review these in [Eval](/agent-testing/eval).
@@ -93,32 +93,21 @@ The facts bar summarizes the agent's identity and configuration at a glance, inc
 
 ### Dataset
 
-Every agent can hold several datasets, with one marked **active**. The active dataset is a meaningful pointer: it is what the Optimizer replays the agent against by default, and what run wizards preselect. Building and curating datasets is covered in [Datasets](/core/datasets).
+The datasets attached to this agent — promoted from its traces or uploaded — ready to inspect, curate, and point runs at. Building and curating datasets is covered in [Datasets](/core/datasets).
 
 ### Eval metrics
 
-This tab holds the agent's evaluators and its **eval sets** — named groupings of evaluators that define what "good" means for this agent. As with datasets, one eval set is active, and the active set is what scores optimization runs and live production traces. The **Optimize** button lives here too, because starting an optimization only makes sense once the agent has a way to be judged. See [Eval](/agent-testing/eval) for the full model.
+This tab holds the agent's evaluators and its **eval sets** — named groupings of evaluators that define what "good" means for this agent. The **Optimize** button lives here too, because starting an optimization only makes sense once the agent has a way to be judged. See [Eval](/agent-testing/eval) for the full model.
 
 ### Models
 
 The models associated with the agent: the incumbent it runs today and any models fine-tuned from its data. From here you can jump into a deployed model's [Inference](/models/inference) page or start a new [Training](/models/training) run pinned to this agent.
 
-## The two active pointers
-
-An agent's **active dataset** and **active eval set** deserve emphasis, because they quietly drive most default behavior on the platform:
-
-| Pointer | What reads it |
-| --- | --- |
-| Active dataset | Optimization runs replay against it; training and eval wizards preselect it |
-| Active eval set | Scores optimization candidates, gates fine-tunes, and scores live traces as they arrive |
-
-Changing an active pointer changes what future runs measure — in-flight runs pin the versions they started with, so results stay reproducible. Treat switching the active dataset or eval set as a deliberate act, the same way you'd treat changing a CI baseline.
-
 ## Keeping the picture current
 
-Overmind remembers the commit it last scanned and compares it against the head of your branch. When the branch moves on, the agent shows as out of sync and offers a re-scan, which rebuilds the discovered structure from current code. You'll also be told if the branch was deleted or the repository became unreachable.
+Overmind remembers the commit it last scanned and compares it against the head of your branch. When the branch moves on, the agent shows as out of sync and prompts you to re-analyze; re-analysis rebuilds the discovered structure from the current code and re-assesses what the code needs for observability coverage at the same time. You'll also be told if the branch was deleted or the repository became unreachable.
 
-Telemetry needs no such refresh — traces attach continuously, so the runtime half of the picture stays current on its own. The console can also warn you when the CLI version last seen from your environment is behind, which matters for [optimization runs](/agent-testing/optimizers) that execute locally.
+The console can also warn you when the CLI version last seen from your environment is behind, which matters for [optimization runs](/agent-testing/optimizers) that execute locally.
 
 <Note>
 Archiving an agent hides it from the list but does not destroy anything; it can be restored later. There is no hard delete of an agent from the console.

@@ -13,7 +13,7 @@ This page gets you from nothing to a working setup: a project, an agent Overmind
     Connect GitHub (or paste a public repo URL) and let Overmind scan the branch your agent lives on. The scan discovers your agents and maps their prompts, tools, and control flow — check the flow graph against reality before moving on. See [Agents](/core/agents).
   </Step>
   <Step title="Get traces flowing">
-    Create an API key under **Settings → API keys**, then either add the tracing SDK to your app or connect the observability tool you already use (Langfuse, LangSmith, and others) and import what you have. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
+    Create an API key under **Settings → API keys**, then get traces flowing whichever way suits your codebase: add the tracing SDK to your app, let Overmind add observability at the repo level — it writes the missing tracing code and opens a PR against your branch — or connect the observability tool you already use (Langfuse, LangSmith, and others) and import what you have. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
 
     ```python
     from overmind import init
@@ -26,10 +26,10 @@ This page gets you from nothing to a working setup: a project, an agent Overmind
     ```
   </Step>
   <Step title="Build your first dataset">
-    Once traces are arriving, select a representative batch in Observability and create a dataset from them — or drag in a CSV/JSONL file you already have. Open it in the Data Workshop and run the analysis to get a score and readiness verdict. See [Datasets](/core/datasets).
+    Once traces are arriving, select a representative batch in Observability and create a dataset from them — or drag a CSV/JSONL file you already have onto the Datasets page. Open the dataset and run the analysis to get a score and readiness verdict. See [Datasets](/core/datasets).
   </Step>
   <Step title="Measure something">
-    Review the evaluators Overmind proposes for your agent, accept the few that match what you care about, and put them in an eval set. Mark it active and quality scores start appearing on live traces; run it against your dataset and you have a baseline. See [Eval](/agent-testing/eval).
+    Review the evaluators Overmind proposes for your agent, accept the few that match what you care about, and put them in an eval set. Evaluators marked for trace scoring start scoring incoming traffic; run the set against your dataset and you have a baseline. See [Eval](/agent-testing/eval).
   </Step>
 </Steps>
 
@@ -47,9 +47,9 @@ The first five steps put you in a position most teams never reach with in-house 
     Fine-tune a smaller model on your own data and benchmark it against the model you run today.
   </Card>
   <Card title="You're not sure what's failing" icon="magnifying-glass" href="/core/observability">
-    Filter to low-scoring traces and read them — the flame chart and transcripts turn vague quality complaints into specific defects.
+    Filter to low-scoring traces and read them — the trace timeline and transcripts turn vague quality complaints into specific defects.
   </Card>
   <Card title="The data needs work first" icon="database" href="/core/datasets">
-    Follow the Workshop's insights: fix the hard gates, then the high-severity findings, and keep the commit history honest.
+    Open the dataset and follow its insights: fix the hard gates, then the high-severity findings, and keep the commit history honest.
   </Card>
 </CardGroup>

@@ -20,9 +20,9 @@ A training run is defined by four choices, made in the wizard's first section:
 | **Agent** | The agent whose job the model is learning; its production model becomes the benchmark baseline |
 | **Training dataset** | A fine-tuning-intent dataset (chat-style `messages`, optionally with `tools`) |
 | **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
-| **Rubric** | The eval set that does the measuring — the agent's active set is marked for you |
+| **Rubric** | The eval set that does the measuring, chosen from the agent's sets |
 
-The separation between training and eval data is enforced, not advisory. Any training row whose source trace also appears in the eval dataset is excluded from training automatically, so the benchmark never scores data the model saw during training. Within the training data, a validation split (20% by default) is carved out — randomly with trace-safe grouping, or in order — or you can supply a distinct validation dataset.
+The separation between training and eval data is enforced, not advisory. Any training row whose source trace also appears in the eval dataset is excluded from training automatically, so the benchmark never scores data the model saw during training. Within the training data, a validation split (20% by default) is carved out — randomly with trace-safe grouping, or in order.
 
 Dataset validation happens before you launch, with the same checks the [Data Workshop](/core/datasets#the-data-workshop) applies at ingest: a dataset that's valid when you built it is valid when training starts, and problems surface as fixable findings up front rather than as a failed job an hour in. The wizard also warns when the data looks too thin to teach much.
 
@@ -45,7 +45,7 @@ Each field shows its recommended value and a one-click reset back to it, so expe
 
 ## Watching a run
 
-A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded** (or Failed / Cancelled — both retryable and cancellable). The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, checkpoints as they're saved, and an append-only timeline of everything that happened. A run going wrong shows up in the curves — validation loss climbing away from train loss is visible long before the job ends — so you can cancel early instead of discovering the problem at the end.
+A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded** (or Failed / Cancelled — both retryable and cancellable). The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, and an append-only timeline of everything that happened. A run going wrong shows up in the curves — validation loss climbing away from train loss is visible long before the job ends — so you can cancel early instead of discovering the problem at the end.
 
 Grouped experiments appear as cards you can focus one at a time, and each job reports its final cost when it completes.
 
@@ -53,11 +53,10 @@ Grouped experiments appear as cards you can focus one at a time, and each job re
 
 ## The benchmark: your fine-tune vs. your production model
 
-This is the part that makes a Training run conclusive rather than hopeful. Each job spawns judge evaluations at three points:
+This is the part that makes a Training run conclusive rather than hopeful. Each job spawns judge evaluations at two points:
 
 1. **Baseline** — the agent's production model (the *incumbent*), snapshotted at submit time, scored on your eval dataset with your chosen rubric.
-2. **Checkpoint** — intermediate checkpoints scored the same way, so you can see quality developing during training.
-3. **Final** — the finished model, scored on the same data with the same rubric.
+2. **Final** — the finished model, scored on the same data with the same rubric.
 
 The headline number is the **baseline delta**: final score minus incumbent score, per metric. The comparison target is deliberately the model your agent actually runs — typically a frontier model — not the untouched base model, because "better than an untrained 7B" is trivia while "better than the GPT-class model we pay for today" is a decision.
 
@@ -65,7 +64,7 @@ When your eval dataset's references are labels, the benchmark also produces clas
 
 ## After training
 
-A succeeded run deploys its model automatically; there is no separate publish step. The model appears in [Inference](/models/inference), ready to serve and call, and on the agent's **Models** tab alongside the incumbent. Checkpoints and final weights are downloadable if you want to run the model elsewhere — the weights are yours. Everything stays linked: a served model traces back to its training job, its exact dataset commit, and the eval scores that justified it.
+A succeeded run deploys its model automatically; there is no separate publish step. The model appears in [Inference](/models/inference), ready to serve and call, and on the agent's **Models** tab alongside the incumbent. The final weights are downloadable if you want to run the model elsewhere — they're yours. Everything stays linked: a served model traces back to its training job, its exact dataset commit, and the eval scores that justified it.
 
 When the benchmark says the fine-tune wins, the last step is switching your agent over. A **Model PR** does this the same way the Optimizer ships changes: Overmind edits your repository to point the agent at the new model and opens the pull request, and the switch happens through your normal review.
 
