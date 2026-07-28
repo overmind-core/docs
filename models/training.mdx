@@ -30,7 +30,7 @@ Dataset validation happens before you launch, with the same checks the [Data Wor
 
 You don't start from a blank hyperparameter form. Overmind reads your dataset's statistics (size, token distributions, tool usage) and recommends configurations across four model **tiers**, compact through large, each with a rationale, estimated cost, and estimated duration attached. Context length is derived from your actual data, so a model whose context your longest rows would overflow is rejected at launch rather than silently truncated. If your agent calls tools, only models with tool-calling support are offered.
 
-The catalogue spans current open-weight instruct families such as Qwen, Llama, Gemma, Phi, and Ministral, from sub-1B compact models to 70B-class. The in-product picker is the live source of truth for exactly what's available.
+The catalogue spans current open-weight instruct families, from 350M compact models to 35B-class mixture-of-experts, and is listed in full under [Supported models](#supported-models) below.
 
 A single run trains up to **four experiments in parallel**, each its own model and settings. The right size is rarely obvious in advance, so the useful move is to train a compact model and a mid-tier model side by side and let the benchmark decide.
 
@@ -42,6 +42,86 @@ Every recommended setting stays editable per experiment:
 Each field shows its recommended value and a one-click reset back to it, so you can always get back to the recommended setup. A summary totals the estimated cost and duration before you commit, and runs are seeded so a rerun with the same inputs is reproducible.
 
 {/* TODO(screenshot): Training wizard with tiered recommendations and per-experiment settings */}
+
+## Supported models
+
+Overmind fine-tunes 24 open-weight instruct models across six families: **Qwen 3.6**, **Qwen 3.5**, **Qwen 3**, **Qwen 2.5**, **Llama 3**, and **Antares**. They range from 350M to 35B parameters, and every one of them supports both LoRA adapter training and full fine-tuning, serves through the same [OpenAI-compatible API](/models/inference#calling-your-model), and produces weights you can download and run anywhere.
+
+How to read the columns:
+
+- **Parameters**: total weights. Mixture-of-experts models also show the parameters active per token, which is what their inference cost tracks.
+- **Tier**: the size band the wizard groups its recommendations by, compact through large. Training a compact and a mid model side by side is the standard move.
+- **Context window**: the model's maximum context at inference.
+- **Max training context**: the longest sequence you can fine-tune on. It is often shorter than the inference context, and a run is rejected up front if your longest row exceeds it.
+- **Tool calling**: whether the model can be trained and served with `tools`. If your agent calls tools, only these models are offered.
+- **Methods**: LoRA adapter training, full fine-tuning, or both.
+
+<AccordionGroup>
+  <Accordion title="Qwen 3.6 — 1 model" icon="rocket">
+    The newest Qwen generation on the platform, and the strongest published coding and maths scores in the Qwen line. Mid tier, 256K context window.
+
+    | Model | Parameters | Tier | Context window | Max training context | Tool calling | Methods |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | **Qwen 3.6 27B** | 27B | Mid | 256K | 32K | Yes | LoRA · Full |
+  </Accordion>
+  <Accordion title="Qwen 3.5 — 6 models" icon="bolt">
+    The default recommendation for most agents. A 256K context window at every size, tool calling from 0.8B up, and compact models trainable at their full 256K context, the longest in the catalogue.
+
+    | Model | Parameters | Tier | Context window | Max training context | Tool calling | Methods |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | **Qwen 3.5 0.8B** | 0.8B | Compact | 256K | 256K | Yes | LoRA · Full |
+    | **Qwen 3.5 2B** | 2B | Compact | 256K | 256K | Yes | LoRA · Full |
+    | **Qwen 3.5 4B** | 4B | Compact | 256K | 256K | Yes | LoRA · Full |
+    | **Qwen 3.5 9B** | 9B | Small | 256K | 64K | Yes | LoRA · Full |
+    | **Qwen 3.5 27B** | 27B | Mid | 256K | 32K | Yes | LoRA · Full |
+    | **Qwen 3.5 35B** | 35B total, 3B active | Large | 256K | 64K | Yes | LoRA · Full |
+  </Accordion>
+  <Accordion title="Qwen 3 — 7 models" icon="cubes">
+    The widest size ladder in the catalogue, 0.6B through 32B, plus a code-specialised mixture-of-experts model. Useful when you want to hold the family constant and vary only size across parallel experiments.
+
+    | Model | Parameters | Tier | Context window | Max training context | Tool calling | Methods |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | **Qwen 3 0.6B** | 0.6B | Compact | 40K | 40K | No | LoRA · Full |
+    | **Qwen 3 1.7B** | 1.7B | Compact | 40K | 40K | Yes | LoRA · Full |
+    | **Qwen 3 4B** | 4B | Compact | 40K | 40K | Yes | LoRA · Full |
+    | **Qwen 3 8B** | 8B | Small | 40K | 40K | Yes | LoRA · Full |
+    | **Qwen 3 14B** | 14B | Mid | 40K | 40K | Yes | LoRA · Full |
+    | **Qwen 3 Coder 30B** | 30B total, 3B active | Mid | 256K | 64K | Yes | LoRA · Full |
+    | **Qwen 3 32B** | 32B | Large | 40K | 40K | Yes | LoRA · Full |
+  </Accordion>
+  <Accordion title="Qwen 2.5 — 5 models" icon="box-archive">
+    The mature, heavily-benchmarked generation, including a dedicated coder model at 32B. Worth keeping when an existing pipeline is already tuned around it.
+
+    | Model | Parameters | Tier | Context window | Max training context | Tool calling | Methods |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | **Qwen 2.5 0.5B Instruct** | 0.5B | Compact | 128K | 32K | No | LoRA · Full |
+    | **Qwen 2.5 7B Instruct** | 7B | Small | 128K | 32K | Yes | LoRA · Full |
+    | **Qwen 2.5 14B Instruct** | 14B | Mid | 128K | 32K | Yes | LoRA · Full |
+    | **Qwen 2.5 32B Instruct** | 32B | Large | 128K | 32K | Yes | LoRA · Full |
+    | **Qwen 2.5 Coder 32B Instruct** | 32B | Large | 128K | 32K | Yes | LoRA · Full |
+  </Accordion>
+  <Accordion title="Llama 3 — 3 models" icon="paw">
+    Meta's instruct models, all three trainable at their full 128K context. The natural choice when your rows are long and you want a compact model.
+
+    | Model | Parameters | Tier | Context window | Max training context | Tool calling | Methods |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | **Llama 3.2 1B Instruct** | 1B | Compact | 128K | 128K | Yes | LoRA · Full |
+    | **Llama 3.2 3B Instruct** | 3B | Compact | 128K | 128K | Yes | LoRA · Full |
+    | **Llama 3.1 8B Instruct** | 8B | Small | 128K | 128K | Yes | LoRA · Full |
+  </Accordion>
+  <Accordion title="Antares — 2 models" icon="shield-halved">
+    Security-specialised compact models, trained for vulnerability localisation. Small enough to serve cheaply at volume on a narrow, high-frequency job.
+
+    | Model | Parameters | Tier | Context window | Max training context | Tool calling | Methods |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | **Antares 350M** | 350M | Compact | 32K | 32K | Yes | LoRA · Full |
+    | **Antares 1B** | 1.8B | Compact | 128K | 32K | Yes | LoRA · Full |
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+The in-product picker is the live source of truth for exactly what's available to your project, and `GET /api/v1/models` lists what you can call. New models are added as the open-weight families release, so this table lags the console by a release or two.
+</Note>
 
 ## Watching a run
 
