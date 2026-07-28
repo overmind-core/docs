@@ -3,13 +3,13 @@ title: Training
 description: Fine-tune open-weight models on your agent's own data, benchmark them against the model you run in production, and deploy the result.
 ---
 
-Training turns your agent's accumulated data into a model of your own. You pick a fine-tuning dataset, Overmind recommends which base models to try and how to train them, and every finished model is benchmarked with your own evaluators against the model your agent runs in production today. You don't need training infrastructure, and there's no leap of faith at the end: the question a fine-tune has to answer is "does it beat what we already ship?", per metric, before any traffic moves.
+Training turns your agent's accumulated data into a model of your own. You pick a fine-tuning dataset, Overmind recommends which base models to try and how to train them, and every finished model is benchmarked with your own evaluators against the model your agent runs in production today. You don't need training infrastructure, and you see per-metric benchmark results before any traffic moves. The question a fine-tune has to answer is "does it beat what we already ship?", per metric, before anything changes.
 
 ## Why fine-tune, and when
 
 Paying per token for a frontier model is a fine way to start. But once an agent does one job at volume, a smaller model trained on that agent's real data often matches it at a fraction of the cost per call. And it's yours: private to your project, downloadable, not subject to a provider deprecating it.
 
-The practical trigger is usually one of two things. Either [optimization runs](/agent-testing/optimizers) have plateaued, meaning the prompts and code around the model are as good as they get and the remaining gap lives in the model, or inference cost and latency have become the problem. In both cases the prerequisite is the same: enough curated, real examples to teach from, which is exactly what [Datasets](/core/datasets) exists to accumulate.
+The practical trigger is usually one of two things. Either [optimization runs](/agent-testing/optimizers) have plateaued, meaning the prompts and code around the model are as good as they get and the remaining gap is in the model, or inference cost and latency have become the problem. In both cases the prerequisite is the same: enough curated, real examples to teach from, which is exactly what [Datasets](/core/datasets) exists to accumulate.
 
 ## What a run needs
 
@@ -45,7 +45,7 @@ Each field shows its recommended value and a one-click reset back to it, so you 
 
 ## Watching a run
 
-A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded**, or ends as Failed or Cancelled, both of which can be retried. The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, and an append-only timeline of everything that happened. A run going wrong shows up in the curves, since validation loss climbing away from train loss is visible long before the job ends, and you can cancel early instead of discovering the problem at the end.
+A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded**, or ends as Failed or Canceled, both of which can be retried. The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, and an append-only timeline of everything that happened. A run going wrong shows up in the curves, since validation loss climbing away from train loss is visible long before the job ends, and you can cancel early instead of discovering the problem at the end.
 
 Grouped experiments appear as cards you can focus one at a time, and each job reports its final cost when it completes.
 
