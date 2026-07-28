@@ -87,17 +87,29 @@ body {
   letter-spacing: 0;
 }
 
-/* Mondwest needs a touch of negative tracking, like in the app */
-#content-area :is(h1, h2, h3, h4, h5, h6) {
-  letter-spacing: -0.015em;
-  font-weight: 400; /* single Mondwest master — never synthesize weight */
-  line-height: 1.15;
+/* Headings — NeueBit pixel display for H1–H3, on the real Bold master.
+ * Bitmap face rules: larger nominal sizes to hit the intended visual
+ * weight, positive tracking, no synthesized weights. Body text stays in
+ * PP Neue Montreal; deeper heading levels (unused in these docs) too. */
+#content-area :is(h1, h2, h3) {
+  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1.05;
 }
-
-/* Headings — explicit H1 size mirrors the frontend's "tighter, sharper" scale */
 #content-area h1 {
-  font-size: clamp(2.25rem, 1.6rem + 2vw, 3.25rem);
-  letter-spacing: -0.025em;
+  font-size: clamp(2.7rem, 1.9rem + 2.4vw, 4rem);
+}
+#content-area h2 {
+  font-size: 2rem;
+}
+#content-area h3 {
+  font-size: 1.6rem;
+}
+#content-area :is(h4, h5, h6) {
+  font-weight: 600; /* Montreal SemiBold master */
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 /* Content emphasis lands on the real SemiBold master */
@@ -176,21 +188,29 @@ body {
   }
 }
 
-/* ─── Sidebar — grouped panels, pixel-terminal chrome ─────────────────────
- * Each navigation group becomes its own layered card: eyebrow label with a
- * copper pixel marker on top, dense rows inside, active row as a copper pill.
- * This breaks the "one long list" feel and makes the hierarchy legible.
+/* ─── Sidebar — the console's sidebar contract (design.md §6.6) ──────────
+ * The rail sits directly on the page canvas: no tinted panel, no boxes.
+ * Rows are NeueBit with 150ms color transitions; hover is a 4% foreground
+ * wash; the active row is an 8% foreground wash plus bold — monochrome
+ * ink, never an accent color, never a bar. Two text levels only:
+ * categories in full ink (the loudest thing on the rail), pages in
+ * muted-foreground. Sentence case, 2px radii, no shadows.
  */
+:root {
+  --om-ink: #231a14; /* design.md --foreground */
+  --om-ink-muted: #75685f; /* design.md --muted-foreground */
+}
+.dark {
+  --om-ink: #f5f3ee;
+  --om-ink-muted: #a9a39a;
+}
 
-/* The whole rail is one quiet layered surface with a hairline edge —
- * groups live on it as eyebrow + tree-line clusters instead of boxes */
 div:has(> #navigation-items) {
-  background: rgb(from var(--om-cream) r g b / 0.35);
-  border-right: 1px solid var(--om-border-light);
+  background: transparent; /* the rail is the canvas */
+  border-right: 1px solid rgb(from var(--om-rust) r g b / 0.12);
 }
 .dark div:has(> #navigation-items) {
-  background: rgb(from var(--om-brown-deep) r g b / 0.35);
-  border-right: 1px solid var(--om-border-dark);
+  border-right-color: transparent; /* dark separates by tone alone */
 }
 
 /* Container — reclaim the airy default padding and hide the gutter the
@@ -208,87 +228,56 @@ div:has(> #navigation-items) {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
 }
 
-/* Groups — no boxes; a snug 16px rhythm between clusters */
+/* Groups — space does the structural work; no markers, no dividers */
 #navigation-items div:has(> .sidebar-group-header) {
   margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
-  margin-bottom: 16px;
+  margin-bottom: 28px;
 }
 
-/* Rows hang off a warm tree line under each eyebrow — terminal style */
 #navigation-items ul.sidebar-group {
-  border-left: 1px solid var(--om-border-light);
-  margin-left: 2px;
-}
-.dark #navigation-items ul.sidebar-group {
-  border-left-color: var(--om-border-dark);
+  border-left: 0;
+  margin-left: 0;
 }
 
-/* Group eyebrow — NeueBit uppercase with a copper pixel-square marker */
+/* Category — the loudest ink on the rail */
 #navigation-items .sidebar-group-header {
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: var(--om-nav-label-size);
-  font-weight: 400 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  line-height: 1.2;
-  color: var(--om-rust) !important;
-  margin-bottom: 6px !important;
-  padding-left: 0.75rem !important;
-}
-.dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-orange) r g b / 0.8) !important;
+  font-size: 20px;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  color: var(--om-ink) !important;
+  margin-bottom: 4px !important;
+  padding: 0 8px !important;
 }
 
-#navigation-items .sidebar-group-header::before {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 2px;
-  background: var(--om-copper);
-}
-.dark #navigation-items .sidebar-group-header::before {
-  background: var(--om-orange);
-}
-
-/* Rows — dense pixel-terminal pills */
+/* Pages — one register quieter; hover washes, never recolors */
 #navigation-items .sidebar-group li a {
   font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: var(--om-nav-item-size);
-  letter-spacing: 0.04em;
-  line-height: 1.1;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  border-radius: 3px;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  padding: 6px 8px !important;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--om-ink-muted) !important;
   transition:
-    background-color 120ms ease,
-    color 120ms ease;
+    color 150ms ease,
+    background-color 150ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
-  background: rgb(from var(--om-copper) r g b / 0.08);
-}
-.dark #navigation-items .sidebar-group li a:hover {
-  background: rgb(from var(--om-orange) r g b / 0.1);
+  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
+  color: var(--om-ink) !important;
 }
 
-/* Active row — copper pill on the tree line, real NeueBit Bold */
-#navigation-items .sidebar-group li:has(> a[aria-current="page"]) {
-  box-shadow: inset 2px 0 0 var(--om-copper); /* copper segment of the tree line */
-}
+/* Current page — 8% foreground wash + bold. Monochrome ink, no accent. */
 #navigation-items .sidebar-group li a[aria-current="page"] {
   font-weight: 700;
   text-shadow: none !important;
-  color: var(--om-copper) !important;
-  background: rgb(from var(--om-copper) r g b / 0.1);
-  border-radius: 0 3px 3px 0;
-}
-.dark #navigation-items .sidebar-group li:has(> a[aria-current="page"]) {
-  box-shadow: inset 2px 0 0 var(--om-orange);
-}
-.dark #navigation-items .sidebar-group li a[aria-current="page"] {
-  color: var(--om-orange) !important;
-  background: rgb(from var(--om-orange) r g b / 0.11);
+  color: var(--om-ink) !important;
+  background: color-mix(in srgb, var(--om-ink) 8%, transparent);
 }
 
 /* ─── In-page TOC — same register as the sidebar ───────────────────────── */
@@ -432,6 +421,411 @@ ul.toc .toc-item a {
 }
 .dark * {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.3) transparent;
+}
+
+
+/* ─── MDX components — a quiet warm pass, nothing loud ───────────────────
+ * Steps, Cards, Accordions, Tabs, Callouts, CodeGroups, tables, kbd, and
+ * mermaid flowcharts keep Mintlify's layout and typography; this only
+ * replaces the cool grays with the warm palette and lets interactive
+ * states answer in copper. Hooks are the stable data-component-part
+ * attributes plus the semantic .card/.callout/.accordion classes.
+ */
+
+/* Callouts — soft warm tints per type instead of saturated blue/yellow */
+#content-area .callout {
+  --om-acc: var(--om-copper); /* Note (blue in the default theme) */
+  border-color: rgb(from var(--om-acc) r g b / 0.25) !important;
+  background: rgb(from var(--om-acc) r g b / 0.05) !important;
+}
+#content-area .callout[class*="border-neutral"] {
+  --om-acc: var(--om-rust); /* Info */
+}
+#content-area .callout[class*="border-green"] {
+  --om-acc: #4e7a45; /* Tip — moss, sits naturally on cream */
+}
+#content-area .callout[class*="border-yellow"] {
+  --om-acc: #a97a10; /* Warning — goldenrod, not lemon */
+}
+#content-area .callout[class*="border-red"] {
+  --om-acc: #a83a1c; /* Danger — brick, in the rust family */
+}
+.dark #content-area .callout {
+  border-color: rgb(from var(--om-acc) r g b / 0.35) !important;
+  background: rgb(from var(--om-acc) r g b / 0.08) !important;
+}
+#content-area .callout [data-component-part="callout-icon"],
+#content-area .callout [data-component-part="callout-icon"] svg {
+  color: var(--om-acc) !important;
+  fill: var(--om-acc) !important;
+}
+.dark #content-area .callout [data-component-part="callout-icon"],
+.dark #content-area .callout [data-component-part="callout-icon"] svg {
+  color: rgb(from var(--om-acc) r g b / 0.9) !important;
+  fill: rgb(from var(--om-acc) r g b / 0.9) !important;
+}
+
+/* Callout text reads in the page's warm ink, never the type color —
+ * the accent lives only in the border and the icon. Links keep primary. */
+#content-area .callout [data-component-part="callout-content"],
+#content-area .callout [data-component-part="callout-content"] :is(p, li, strong, em) {
+  color: var(--om-brown-deep) !important;
+}
+.dark #content-area .callout [data-component-part="callout-content"],
+.dark
+  #content-area
+  .callout
+  [data-component-part="callout-content"]
+  :is(p, li, strong, em) {
+  color: rgb(from var(--om-cream) r g b / 0.92) !important;
+}
+
+/* Steps — the default circle, warmed: copper number, warm connecting line */
+#content-area .step div[class*="step-indicator"] {
+  background: rgb(from var(--om-copper) r g b / 0.09) !important;
+  color: var(--om-copper) !important;
+}
+.dark #content-area .step div[class*="step-indicator"] {
+  background: rgb(from var(--om-orange) r g b / 0.12) !important;
+  color: var(--om-orange) !important;
+}
+#content-area .step [data-component-part="step-line"],
+#content-area .step > div > div[class*="w-px"] {
+  background: linear-gradient(
+    to bottom,
+    rgb(from var(--om-rust) r g b / 0.22),
+    transparent
+  ) !important;
+}
+.dark #content-area .step [data-component-part="step-line"],
+.dark #content-area .step > div > div[class*="w-px"] {
+  background: linear-gradient(
+    to bottom,
+    rgb(from var(--om-orange) r g b / 0.2),
+    transparent
+  ) !important;
+}
+
+/* Cards — warm hairline and surface; hover answers with a copper edge */
+#content-area .card {
+  border-color: var(--om-border-light) !important;
+  background: rgb(from var(--om-cream) r g b / 0.35) !important;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+.dark #content-area .card {
+  border-color: var(--om-border-dark) !important;
+  background: rgb(from var(--om-orange) r g b / 0.03) !important;
+}
+#content-area .card:hover {
+  border-color: rgb(from var(--om-copper) r g b / 0.45) !important;
+}
+.dark #content-area .card:hover {
+  border-color: rgb(from var(--om-orange) r g b / 0.45) !important;
+}
+
+/* Accordions — one flat surface. Closed rows sit in muted ink; hover is a
+ * 4% foreground wash; the open row is a 6% wash with the title stepping
+ * up to full ink and real SemiBold. No accent color, no bars, no per-row
+ * fills — hairline dividers carry the structure. */
+#content-area :is(.accordion, .accordion-group) {
+  border-color: rgb(from var(--om-ink) r g b / 0.14) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#content-area .accordion {
+  background: transparent !important;
+}
+#content-area [data-component-part="accordion-button"]:hover {
+  background: color-mix(in srgb, var(--om-ink) 4%, transparent) !important;
+}
+#content-area [data-component-part="accordion-title"] {
+  color: var(--om-ink-muted) !important;
+  font-weight: 500;
+  transition: color 150ms ease;
+}
+#content-area [data-component-part="accordion-caret-right"],
+#content-area [data-component-part="accordion-caret-right"] svg {
+  color: var(--om-ink-muted) !important;
+  fill: var(--om-ink-muted) !important;
+}
+#content-area details[open] > summary {
+  background: color-mix(in srgb, var(--om-ink) 6%, transparent) !important;
+  box-shadow: none;
+}
+#content-area details[open] > summary [data-component-part="accordion-title"] {
+  color: var(--om-ink) !important;
+  font-weight: 600; /* Montreal SemiBold master */
+}
+#content-area details[open] > summary [data-component-part="accordion-caret-right"],
+#content-area
+  details[open]
+  > summary
+  [data-component-part="accordion-caret-right"]
+  svg {
+  color: var(--om-ink) !important;
+  fill: var(--om-ink) !important;
+}
+
+/* Tabs — the active tab is already copper via the primary color; just
+ * warm the rail and the inactive hover */
+#content-area [data-component-part="tabs-list"] {
+  border-bottom-color: var(--om-border-light) !important;
+}
+.dark #content-area [data-component-part="tabs-list"] {
+  border-bottom-color: var(--om-border-dark) !important;
+}
+#content-area [data-component-part="tab-button"][data-active="false"]:hover {
+  border-bottom-color: rgb(from var(--om-copper) r g b / 0.35) !important;
+}
+
+/* Code blocks — one boundary, not two: the code-block wrapper carries the
+ * border and warm shadow; the inner pre (bordered by the "Content depth"
+ * rule above for bare code fences) goes borderless inside it */
+#content-area [data-component-part="code-block-root"] {
+  border: 1px solid var(--om-border-light);
+  border-radius: 6px;
+  box-shadow: var(--om-shadow-light);
+  overflow: hidden;
+}
+.dark #content-area [data-component-part="code-block-root"] {
+  border-color: var(--om-border-dark);
+  box-shadow: var(--om-shadow-dark);
+}
+#content-area [data-component-part="code-block-root"] pre {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── Code syntax — the brand-warm token palette ─────────────────────────
+ * The highlighter inlines GitHub-Light hexes (light) and Dark+ hexes via
+ * --shiki-dark (dark). The docs only ship Python, TypeScript, and shell,
+ * so the emitted set is small and mapped 1:1 to warm equivalents. Dark
+ * rules key off the --shiki-dark hex and out-specify the light rules via
+ * the .dark ancestor. The `i` flag absorbs the highlighter's mixed casing.
+ */
+
+/* Surfaces — warm paper instead of pure white / cool near-black */
+#content-area [style*="--shiki-dark-bg" i] {
+  background-color: #fffaf3 !important;
+}
+.dark #content-area [style*="--shiki-dark-bg" i] {
+  background-color: #150d07 !important;
+}
+
+/* Light tokens (GitHub Light → warm ink) */
+#content-area pre span[style*="color:#1F2328" i] {
+  color: #2f1606 !important; /* plain text */
+}
+#content-area pre span[style*="color:#CF222E" i] {
+  color: #b3400b !important; /* keywords */
+}
+#content-area pre span[style*="color:#0A3069" i] {
+  color: #9a4d00 !important; /* strings */
+}
+#content-area pre span[style*="color:#953800" i] {
+  color: #79380d !important; /* identifiers */
+}
+#content-area pre span[style*="color:#0550AE" i] {
+  color: #8a5a00 !important; /* constants, numbers */
+}
+#content-area pre span[style*="color:#8250DF" i] {
+  color: #a3540a !important; /* functions */
+}
+
+/* Dark tokens (Dark+ → warm glow) */
+.dark #content-area pre span[style*="--shiki-dark:#D4D4D4" i] {
+  color: #efe0d1 !important; /* plain text */
+}
+.dark #content-area pre span[style*="--shiki-dark:#C586C0" i] {
+  color: #ed670f !important; /* control keywords */
+}
+.dark #content-area pre span[style*="--shiki-dark:#569CD6" i] {
+  color: #d9822b !important; /* declaration keywords */
+}
+.dark #content-area pre span[style*="--shiki-dark:#CE9178" i] {
+  color: #f69a5b !important; /* strings */
+}
+.dark #content-area pre span[style*="--shiki-dark:#9CDCFE" i] {
+  color: #f0c9a6 !important; /* identifiers, properties */
+}
+.dark #content-area pre span[style*="--shiki-dark:#DCDCAA" i] {
+  color: #e6b45e !important; /* functions */
+}
+.dark #content-area pre span[style*="--shiki-dark:#B5CEA8" i] {
+  color: #d9a83c !important; /* numbers */
+}
+.dark #content-area pre span[style*="--shiki-dark:#4FC1FF" i] {
+  color: #f2a25c !important; /* constants */
+}
+.dark #content-area pre span[style*="--shiki-dark:#D7BA7D" i] {
+  color: #d9a83c !important; /* regex, special */
+}
+.dark #content-area pre span[style*="--shiki-dark:#6A9955" i] {
+  color: #9a7a55 !important; /* comments — muted, stays secondary */
+}
+#content-area pre span[style*="color:#59636E" i],
+#content-area pre span[style*="color:#6E7781" i] {
+  color: #8a6f5a !important; /* comments (light) */
+}
+
+/* Code copy button — a warm chip on the code paper, not a white pill.
+ * The floating overlay that keeps it readable over long lines takes the
+ * same paper color as the block, so nothing cool shows through. */
+#content-area [data-testid="copy-code-button"] {
+  border-radius: 4px !important;
+  background: #fffaf3 !important; /* the light code paper */
+  border: 1px solid var(--om-border-light);
+  color: var(--om-rust) !important;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.dark #content-area [data-testid="copy-code-button"] {
+  background: #150d07 !important; /* the dark code paper */
+  border-color: var(--om-border-dark);
+  color: rgb(from var(--om-orange) r g b / 0.75) !important;
+}
+#content-area [data-testid="copy-code-button"]:hover {
+  background: rgb(from var(--om-copper) r g b / 0.1) !important;
+  border-color: rgb(from var(--om-copper) r g b / 0.4);
+  color: var(--om-copper) !important;
+}
+.dark #content-area [data-testid="copy-code-button"]:hover {
+  background: rgb(from var(--om-orange) r g b / 0.12) !important;
+  border-color: rgb(from var(--om-orange) r g b / 0.4);
+  color: var(--om-orange) !important;
+}
+#content-area [data-floating-buttons] {
+  background: transparent !important;
+}
+#content-area [data-fade-overlay] {
+  background: #fffaf3 !important;
+}
+.dark #content-area [data-fade-overlay] {
+  background: #150d07 !important;
+}
+
+/* Tables — no frames, no nesting: a header strip, hairline rows, and
+ * faint zebra striping carry the whole structure */
+#content-area table,
+#content-area [data-table-wrapper] {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+#content-area table th {
+  padding: 10px 14px !important;
+  font-size: 0.875rem;
+  background: rgb(from var(--om-cream) r g b / 0.6);
+  border-bottom: 1px solid rgb(from var(--om-rust) r g b / 0.28) !important;
+  color: var(--om-brown-deep) !important;
+}
+.dark #content-area table th {
+  background: rgb(from var(--om-orange) r g b / 0.07);
+  border-bottom-color: rgb(from var(--om-orange) r g b / 0.3) !important;
+  color: rgb(from var(--om-cream) r g b / 0.95) !important;
+}
+
+#content-area table td {
+  padding: 10px 14px !important;
+  vertical-align: top;
+  border-color: rgb(from var(--om-rust) r g b / 0.1) !important;
+}
+.dark #content-area table td {
+  border-color: rgb(from var(--om-orange) r g b / 0.09) !important;
+}
+
+#content-area table tbody tr:nth-child(even) td {
+  background: rgb(from var(--om-cream) r g b / 0.3);
+}
+.dark #content-area table tbody tr:nth-child(even) td {
+  background: rgb(from var(--om-orange) r g b / 0.03);
+}
+#content-area table tbody tr:hover td {
+  background: rgb(from var(--om-copper) r g b / 0.06);
+}
+.dark #content-area table tbody tr:hover td {
+  background: rgb(from var(--om-orange) r g b / 0.07);
+}
+
+/* kbd — quiet warm keycap in the body face */
+#content-area kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--om-border-light);
+  border-radius: 4px;
+  background: rgb(from var(--om-cream) r g b / 0.55);
+  color: var(--om-rust);
+  font-size: 0.85em;
+}
+.dark #content-area kbd {
+  border-color: var(--om-border-dark);
+  background: rgb(from var(--om-orange) r g b / 0.06);
+  color: rgb(from var(--om-orange) r g b / 0.85);
+}
+
+/* ─── Mermaid flowcharts — the ink contract, applied to diagrams ─────────
+ * Mermaid injects a per-diagram stylesheet with id selectors, so overrides
+ * need !important. Diagrams hydrate client-side; the svg is matched by its
+ * aria-roledescription. Colors only — fonts and sizing are left to mermaid
+ * so boxes always fit their labels. --om-ink flips with .dark on its own,
+ * so only the edge-label backing (the literal page canvas) needs a dark
+ * variant.
+ */
+#content-area svg[aria-roledescription] {
+  max-width: 100%;
+}
+
+/* Nodes — a quiet ink wash with an ink outline */
+#content-area
+  svg[aria-roledescription]
+  .node
+  :is(rect, polygon, circle, path) {
+  fill: color-mix(in srgb, var(--om-ink) 5%, transparent) !important;
+  stroke: color-mix(in srgb, var(--om-ink) 35%, transparent) !important;
+  stroke-width: 1px !important;
+}
+
+/* Labels — full ink in nodes, body face */
+#content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),
+#content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel) p {
+  font-family:
+    "PP Neue Montreal",
+    system-ui,
+    sans-serif !important;
+  font-weight: 500 !important; /* the Medium master — reads at diagram scale */
+  color: var(--om-ink) !important;
+}
+
+/* Edges and arrowheads — one register quieter than the nodes */
+#content-area
+  svg[aria-roledescription]
+  :is(.edgePath path, path.flowchart-link) {
+  stroke: var(--om-ink-muted) !important;
+}
+#content-area svg[aria-roledescription] .marker,
+#content-area svg[aria-roledescription] marker path {
+  fill: var(--om-ink-muted) !important;
+  stroke: var(--om-ink-muted) !important;
+}
+
+/* Edge labels sit flat on the page canvas so lines pass cleanly */
+#content-area svg[aria-roledescription] .edgeLabel,
+#content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
+  background-color: #fdf6ec !important;
+  fill: #fdf6ec !important;
+  color: var(--om-ink-muted) !important;
+}
+.dark #content-area svg[aria-roledescription] .edgeLabel,
+.dark #content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
+  background-color: #120b06 !important;
+  fill: #120b06 !important;
+  color: var(--om-ink-muted) !important;
 }
 
 /* ─── Custom animated cursor — Overmind signature, same as the platform ──

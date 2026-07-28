@@ -1,0 +1,161 @@
+---
+title: Observability
+description: See what your agent actually does in production, from full traces down to every model and tool call, with tokens, cost, latency, and quality scores attached.
+---
+
+Observability is where Overmind watches your agent run. Every request your agent handles arrives as a trace: the model calls it made, the tools it fired, what each step cost, how long it took, and whether it succeeded. This is the raw material for everything else on the platform, since datasets are promoted from traces, evaluators score them, and training data is mined from them. It also stands on its own as the place you go to answer "what just happened?"
+
+Two properties distinguish it from a generic tracing tool. Traces are attributed to [agents](/core/agents), so a run's telemetry, datasets, and jobs all line up under one entity. And traces are scored as they arrive: the evaluators you've marked for live scoring run on incoming traces automatically, so quality shows up next to cost and latency instead of in a separate system.
+
+## Concepts
+
+A **span** is one unit of work: a model call, a tool invocation, a function, a loop iteration. Spans record timing, status, and attributes, and they nest. A workflow span contains tool spans, which contain the model calls underneath.
+
+A **trace** is the tree of spans for one end-to-end operation, such as a single handled request. The root span is what you see as a row in the trace list.
+
+A **session** groups the traces of one multi-turn conversation, so you can follow an exchange in order across requests.
+
+For model-call spans, Overmind captures the prompt and response, the model requested and the model actually served, token usage, cost (provider-reported where available, otherwise derived from model pricing), request settings such as temperature, latency, and, for streamed calls, time to first token. Tool spans carry the tool's name and arguments. Failures carry the error class and message.
+
+## Getting traces in
+
+There are four ways to get telemetry flowing, and they're not mutually exclusive.
+
+### The tracing SDKs
+
+Add the SDK, initialize it once at startup, and every call to a supported provider (OpenAI, Anthropic, Google Gemini; Python also supports Agno) is captured automatically. There are no call-site rewrites and no proxy in front of your model provider.
+
+<CodeGroup>
+
+```python Python
+from overmind import init
+
+init(
+    agent_name="Support Triage",   # attribute every trace to this agent
+    service_name="my-service",
+    environment="production",
+)
+
+# Your existing OpenAI / Anthropic / Gemini calls are now traced.
+```
+
+```ts JavaScript / TypeScript
+import { OpenAI } from "openai";
+import { OvermindClient } from "@overmind-lab/trace-sdk";
+
+const overmind = new OvermindClient({
+  agentName: "Support Triage", // attribute every trace to this agent
+  apiKey: process.env.OVERMIND_API_KEY!,
+  appName: "my-app",
+});
+
+overmind.initTracing({ enabledProviders: { openai: OpenAI } });
+
+// Your existing OpenAI / Anthropic / Gemini calls are now traced.
+
+await overmind.shutdown(); // flush before a short-lived process exits
+```
+
+</CodeGroup>
+
+Install with `pip install overmind` or `npm install @overmind-lab/trace-sdk`. You'll need an Overmind API key, created under **Settings → API keys** (see [Projects & Administration](/platform/administration#api-keys)).
+
+### OpenTelemetry directly
+
+Overmind's ingest speaks standard OTLP. If your app is in another language, or you already have an OpenTelemetry pipeline, point any OTel exporter at Overmind with your API key and traces flow without the SDK. The SDKs themselves are built on OpenTelemetry, so there is no proprietary wire format to adopt or escape from.
+
+### Importing from observability tools
+
+If your traces already live somewhere else, connect that tool under **Settings** and Overmind imports them. Supported connectors include **Langfuse, LangSmith, Braintrust, Opik, Helicone, and Arize Phoenix**. Credentials are encrypted at rest and used only to read traces.
+
+A connection moves through visible sync states: the first enable runs a full historical **backfill** (resumable, with imported/total progress shown), then switches to **live** incremental syncing. Auto-sync is off by default, so you can leave it manual and press **Sync now** when you want fresh data.
+
+<Note>
+Imported traces behave like native ones for browsing and dataset-building, with one exception: live trace scoring applies only to telemetry that arrives through the Overmind SDK or OTLP path. Connector-imported traces are not scored on arrival.
+</Note>
+
+### The observability PR
+
+When a repository scan finds that your code isn't instrumented, or only partially, Overmind can write the missing tracing code itself and open a pull request against your branch. Coverage is reported per component, so you can see exactly which parts of the agent are silent before and after. Closing the gap becomes a code review instead of a project.
+
+## Attributing traces to an agent
+
+Every trace should carry an agent identity, because that's what lines up telemetry with the agent's datasets, eval sets, and runs. You set it once at SDK initialization:
+
+- **`agent_id`** (preferred). The agent's UUID, copied from its page in the console. Exact and rename-proof.
+- **`agent_name`**. A human-readable name. Overmind derives a stable identity from it, so the name must stay constant across runs and deploys.
+
+Both are also settable through environment variables (`OVERMIND_AGENT_ID`, `OVERMIND_AGENT_NAME`) if you'd rather not touch code. The identity is stamped on every span in the process, including the automatically captured provider calls.
+
+<Warning>
+Two failure modes are worth avoiding. Setting **no identity** leaves traces unattributed and absent from any agent's page. An **unstable name** mints a duplicate agent per variant. Pick a name and keep it, or use the ID.
+</Warning>
+
+## Exploring traces
+
+The Observability page is a filterable table with three views: **root traces** (one row per end-to-end run, the default), **all spans** (every operation individually), and **sessions** (conversations, with their trace counts, token totals, cost, and time span).
+
+Trace rows show name, time, duration, tokens, cost, model, status, scores, and agent. You can search full-text, filter by time range, status, agent, or service, and build advanced filters on anything from duration thresholds to token and cost floors. Columns toggle and resize. The entire view state, filters, sort, and page included, lives in the URL, so any slice of your data is a shareable link a teammate can open to see exactly what you see.
+
+{/* TODO(screenshot): Trace list with filters applied and the Scores column visible */}
+
+### Reading a single trace
+
+Opening a trace shows its span tree beside a timeline, so you can see both the logical structure and where the time went. Selecting a span opens its detail: attributes, events, inputs and outputs, and, for model calls, the full chat transcript rendered as a conversation. This is where "the agent gave a weird answer" turns into "the retrieval step returned nothing, so the model improvised."
+
+{/* TODO(screenshot): Trace detail with span tree, timeline, and an LLM span's transcript open */}
+
+### Scores on arrival
+
+If the owning agent has evaluators marked for trace scoring, each incoming trace is scored automatically and the results appear in the **Scores** column and on the trace itself. This turns the trace list into a quality monitor: filter to low-scoring traces from the last hour, read them, and you're doing failure analysis on live traffic without having built any pipeline. How trace-scoring evaluators are defined is covered in [Eval](/agent-testing/eval#eval-sets).
+
+### From traces to datasets
+
+Select rows in the table and create a dataset from them, or append them to an existing one. This is the single most important workflow in Observability: it's how real production behavior becomes the test set your agent is measured against. See [Datasets](/core/datasets) for what happens next.
+
+## Instrumenting your own code
+
+Automatic capture covers the model calls. To make traces genuinely readable, wrap the code *around* those calls (the entry point, the tools, the retrieval steps) so the span tree mirrors your agent's actual structure. Both SDKs ship typed helpers for this:
+
+| Span type | Python | JavaScript | Use for |
+| --- | --- | --- | --- |
+| Entry point | `@entry_point` | `entryPoint(name, fn)` | The outermost traced function of a request |
+| Workflow | `@workflow` | `workflow(name, fn)` | A multi-step process or pipeline |
+| Tool | `@tool` | `tool(name, fn)` | A tool or function the agent calls |
+| Retrieval | `@retrieval` | `retrieval(name, fn)` | A RAG or vector-search step |
+| Function | `@function` / `@observe` | `observe(name, fn)` | Any other traced function |
+
+```python
+from overmind import init, entry_point, workflow, tool
+
+init(agent_name="Research Agent", service_name="research-agent")
+
+@tool("web_search")
+def web_search(query: str) -> list[str]: ...
+
+@workflow("research")
+def research(topic: str) -> str:
+    return summarize(web_search(topic))
+
+@entry_point("handle_request")
+def handle_request(topic: str) -> str:
+    return research(topic)
+```
+
+Because each function calls the next, the spans nest into one tree: entry point, then workflow, then tool, with the captured model calls underneath. For blocks that aren't whole functions, `start_span()` (Python) and `withSpan()` (JavaScript) open a child span around any code region.
+
+A few helpers add context you'll want later. `set_user()` tags the trace with a user identity, `set_tag()` attaches arbitrary key-value metadata to filter on, `capture_exception()` records a handled error without failing the span, and a conversation ID groups traces into a session. Functions that handle secrets can be traced with input/output capture disabled.
+
+<Tip>
+Instrument in this order: entry point first, then tools, then anything else. An entry-point span alone turns a loose bag of model calls into a coherent run; tool spans explain *why* each model call happened. Most teams stop there and it's enough.
+</Tip>
+
+## Practical guidance
+
+Initialize tracing once, at startup, before the first model call. Give each agent its own service name so their telemetry stays separate. Keep tracing on in production instead of sampling it away during quiet periods; the value of the trace pool compounds, since it feeds datasets, evaluation, and eventually training. For short-lived processes and serverless handlers, flush before exit so buffered spans aren't lost.
+
+## Next steps
+
+- [Datasets](/core/datasets) turns the traces worth keeping into curated test and training data.
+- [Eval](/agent-testing/eval) defines the evaluators that score traces on arrival.
+- [Agents](/core/agents) is where an agent's traces, data, and runs come together.

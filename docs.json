@@ -49,47 +49,87 @@
       {
         "group": "Overview",
         "pages": [
-          "index"
+          "index",
+          "quickstart"
         ]
       },
       {
-        "group": "Onboarding and Integrations",
+        "group": "Core",
         "pages": [
-          "onboarding/onboarding",
-          "onboarding/integrations",
-          "onboarding/tracing",
-          "onboarding/instrumentation"
+          "core/agents",
+          "core/datasets",
+          "core/observability"
         ]
       },
       {
-        "group": "Context",
+        "group": "Agent Testing",
         "pages": [
-          "context/repositories",
-          "context/agents",
-          "context/datasets-and-traces"
+          "agent-testing/eval",
+          "agent-testing/optimizers"
         ]
       },
       {
-        "group": "Evaluation",
+        "group": "Models",
         "pages": [
-          "evaluation/eval-metrics",
-          "evaluation/optimizers"
+          "models/training",
+          "models/inference"
         ]
       },
       {
-        "group": "Fine-tuning",
+        "group": "Platform",
         "pages": [
-          "fine-tuning"
-        ]
-      },
-      {
-        "group": "Inference",
-        "pages": [
-          "inference"
+          "platform/administration",
+          "platform/glossary"
         ]
       }
     ]
   },
+  "redirects": [
+    {
+      "source": "/context/agents",
+      "destination": "/core/agents"
+    },
+    {
+      "source": "/context/repositories",
+      "destination": "/core/agents"
+    },
+    {
+      "source": "/context/datasets-and-traces",
+      "destination": "/core/datasets"
+    },
+    {
+      "source": "/onboarding/onboarding",
+      "destination": "/"
+    },
+    {
+      "source": "/onboarding/tracing",
+      "destination": "/core/observability"
+    },
+    {
+      "source": "/onboarding/instrumentation",
+      "destination": "/core/observability"
+    },
+    {
+      "source": "/onboarding/integrations",
+      "destination": "/core/observability"
+    },
+    {
+      "source": "/evaluation/eval-metrics",
+      "destination": "/agent-testing/eval"
+    },
+    {
+      "source": "/evaluation/optimizers",
+      "destination": "/agent-testing/optimizers"
+    },
+    {
+      "source": "/fine-tuning",
+      "destination": "/models/training"
+    },
+    {
+      "source": "/inference",
+      "destination": "/models/inference"
+    }
+  ],
   "contextual": {
     "options": [
       "copy",
