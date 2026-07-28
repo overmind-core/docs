@@ -10,13 +10,14 @@ Everything in Overmind is one loop, and each product area is a step in it:
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart TB
-    O["Observability<br/>traces, scored on arrival"] --> D["Datasets<br/>curated in the Workshop"]
+flowchart LR
+    A["Agents<br/>discovered from code + telemetry"] --> O["Observability<br/>traces, scored on arrival"]
+    O --> D["Datasets<br/>curated in the Workshop"]
     D --> E["Eval<br/>what good means, measured"]
     E --> OP["Optimisers<br/>code changes as PRs"]
     E --> T["Training<br/>fine-tunes vs the incumbent"]
-    T --> I["Inference<br/>served, OpenAI-compatible"]
-    OP -. "merged changes run in prod" .-> O
+    T --> I["Inference<br/>served, OpenAI API compatible"]
+    OP -. "merged changes run in prod" .-> A
     I -. "calls are traced" .-> O
 ```
 

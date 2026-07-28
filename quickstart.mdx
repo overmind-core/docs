@@ -3,7 +3,7 @@ title: Quickstart
 description: From a fresh account to an agent with traces, a scored dataset, and a first measurement in about fifteen minutes.
 ---
 
-This page gets you from nothing to a working setup: a project, an agent Overmind understands, production data flowing in, and your first dataset scored. Each step links to the page that covers it in depth.
+This page gets you from nothing to a working setup: a project, an agent Overmind understands, production data flowing in, and your first dataset scored.
 
 <Steps>
   <Step title="Create your account and project">
@@ -13,16 +13,19 @@ This page gets you from nothing to a working setup: a project, an agent Overmind
     Connect GitHub (or paste a public repo URL) and let Overmind scan the branch your agent lives on. The scan discovers your agents and maps their prompts, tools, and control flow. Check the flow graph against reality before moving on. See [Agents](/core/agents).
   </Step>
   <Step title="Get traces flowing">
-    Create an API key under **Settings → API keys**, then get traces flowing whichever way suits your codebase. Add the tracing SDK to your app, or let Overmind add observability at the repo level, where it writes the missing tracing code and opens a PR against your branch. If you already collect traces in another tool (Langfuse, LangSmith, and others), connect it and import what you have. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
+    Create an API key under **Settings → API keys**, then get traces flowing whichever way suits your codebase. Add the tracing SDK to your app, or let Overmind add observability at the repo level, where it writes the missing tracing code and opens a PR against your branch. If you already collect traces in another tool (Langfuse, LangSmith, and others), connect it and import what you have; enable auto-sync so new traces keep landing without a manual sync each time. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
+
+    Set `OVERMIND_API_KEY` in your environment so the SDK picks it up automatically:
 
     ```python
-    from overmind import init
+    from overmind import init, set_agent_name
 
     init(
-        agent_name="Support Triage",
         service_name="my-service",
         environment="production",
+        providers=["openai", "anthropic", "google", "agno"],
     )
+    set_agent_name("Support Triage")
     ```
   </Step>
   <Step title="Build your first dataset">

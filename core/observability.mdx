@@ -23,18 +23,19 @@ There are four ways to get telemetry flowing, and they're not mutually exclusive
 
 ### The tracing SDKs
 
-Add the SDK, initialise it once at startup, and every call to a supported provider (OpenAI, Anthropic, Google Gemini; Python also supports Agno) is captured automatically. There are no call-site rewrites and no proxy in front of your model provider.
+Add the SDK, initialise it once at startup naming the providers to auto-instrument, and every call to those providers (OpenAI, Anthropic, Google Gemini; Python also supports Agno) is captured automatically. There are no call-site rewrites and no proxy in front of your model provider.
 
 <CodeGroup>
 
 ```python Python
-from overmind import init
+from overmind import init, set_agent_name
 
 init(
-    agent_name="Support Triage",   # attribute every trace to this agent
     service_name="my-service",
     environment="production",
+    providers=["openai", "anthropic", "google", "agno"],  # auto-instrument these
 )
+set_agent_name("Support Triage")  # attribute every trace to this agent
 
 # Your existing OpenAI / Anthropic / Gemini calls are now traced.
 ```
@@ -80,12 +81,12 @@ When a repository scan finds that your code isn't instrumented, or only partiall
 
 ## Attributing traces to an agent
 
-Every trace should carry an agent identity, because that's what lines up telemetry with the agent's datasets, eval sets, and runs. You set it once at SDK initialisation:
+Every trace should carry an agent identity, because that's what lines up telemetry with the agent's datasets, eval sets, and runs. Set it through the SDK, not as an `init()` argument:
 
 - **`agent_id`** (preferred). The agent's UUID, copied from its page in the console. Exact and rename-proof.
-- **`agent_name`**. A human-readable name. Overmind derives a stable identity from it, so the name must stay constant across runs and deploys.
+- **`agent_name`**. A human-readable name, set with `set_agent_name(name)`. Overmind derives a stable identity from it, so the name must stay constant across runs and deploys.
 
-Both are also settable through environment variables (`OVERMIND_AGENT_ID`, `OVERMIND_AGENT_NAME`) if you'd rather not touch code. The identity is stamped on every span in the process, including the automatically captured provider calls.
+The identity is stamped on every span in the process, including the automatically captured provider calls.
 
 <Warning>
 Two failure modes are worth avoiding. Setting **no identity** leaves traces unattributed and absent from any agent's page. An **unstable name** creates a duplicate agent per variant. Pick a name and keep it, or use the ID.
@@ -115,7 +116,7 @@ Select rows in the table and create a dataset from them, or append them to an ex
 
 ## Instrumenting your own code
 
-Automatic capture covers the model calls. To make traces genuinely readable, wrap the code *around* those calls (the entry point, the tools, the retrieval steps) so the span tree mirrors your agent's actual structure. Both SDKs ship typed helpers for this:
+Automatic capture covers the model calls, but on its own it produces flat, disconnected spans with no entry point tying them into one run. Wrapping the code *around* those calls (the entry point, the tools, the retrieval steps) is what turns that into a real trace, with the span tree mirroring your agent's actual structure. At minimum, add an `@entry_point`: it's what trace-scoring evaluators and dataset-building key off, so without one, model calls stay disconnected and unscored. Both SDKs ship typed helpers for this:
 
 | Span type | Python | JavaScript | Use for |
 | --- | --- | --- | --- |
@@ -126,9 +127,10 @@ Automatic capture covers the model calls. To make traces genuinely readable, wra
 | Function | `@function` / `@observe` | `observe(name, fn)` | Any other traced function |
 
 ```python
-from overmind import init, entry_point, workflow, tool
+from overmind import init, set_agent_name, entry_point, workflow, tool
 
-init(agent_name="Research Agent", service_name="research-agent")
+init(service_name="research-agent", providers=["openai", "anthropic", "google", "agno"])
+set_agent_name("Research Agent")
 
 @tool("web_search")
 def web_search(query: str) -> list[str]: ...
@@ -147,7 +149,7 @@ Because each function calls the next, the spans nest into one tree: entry point,
 A few helpers add context you'll want later. `set_user()` tags the trace with a user identity, `set_tag()` attaches arbitrary key-value metadata to filter on, `capture_exception()` records a handled error without failing the span, and a conversation ID groups traces into a session. Functions that handle secrets can be traced with input/output capture disabled.
 
 <Tip>
-Instrument in this order: entry point first, then tools, then anything else. An entry-point span alone turns disconnected model calls into a coherent run; tool spans explain *why* each model call happened. Most teams stop there and it's enough.
+Instrument in this order: entry point first, then tools, then anything else. The entry point isn't optional in practice, without one, model calls arrive as disconnected spans that trace-scoring and dataset-building can't treat as one unit. Tool spans add *why* each model call happened, but most teams stop there and it's enough.
 </Tip>
 
 ## Practical guidance
