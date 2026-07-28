@@ -30,7 +30,7 @@ An optimisation run has four prerequisites, and the setup wizard walks them as a
   </Step>
 </Steps>
 
-You also set a **run budget**: how many optimisation iterations, and how many candidates per iteration. The defaults are five iterations of three candidates, stopping early after three iterations without improvement, which balances thoroughness against time and cost.
+You also set a **run budget**: how many optimisation iterations, and how many candidates per iteration. The defaults, and current maximum, are five iterations of three candidates, stopping early after consecutive iterations without improvement, which balances thoroughness against time and cost.
 
 ## How a run works
 
@@ -48,7 +48,7 @@ flowchart TD
     X --> P
     P -->|Yes| G
     P -->|No| W[Winner: best diff + scores]
-    W --> PR[Create PR]
+    W --> PR[Apply changes on GitHub]
 ```
 
 A run opens with a **smoke test**. Before spending anything, Overmind verifies it can actually invoke your agent's entrypoint. If the smoke test keeps failing, the run stops there with a clear message instead of producing a result you can't trust.
@@ -63,7 +63,7 @@ When iterations stop producing gains, the run ends, either by exhausting its bud
 
 ## Following a run
 
-The run page shows the loop as it happens. The header carries the numbers that matter (**baseline score**, **best score**, iterations completed, candidates evaluated) with a score chart across iterations and a plateau indicator when gains flatten. Each iteration expands into its candidates, and each candidate into its patch, which you can view, copy, or download. Below that, a command log records every datapoint execution the local CLI performed, including the smoke test, so a failing candidate shows you *why* it failed and not just a low score.
+The run page shows the loop as it happens. The header carries the numbers that matter (**baseline score**, **best score**, iterations completed, candidates evaluated) with a score chart across iterations and a plateau indicator that looks at trends across your recent experiments. Each iteration expands into its candidates, and each candidate into its patch, which you can view, copy, or download. Below that, a command log records every datapoint execution the local CLI performed, including the smoke test, so a failing candidate shows you *why* it failed and not just a low score.
 
 Runs can be cancelled at any point, and the executioner's status is always visible. If the local CLI disconnects mid-run, you'll see it here instead of wondering why progress stopped.
 
@@ -71,7 +71,7 @@ Runs can be cancelled at any point, and the executioner's status is always visib
 
 ## The result is a pull request
 
-A finished run reports the winning diff with its score and the improvement over the baseline, summarised alongside what was tried and rejected. **Create PR** opens a pull request in your connected repository containing the winning change, with the baseline-versus-candidate scores in the description. From there it's your normal review process: read the diff, run your CI, merge or close. Overmind never pushes changes into your codebase on its own.
+A finished run reports the winning diff with its score and the improvement over the baseline, summarised alongside what was tried and rejected. **Apply changes on GitHub** opens a pull request in your connected repository containing the winning change, with the baseline-versus-candidate scores in the description. From there it's your normal review process: read the diff, run your CI, merge or close. Overmind never pushes changes into your codebase on its own.
 
 Because candidates were scored with the same evaluators you use everywhere else, the number on the PR is directly comparable to your eval runs and your live trace scores.
 
@@ -84,4 +84,4 @@ Prompt and logic changes have a ceiling. When runs start plateauing and the best
 - The quality of a run is bounded by what you measure. If your evaluators don't capture what you actually care about, the Optimiser will faithfully improve the wrong thing. Spend the time in [Eval](/agent-testing/eval) first.
 - Runs execute your agent for real, on your data, many times. Model costs from those executions are yours, and the run's budget (iterations × candidates × datapoints) is the lever to control them.
 - The eval set is pinned at creation, but the *dataset* defines the situations explored. A narrow dataset produces improvements narrow to match, so add fresh traces to it periodically and optimisation is always tested against current traffic.
-- Pausing and resuming is supported. A resumed run continues from its recorded state instead of starting over.
+- A run can land in a **paused** state automatically, for example if the local CLI disconnects or credits run out. There's no manual pause or resume action in the console today.

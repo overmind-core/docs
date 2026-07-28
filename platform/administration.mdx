@@ -11,13 +11,13 @@ A project is the unit of scoping for everything in Overmind. Agents, traces, dat
 
 Most teams run one project per product or per major use case. Data does not cross project boundaries: an API key is pinned to its project, and a model deployed in one project is not callable from another. That isolation is what makes a project safe to hand to a different team, or to use as a staging sandbox next to a production project.
 
-## Settings
-
-### API keys
+## API keys
 
 API keys (prefixed `ovr_`) authenticate everything programmatic: the tracing SDKs, raw OTLP ingest, the CLI executioner used by [optimisation runs](/agent-testing/optimisers), and the [inference API](/models/inference#calling-your-model). One key serves all of these. There aren't separate key types to manage.
 
-Keys are created and revoked under **Settings → API keys**. Treat them like passwords. They grant access to the project they belong to, so scope them per environment, keep them out of source control, and revoke any key you no longer need.
+Keys are created and revoked from the **API Keys** card on the project's own page, not a separate global settings screen. Treat them like passwords. They grant access to the project they belong to, so scope them per environment, keep them out of source control, and revoke any key you no longer need.
+
+## Settings
 
 ### GitHub
 

@@ -13,7 +13,7 @@ This page gets you from nothing to a working setup: a project, an agent Overmind
     Connect GitHub (or paste a public repo URL) and let Overmind scan the branch your agent lives on. The scan discovers your agents and maps their prompts, tools, and control flow. Check the flow graph against reality before moving on. See [Agents](/core/agents).
   </Step>
   <Step title="Get traces flowing">
-    Create an API key under **Settings → API keys**, then get traces flowing whichever way suits your codebase. Add the tracing SDK to your app, or let Overmind add observability at the repo level, where it writes the missing tracing code and opens a PR against your branch. If you already collect traces in another tool (Langfuse, LangSmith, and others), connect it and import what you have; enable auto-sync so new traces keep landing without a manual sync each time. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
+    Create an API key from your project's **API Keys** card, then get traces flowing whichever way suits your codebase. Add the tracing SDK to your app, or let Overmind add observability at the repo level, where it writes the missing tracing code and opens a PR against your branch. If you already collect traces in another tool (Langfuse, LangSmith, and others), connect it and import what you have; enable auto-sync so new traces keep landing without a manual sync each time. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
 
     Set `OVERMIND_API_KEY` in your environment so the SDK picks it up automatically:
 
@@ -32,7 +32,7 @@ This page gets you from nothing to a working setup: a project, an agent Overmind
     Once traces are arriving, select a representative batch in Observability and create a dataset from them, or drag a CSV/JSONL file you already have onto the Datasets page. Open the dataset and run the analysis to get a score and readiness verdict. See [Datasets](/core/datasets).
   </Step>
   <Step title="Measure something">
-    Review the evaluators Overmind proposes for your agent, accept the few that match what you care about, and put them in an eval set. Evaluators marked for trace scoring start scoring incoming traffic; run the set against your dataset and you have a baseline. See [Eval](/agent-testing/eval).
+    Overmind already authored a starter set of evaluators for your agent from the scan; review them, keep or edit what fits, and add more from the library. Evaluators marked for trace scoring start scoring incoming traffic; run the set against your dataset and you have a baseline. See [Eval](/agent-testing/eval).
   </Step>
 </Steps>
 
@@ -53,6 +53,6 @@ After these five steps you have real data, curated examples, and a score you can
     Filter to low-scoring traces and read them. The timeline and transcripts show you exactly where a run went wrong.
   </Card>
   <Card title="The data needs work first" icon="database" href="/core/datasets">
-    Open the dataset and follow its insights: fix the hard gates first, then the high-severity findings.
+    Open the dataset and follow its insights: fix what's blocking the verdict first, then the high-severity findings.
   </Card>
 </CardGroup>

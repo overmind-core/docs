@@ -35,13 +35,13 @@ Connecting a repository gives Overmind the structural half of the picture.
 
 <Steps>
   <Step title="Connect GitHub">
-    For a private repository, install the Overmind GitHub App from **Settings**. During installation you choose exactly which repositories Overmind can see; it never gets blanket access. For a public repository, paste its URL instead. No GitHub account connection is needed for that.
+    You're prompted to connect GitHub when you create a project, which is where most teams install the Overmind GitHub App for the first time; you can also install it, or manage which repositories it can see, from **Settings** afterwards. During installation you choose exactly which repositories Overmind can see; it never gets blanket access. For a public repository, paste its URL instead. No GitHub account connection is needed for that.
   </Step>
   <Step title="Pick a repository and branch">
     Choose the repository and the branch that represents the agent you want to work on. The default branch is preselected.
   </Step>
   <Step title="Let the scan run">
-    Overmind clones the branch and reads the codebase. The status updates as it works, and a live label tells you what it is doing at that moment, such as searching for agents or mapping tools. If something fails, you get a short explanation and can run the scan again.
+    Overmind clones the branch and reads the codebase. The status updates as it works, and a live label tells you what it is doing at that moment, such as searching for agents or mapping tools. If something fails, the repository's panel under **Settings** shows what went wrong, and you can run the scan again.
   </Step>
   <Step title="Review the discovered agents">
     Each agent found in the code appears in your project with its prompt, tools, and control flow already mapped. Confirm the picture matches your understanding of the code before you build on top of it.
@@ -73,7 +73,7 @@ Beyond the agent entry itself, a completed scan yields a set of artifacts you'll
     The exact prompt the agent runs with, lifted from the code and shown beside the flow graph. The fastest way to review what the agent is actually being told.
   </Card>
   <Card title="Starter evaluators" icon="list-check">
-    A first set of evaluators for this specific agent, derived from its purpose, tools, and failure modes, and saved automatically, not held for approval. Review, edit, or archive them in [Eval](/agent-testing/eval) like any other evaluator.
+    A first set of evaluators for this specific agent, derived from its purpose, tools, and failure modes, and saved automatically, not held for approval. Review and edit them in [Eval](/agent-testing/eval), or remove them from the set if they don't fit.
   </Card>
 </CardGroup>
 
@@ -81,13 +81,13 @@ The scan also produces an evaluation spec for the agent: its input schema, expec
 
 ## Inside an agent
 
-Open an agent from the **Agents** list to see everything Overmind knows about it. The header carries the agent's name, editable display name, a link to its source repository, and quick actions: copy the agent ID (you'll need it for trace attribution), jump to its traces in Observability, or archive it.
+Open an agent from the **Agents** list to see everything Overmind knows about it. The header carries the agent's name, editable display name, and quick actions: copy the agent ID (you'll need it for trace attribution), jump to its traces in Observability, or archive it.
 
 The page is organised into four tabs.
 
 ### Overview
 
-A row at the top of the tab shows the agent's key facts at a glance: **Model**, **Source**, **Built from**, and **Trace coverage**. Overmind calls the production model the **incumbent**, and it becomes the baseline that fine-tuned models are later measured against. Below that sit the system prompt card, the flow graph, and the components explorer. This tab is the fastest way to sanity-check that Overmind read your code correctly, and the first place to look when an agent is unfamiliar.
+A row at the top of the tab shows the agent's key facts at a glance: **Model**, **Source**, **Built from**, and **Trace coverage**. Overmind calls the production model the **baseline**: the point fine-tuned models are later measured against. Below that sit the system prompt card, the flow graph, and the components explorer. This tab is the fastest way to sanity-check that Overmind read your code correctly, and the first place to look when an agent is unfamiliar.
 
 {/* TODO(screenshot): Agent Overview tab with the flow graph and components explorer */}
 
@@ -101,7 +101,7 @@ This tab holds the agent's evaluators and its **eval sets**, the named groupings
 
 ### Models
 
-The models associated with the agent: the incumbent it runs today and any models fine-tuned from its data. From here you can jump into a deployed model's [Inference](/models/inference) page or start a new [Training](/models/training) run pinned to this agent.
+The models associated with the agent: the baseline it runs today and any models fine-tuned from its data. From here you can jump into a deployed model's [Inference](/models/inference) page or start a new [Training](/models/training) run pinned to this agent.
 
 ## Keeping the picture current
 
@@ -111,10 +111,8 @@ Overmind remembers the commit it last scanned and compares it against the head o
 Re-analysis does not currently flag your existing evaluators or eval sets as outdated when the underlying code changes. If a code change shifts what the agent actually does, review your evaluation criteria manually after re-analysing rather than assuming they still fit.
 </Note>
 
-The console can also warn you when the CLI version last seen from your environment is behind, which matters for [optimisation runs](/agent-testing/optimisers) that execute locally.
-
 <Note>
-Archiving an agent hides it from the list but does not destroy anything; it can be restored later. There is no hard delete of an agent from the console.
+Archiving an agent hides it from the list but does not delete anything underneath it, and there's no hard delete of an agent from the console. There's currently no console page to view or restore an archived agent, though, so archive with that in mind.
 </Note>
 
 ## Typical adoption path
@@ -127,4 +125,4 @@ Most teams follow roughly the same arc. First they connect a repository and chec
 - Datasets can be bound to an agent, which unlocks agent-fit checks in the Data Workshop. See [Datasets](/core/datasets).
 - Evaluators and eval sets are scoped per agent, so a triage agent is never scored on a planner's criteria. See [Eval](/agent-testing/eval).
 - The [Optimiser](/agent-testing/optimisers) edits the agent's code within its optimisable elements and opens the winning change as a pull request.
-- [Training](/models/training) benchmarks every fine-tune against the agent's incumbent model before you switch anything over.
+- [Training](/models/training) benchmarks every fine-tune against the agent's baseline model before you switch anything over.

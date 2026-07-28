@@ -15,7 +15,7 @@ flowchart LR
     O --> D["Datasets<br/>curated in the Workshop"]
     D --> E["Eval<br/>what good means, measured"]
     E --> OP["Optimisers<br/>code changes as PRs"]
-    E --> T["Training<br/>fine-tunes vs the incumbent"]
+    E --> T["Training<br/>fine-tunes vs the baseline"]
     T --> I["Inference<br/>served, OpenAI API compatible"]
     OP -. "merged changes run in prod" .-> A
     I -. "calls are traced" .-> O

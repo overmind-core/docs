@@ -10,7 +10,6 @@ One definition per term, grouped the way the sidebar is. When a page and this gl
 | Term | Meaning |
 | --- | --- |
 | **Agent** | Overmind's model of an agent that lives in your repository and serves real traffic, discovered by repo scan or created from telemetry, never built in the console. See [Agents](/core/agents). |
-| **Incumbent** | The model an agent runs in production today. Fine-tunes are benchmarked against it, not against an untouched base model. |
 | **Flow graph** | The interactive map of an agent's control flow produced by a repo scan. |
 | **System prompt** | The prompt the agent runs with, lifted from the code and shown on the agent's Overview tab. |
 | **Optimisable / fixed elements** | The parts of an agent the Optimiser may change versus the parts it must not, declared in the agent's evaluation spec. |
@@ -24,9 +23,8 @@ One definition per term, grouped the way the sidebar is. When a page and this gl
 | **Intent** | What a dataset is for, fixed at ingestion: **eval**, **fine-tuning**, or **unstructured**. Changing intent means re-ingesting into a new dataset. |
 | **Surface** | For trace-built datasets: the **agent** surface (agent input to delivered answer) or the **model** surface (the raw LLM call inside). |
 | **Data Workshop** | The dataset working surface: analysis, score, verdict, insights, fixes, and version history. See [Datasets](/core/datasets). |
-| **Verdict** | The Workshop's readiness call on a dataset: Ready, Ready with warnings, Needs work, or Not ready. |
+| **Verdict** | The Workshop's readiness call on a dataset: Ready, Ready with warnings, or Not ready. |
 | **Pillar** | A weighted area of dataset health (coverage, uniqueness, safety, agent fit, and so on) that checks roll up into. |
-| **Hard gate** | A check whose failure blocks readiness until fixed or deliberately waived. |
 | **Insight** | One finding in a dataset, with severity, evidence, and a proposed fix, from either the deterministic pass or the analyst pass. |
 | **Dataset commit** | One entry in a dataset's version history (seed, fix, edit, or restore), recording the row diff and the score at that point. |
 
@@ -40,7 +38,7 @@ One definition per term, grouped the way the sidebar is. When a page and this gl
 | **Eval set** | A named group of an agent's evaluators; members serve a **generative** role (score run outputs) or a **trace-scoring** role (score live traffic). |
 | **Eval run** | One experiment: a data source × model variants × evaluators, with results compared against a baseline variant. |
 | **Variant** | One column of an eval run: a pinned model (and optionally prompt version) that either grades existing traces or generates fresh outputs. |
-| **Baseline** | The variant (or score) everything else is measured against. In eval runs, the reference column; in optimisation, iteration zero. |
+| **Baseline** | The variant (or score) everything else is measured against. In eval runs, the reference column; in optimisation, iteration zero; in training, the agent's current production model that a fine-tune is benchmarked against. |
 | **Sample** | One normalised trace under evaluation for one variant; samples that can't be faithfully reconstructed are marked **degraded** and excluded from aggregates. |
 | **Score outcome** | The type of a scoring result: Scored, Abstained, Not applicable, Skipped, or Error. Only Scored results feed averages and pass rates. |
 | **Annotation** | A human label on a sample, used to calibrate judges. |
@@ -60,9 +58,9 @@ One definition per term, grouped the way the sidebar is. When a page and this gl
 | **Validation split** | The slice of training data held back to measure learning; trace-safe grouping keeps related rows on one side. |
 | **Contamination guard** | The rule that excludes any training row whose source trace also appears in the eval dataset. |
 | **Checkpoint** | A model state saved as training progresses; the final weights are what a run exports. |
-| **Baseline delta** | Fine-tune score minus incumbent score, per metric. The headline result of a training benchmark. |
+| **Baseline delta** | Fine-tune score minus baseline score, per metric. The headline result of a training benchmark. |
 | **Model reference** | A deployed model's callable ID, shaped `ft-<hash>-<base>`, used as the `model` field in the inference API. |
-| **Deployed model** | A fine-tune served on Overmind: Queued → Deploying → Warming → Ready. Deleting is irreversible and removes the weights. See [Inference](/models/inference). |
+| **Deployed model** | A fine-tune served on Overmind: Queued → Quantizing → Deploying → Warming → Ready. Deleting is irreversible and removes the weights. See [Inference](/models/inference). |
 | **Model PR** | The pull request that switches your agent to a fine-tuned model in your repository. |
 
 ## Platform

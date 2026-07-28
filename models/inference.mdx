@@ -7,7 +7,7 @@ Inference is where your fine-tuned models live once they're trained: deployed on
 
 ## Deployment lifecycle
 
-Deployment starts automatically when a training run succeeds. A model moves through **Queued → Deploying → Warming → Ready**, and only Ready models accept traffic. Idle models cost you nothing to keep around and wake quickly when called again.
+Deployment starts automatically when a training run succeeds. A model moves through **Queued → Quantizing → Deploying → Warming → Ready**, and only Ready models accept traffic. Idle models cost you nothing to keep around and wake quickly when called again.
 
 Removing a model is a **delete**, and it is irreversible. The weights go with it, which is why the console keeps it behind a confirmation and why downloading the weights first is worth considering. A failed deployment can be retried from the console without retraining anything.
 
