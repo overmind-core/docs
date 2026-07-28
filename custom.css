@@ -671,44 +671,6 @@ ul.toc .toc-item a {
   color: #8a6f5a !important; /* comments (light) */
 }
 
-/* ── "On this page" component rows (injected by toc-components.js) ────── */
-ul.toc .om-toc-comps {
-  list-style: none;
-  margin: 1px 0 6px;
-  padding-left: 1.1rem;
-}
-ul.toc .om-toc-comps a {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  padding: 2px 0;
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  color: rgb(from var(--om-rust) r g b / 0.75);
-  transition: color 120ms ease;
-}
-.dark ul.toc .om-toc-comps a {
-  color: rgb(from var(--om-orange) r g b / 0.55);
-}
-ul.toc .om-toc-comps a:hover {
-  color: var(--om-copper);
-}
-.dark ul.toc .om-toc-comps a:hover {
-  color: var(--om-orange);
-}
-.om-toc-glyph {
-  color: var(--om-copper);
-  font-size: 11px;
-  line-height: 1;
-}
-.dark .om-toc-glyph {
-  color: var(--om-orange);
-}
-[id^="om-comp-"] {
-  scroll-margin-top: 7rem;
-}
-
 /* Code copy button — a warm chip on the code paper, not a white pill.
  * The floating overlay that keeps it readable over long lines takes the
  * same paper color as the block, so nothing cool shows through. */
