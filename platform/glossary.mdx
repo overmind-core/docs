@@ -13,7 +13,7 @@ One definition per term, grouped the way the sidebar is. When a page and this gl
 | **Incumbent** | The model an agent runs in production today. Fine-tunes are benchmarked against it, not against an untouched base model. |
 | **Flow graph** | The interactive map of an agent's control flow produced by a repo scan. |
 | **System prompt** | The prompt the agent runs with, lifted from the code and shown on the agent's Overview tab. |
-| **Optimizable / fixed elements** | The parts of an agent the Optimizer may change versus the parts it must not, declared in the agent's evaluation spec. |
+| **Optimisable / fixed elements** | The parts of an agent the Optimiser may change versus the parts it must not, declared in the agent's evaluation spec. |
 | **Trace** | The full record of one end-to-end operation: a tree of spans under one root. |
 | **Span** | One unit of work inside a trace: a model call, tool invocation, or function. |
 | **Session** | A group of traces forming one multi-turn conversation. |
@@ -40,22 +40,22 @@ One definition per term, grouped the way the sidebar is. When a page and this gl
 | **Eval set** | A named group of an agent's evaluators; members serve a **generative** role (score run outputs) or a **trace-scoring** role (score live traffic). |
 | **Eval run** | One experiment: a data source × model variants × evaluators, with results compared against a baseline variant. |
 | **Variant** | One column of an eval run: a pinned model (and optionally prompt version) that either grades existing traces or generates fresh outputs. |
-| **Baseline** | The variant (or score) everything else is measured against. In eval runs, the reference column; in optimization, iteration zero. |
-| **Sample** | One normalized trace under evaluation for one variant; samples that can't be faithfully reconstructed are marked **degraded** and excluded from aggregates. |
+| **Baseline** | The variant (or score) everything else is measured against. In eval runs, the reference column; in optimisation, iteration zero. |
+| **Sample** | One normalised trace under evaluation for one variant; samples that can't be faithfully reconstructed are marked **degraded** and excluded from aggregates. |
 | **Score outcome** | The type of a scoring result: Scored, Abstained, Not applicable, Skipped, or Error. Only Scored results feed averages and pass rates. |
 | **Annotation** | A human label on a sample, used to calibrate judges. |
-| **Candidate** | One proposed code change in an optimization run: a real git diff, replayed over the dataset and scored. |
-| **Iteration** | One round of an optimization run: generate candidates, validate, replay, score, accept or discard. |
-| **Smoke test** | The pre-flight check that an optimization run can actually invoke the agent's entrypoint. |
+| **Candidate** | One proposed code change in an optimisation run: a real git diff, replayed over the dataset and scored. |
+| **Iteration** | One round of an optimisation run: generate candidates, validate, replay, score, accept or discard. |
+| **Smoke test** | The pre-flight check that an optimisation run can actually invoke the agent's entrypoint. |
 | **Executioner** | The local process started by the `overmind` CLI that applies candidate diffs and runs your agent in your environment. |
-| **Plateau** | Consecutive iterations without improvement. The signal to stop optimizing and consider training. |
+| **Plateau** | Consecutive iterations without improvement. The signal to stop optimising and consider training. |
 
 ## Models
 
 | Term | Meaning |
 | --- | --- |
 | **Experiment (training)** | One model + settings combination within a training run; up to four run in parallel. See [Training](/models/training). |
-| **Tier** | A size class in the model catalog, compact through large. |
+| **Tier** | A size class in the model catalogue, compact through large. |
 | **LoRA / adapter training** | Fine-tuning that trains small adapter matrices instead of all weights. Cheaper, and on small datasets usually a match for full fine-tuning. |
 | **Validation split** | The slice of training data held back to measure learning; trace-safe grouping keeps related rows on one side. |
 | **Contamination guard** | The rule that excludes any training row whose source trace also appears in the eval dataset. |

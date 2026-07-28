@@ -65,7 +65,7 @@
         "group": "Agent Testing",
         "pages": [
           "agent-testing/eval",
-          "agent-testing/optimizers"
+          "agent-testing/optimisers"
         ]
       },
       {
@@ -119,7 +119,11 @@
     },
     {
       "source": "/evaluation/optimizers",
-      "destination": "/agent-testing/optimizers"
+      "destination": "/agent-testing/optimisers"
+    },
+    {
+      "source": "/agent-testing/optimizers",
+      "destination": "/agent-testing/optimisers"
     },
     {
       "source": "/fine-tuning",

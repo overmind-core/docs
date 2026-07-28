@@ -3,7 +3,7 @@ title: Datasets
 description: Turn production traces and your own files into scored, versioned datasets that are ready for evaluation and training.
 ---
 
-A dataset is the curated half of your data. Traces record what your agent actually did; a dataset is the set of examples you've decided are worth measuring and learning from. Every evaluation run, optimization run, and fine-tune on the platform consumes a dataset, so the quality of your datasets limits the quality of everything built from them.
+A dataset is the curated half of your data. Traces record what your agent actually did; a dataset is the set of examples you've decided are worth measuring and learning from. Every evaluation run, optimisation run, and fine-tune on the platform consumes a dataset, so the quality of your datasets limits the quality of everything built from them.
 
 Opening any dataset takes you into the **Data Workshop**, a console that scores the dataset's health, finds problems, proposes verified fixes, and keeps a commit history of every change.
 
@@ -15,7 +15,7 @@ Opening any dataset takes you into the **Data Workshop**, a console that scores 
 
 | Intent | Shape | Consumed by |
 | --- | --- | --- |
-| **Eval** | `input` + optional `expected_output` | [Eval runs](/agent-testing/eval), the [Optimizer](/agent-testing/optimizers) |
+| **Eval** | `input` + optional `expected_output` | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers) |
 | **Fine-tuning** | Chat-style `messages`, optionally with `tools` | [Training](/models/training) |
 | **Unstructured** | Verbatim rows, no structural guarantees | Exploration and later re-ingestion |
 
@@ -30,7 +30,7 @@ Intent is immutable. To use eval data for fine-tuning (or vice versa), you re-in
     The most valuable examples are the ones your agent actually faced. Select traces in [Observability](/core/observability), filtered by agent, status, time window, or score, and create a dataset from the selection, or append to an existing one. Each resulting datapoint keeps its source trace link, and duplicates from the same trace are caught automatically.
   </Tab>
   <Tab title="Upload">
-    Drag a file anywhere onto the Datasets page, or use the create dialog. CSV, TSV, JSON, and JSONL are accepted. Uploads are the usual path for seed sets, labeled ground truth, and data exported from another system.
+    Drag a file anywhere onto the Datasets page, or use the create dialogue. CSV, TSV, JSON, and JSONL are accepted. Uploads are the usual path for seed sets, labelled ground truth, and data exported from another system.
   </Tab>
   <Tab title="From a connector">
     Traces synced from a connected observability tool (Langfuse, LangSmith, and others; see [Observability](/core/observability#importing-from-observability-tools)) land as traces first, then follow the same select-and-create path as native traces.
@@ -60,7 +60,7 @@ Individual checks behave in one of two ways:
 
 Any check can be **accepted** (waived) in one click when you've judged the finding acceptable for your use case. The waiver records who accepted it and stays visible in a muted style even after the underlying check starts passing, so the decision trail survives.
 
-The safety pillar includes personal-data detection: names, locations, organizations, emails, and phone numbers are identified and can be masked, so what leaves the Workshop is safe to train on.
+The safety pillar includes personal-data detection: names, locations, organisations, emails, and phone numbers are identified and can be masked, so what leaves the Workshop is safe to train on.
 
 ### Insights and fixes
 
@@ -112,7 +112,7 @@ A dataset is locked while a training job is using it. Edits are rejected until t
 ## How datasets connect to the rest of the platform
 
 - **Eval** runs draw their rows from an eval-intent dataset and pin the commit they ran against. The Workshop's readiness verdict tells you whether the dataset can support the evaluators you plan to use. See [Eval](/agent-testing/eval).
-- **Optimization** replays your agent over the dataset's datapoints, so the dataset defines the situations the Optimizer is judged on. See [Optimizers](/agent-testing/optimizers).
+- **Optimisation** replays your agent over the dataset's datapoints, so the dataset defines the situations the Optimiser is judged on. See [Optimisers](/agent-testing/optimisers).
 - **Training** consumes fine-tuning-intent datasets, validates them with the same checks at ingest and at training time, and excludes any row whose source trace also appears in your chosen eval dataset. That guard is what keeps benchmarks trustworthy. See [Training](/models/training).
 - **Observability** is the upstream supply: keep tracing on and you always have fresh, real examples to add. See [Observability](/core/observability).
 

@@ -13,24 +13,24 @@ Everything in Overmind is one loop, and each product area is a step in it:
 flowchart TB
     O["Observability<br/>traces, scored on arrival"] --> D["Datasets<br/>curated in the Workshop"]
     D --> E["Eval<br/>what good means, measured"]
-    E --> OP["Optimizers<br/>code changes as PRs"]
+    E --> OP["Optimisers<br/>code changes as PRs"]
     E --> T["Training<br/>fine-tunes vs the incumbent"]
     T --> I["Inference<br/>served, OpenAI-compatible"]
     OP -. "merged changes run in prod" .-> O
     I -. "calls are traced" .-> O
 ```
 
-Every change Overmind proposes arrives as a pull request in your repository: an observability PR, an optimization PR, or a model-swap PR. You review and merge it. Overmind never silently changes what you ship.
+Every change Overmind proposes arrives as a pull request in your repository: an observability PR, an optimisation PR, or a model-swap PR. You review and merge it. Overmind never silently changes what you ship.
 
 ## Who it's for
 
-Teams with an agent doing a real job against real data: a support triager, a lead qualifier, a document extractor. You'll get the most value if the agent lives in a GitHub repository, since Overmind reads the code to understand it, and if you can send production traces, since Overmind measures against situations the agent actually faced. You don't need an eval harness, a labeling pipeline, or training infrastructure. Those are the parts Overmind provides.
+Teams with an agent doing a real job against real data: a support triager, a lead qualifier, a document extractor. You'll get the most value if the agent lives in a GitHub repository, since Overmind reads the code to understand it, and if you can send production traces, since Overmind measures against situations the agent actually faced. You don't need an eval harness, a labelling pipeline, or training infrastructure. Those are the parts Overmind provides.
 
 ## The product areas
 
 <CardGroup cols={3}>
   <Card title="Agents" href="/core/agents" icon="robot">
-    The working model of each agent in your code, with its structure, behavior, and everything attached to it.
+    The working model of each agent in your code, with its structure, behaviour, and everything attached to it.
   </Card>
   <Card title="Datasets" href="/core/datasets" icon="database">
     Traces and files become scored, versioned datasets in the Data Workshop.
@@ -41,7 +41,7 @@ Teams with an agent doing a real job against real data: a support triager, a lea
   <Card title="Eval" href="/agent-testing/eval" icon="clipboard-check">
     Evaluators, eval sets, and runs. Define what good looks like and score your agent against it.
   </Card>
-  <Card title="Optimizers" href="/agent-testing/optimizers" icon="wand-magic-sparkles">
+  <Card title="Optimisers" href="/agent-testing/optimisers" icon="wand-magic-sparkles">
     Candidate code changes, tested against your data, shipped as a PR.
   </Card>
   <Card title="Training" href="/models/training" icon="dumbbell">

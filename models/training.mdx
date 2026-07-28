@@ -9,7 +9,7 @@ Training turns your agent's accumulated data into a model of your own. You pick 
 
 Paying per token for a frontier model is a fine way to start. But once an agent does one job at volume, a smaller model trained on that agent's real data often matches it at a fraction of the cost per call. And it's yours: private to your project, downloadable, not subject to a provider deprecating it.
 
-The practical trigger is usually one of two things. Either [optimization runs](/agent-testing/optimizers) have plateaued, meaning the prompts and code around the model are as good as they get and the remaining gap is in the model, or inference cost and latency have become the problem. In both cases the prerequisite is the same: enough curated, real examples to teach from, which is exactly what [Datasets](/core/datasets) exists to accumulate.
+The practical trigger is usually one of two things. Either [optimisation runs](/agent-testing/optimisers) have plateaued, meaning the prompts and code around the model are as good as they get and the remaining gap is in the model, or inference cost and latency have become the problem. In both cases the prerequisite is the same: enough curated, real examples to teach from, which is exactly what [Datasets](/core/datasets) exists to accumulate.
 
 ## What a run needs
 
@@ -30,7 +30,7 @@ Dataset validation happens before you launch, with the same checks the [Data Wor
 
 You don't start from a blank hyperparameter form. Overmind reads your dataset's statistics (size, token distributions, tool usage) and recommends configurations across four model **tiers**, compact through large, each with a rationale, estimated cost, and estimated duration attached. Context length is derived from your actual data, and the model list is filtered to what your rows fit into. If your agent calls tools, only models with tool-calling support are offered.
 
-The catalog spans current open-weight instruct families such as Qwen, Llama, Gemma, Phi, and Ministral, from sub-1B compact models to 70B-class. The in-product picker is the live source of truth for exactly what's available.
+The catalogue spans current open-weight instruct families such as Qwen, Llama, Gemma, Phi, and Ministral, from sub-1B compact models to 70B-class. The in-product picker is the live source of truth for exactly what's available.
 
 A single run trains up to **four experiments in parallel**, each its own model and settings. The right size is rarely obvious in advance, so the useful move is to train a compact model and a mid-tier model side by side and let the benchmark decide.
 
@@ -45,7 +45,7 @@ Each field shows its recommended value and a one-click reset back to it, so you 
 
 ## Watching a run
 
-A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded**, or ends as Failed or Canceled, both of which can be retried. The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, and an append-only timeline of everything that happened. A run going wrong shows up in the curves, since validation loss climbing away from train loss is visible long before the job ends, and you can cancel early instead of discovering the problem at the end.
+A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded**, or ends as Failed or Cancelled, both of which can be retried. The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, and an append-only timeline of everything that happened. A run going wrong shows up in the curves, since validation loss climbing away from train loss is visible long before the job ends, and you can cancel early instead of discovering the problem at the end.
 
 Grouped experiments appear as cards you can focus one at a time, and each job reports its final cost when it completes.
 
@@ -66,7 +66,7 @@ When your eval dataset's references are labels, the benchmark also produces clas
 
 A succeeded run deploys its model automatically; there is no separate publish step. The model appears in [Inference](/models/inference), ready to serve and call, and on the agent's **Models** tab alongside the incumbent. The final weights belong to you and are downloadable if you want to run the model elsewhere. Everything stays linked, so a served model traces back to its training job, its exact dataset commit, and the eval scores that justified it.
 
-When the benchmark says the fine-tune wins, the last step is switching your agent over. A **Model PR** does this the same way the Optimizer ships changes: Overmind edits your repository to point the agent at the new model and opens the pull request, and the switch happens through your normal review.
+When the benchmark says the fine-tune wins, the last step is switching your agent over. A **Model PR** does this the same way the Optimiser ships changes: Overmind edits your repository to point the agent at the new model and opens the pull request, and the switch happens through your normal review.
 
 ```mermaid
 %%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
@@ -84,4 +84,4 @@ flowchart LR
 
 - Model quality comes almost entirely from the data. A few hundred clean, representative, trace-sourced rows beat thousands of noisy ones. Get the Workshop verdict to **Ready** before spending on a run.
 - The training dataset is locked while the job runs (see [Datasets](/core/datasets#constraints-worth-knowing)). Finish curation first, or duplicate the dataset to keep working.
-- A run is rejected up front, with an explicit message, if your longest row exceeds the chosen model's trainable context. This is another reason the wizard filters the catalog by your token distributions.
+- A run is rejected up front, with an explicit message, if your longest row exceeds the chosen model's trainable context. This is another reason the wizard filters the catalogue by your token distributions.

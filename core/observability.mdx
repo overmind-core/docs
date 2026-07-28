@@ -23,7 +23,7 @@ There are four ways to get telemetry flowing, and they're not mutually exclusive
 
 ### The tracing SDKs
 
-Add the SDK, initialize it once at startup, and every call to a supported provider (OpenAI, Anthropic, Google Gemini; Python also supports Agno) is captured automatically. There are no call-site rewrites and no proxy in front of your model provider.
+Add the SDK, initialise it once at startup, and every call to a supported provider (OpenAI, Anthropic, Google Gemini; Python also supports Agno) is captured automatically. There are no call-site rewrites and no proxy in front of your model provider.
 
 <CodeGroup>
 
@@ -80,7 +80,7 @@ When a repository scan finds that your code isn't instrumented, or only partiall
 
 ## Attributing traces to an agent
 
-Every trace should carry an agent identity, because that's what lines up telemetry with the agent's datasets, eval sets, and runs. You set it once at SDK initialization:
+Every trace should carry an agent identity, because that's what lines up telemetry with the agent's datasets, eval sets, and runs. You set it once at SDK initialisation:
 
 - **`agent_id`** (preferred). The agent's UUID, copied from its page in the console. Exact and rename-proof.
 - **`agent_name`**. A human-readable name. Overmind derives a stable identity from it, so the name must stay constant across runs and deploys.
@@ -111,7 +111,7 @@ If the owning agent has evaluators marked for trace scoring, each incoming trace
 
 ### From traces to datasets
 
-Select rows in the table and create a dataset from them, or append them to an existing one. This is the single most important workflow in Observability: it's how real production behavior becomes the test set your agent is measured against. See [Datasets](/core/datasets) for what happens next.
+Select rows in the table and create a dataset from them, or append them to an existing one. This is the single most important workflow in Observability: it's how real production behaviour becomes the test set your agent is measured against. See [Datasets](/core/datasets) for what happens next.
 
 ## Instrumenting your own code
 
@@ -152,7 +152,7 @@ Instrument in this order: entry point first, then tools, then anything else. An 
 
 ## Practical guidance
 
-Initialize tracing once, at startup, before the first model call. Give each agent its own service name so their telemetry stays separate. Keep tracing on in production instead of sampling it away during quiet periods; the more traces you keep, the more you have to build datasets, evals, and training data from. For short-lived processes and serverless handlers, flush before exit so buffered spans aren't lost.
+Initialise tracing once, at startup, before the first model call. Give each agent its own service name so their telemetry stays separate. Keep tracing on in production instead of sampling it away during quiet periods; the more traces you keep, the more you have to build datasets, evals, and training data from. For short-lived processes and serverless handlers, flush before exit so buffered spans aren't lost.
 
 ## Next steps
 

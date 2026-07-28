@@ -24,7 +24,7 @@ Different questions need different kinds of evaluators:
     Judges the *path* the agent took, the sequence of steps and tool calls, and not just the final output. Useful when a right answer reached the wrong way is still a problem.
   </Accordion>
   <Accordion title="Agentic">
-    An LLM judge built for long, multi-step agent runs, where there is a lot of trajectory to read and summarize before scoring.
+    An LLM judge built for long, multi-step agent runs, where there is a lot of trajectory to read and summarise before scoring.
   </Accordion>
   <Accordion title="Statistical">
     Scores a whole dataset at once instead of one example at a time: accuracy, precision, recall, F1, and text-similarity measures.
@@ -50,7 +50,7 @@ You can author an evaluator by hand: name it, write the rubric, review the compi
 
 ## Eval sets
 
-An eval set is a named group of an agent's evaluators, the working definition of "good" for that agent. An agent can hold several sets, for example a broad one for regression coverage and a focused one for a specific behavior, and you pick which set an optimization run or a training benchmark measures with when you set it up.
+An eval set is a named group of an agent's evaluators, the working definition of "good" for that agent. An agent can hold several sets, for example a broad one for regression coverage and a focused one for a specific behaviour, and you pick which set an optimisation run or a training benchmark measures with when you set it up.
 
 Each member of a set carries a role:
 
@@ -75,11 +75,11 @@ flowchart LR
 
 **The data source** is either a dataset or a trace filter that draws directly from captured production traffic. For datasets, the exact commit is recorded, so the run stays reproducible even as the dataset evolves. You can cap how many items are drawn.
 
-**Variants** are the columns of your experiment. A variant either grades **existing** traces as-is or **generates** fresh outputs by re-running the model on each datapoint. Each variant pins a model (a catalog model, a registered endpoint, or one of your fine-tunes) and optionally a prompt version. One variant is the **baseline**, and every other variant's results are reported as deltas against it. Comparing your production setup against a candidate model is exactly this: two variants, one run.
+**Variants** are the columns of your experiment. A variant either grades **existing** traces as-is or **generates** fresh outputs by re-running the model on each datapoint. Each variant pins a model (a catalogue model, a registered endpoint, or one of your fine-tunes) and optionally a prompt version. One variant is the **baseline**, and every other variant's results are reported as deltas against it. Comparing your production setup against a candidate model is exactly this: two variants, one run.
 
 **Evaluators** are attached as frozen snapshots at run creation. Edits or deletions in the library afterward can't quietly change what a completed run measured.
 
-Runs move through pending, running, and completed states, can be canceled mid-flight, and show live progress while running: per-variant generation progress, scores so far, errors so far, and the latest responses streaming in as they're produced.
+Runs move through pending, running, and completed states, can be cancelled mid-flight, and show live progress while running: per-variant generation progress, scores so far, errors so far, and the latest responses streaming in as they're produced.
 
 ### Reading the report
 
@@ -88,9 +88,9 @@ A finished run reports per-variant rollups (average score, pass rate, example co
 Two details in the scoring model are worth understanding:
 
 - **Outcomes are typed.** Each score is Scored, Abstained, Not applicable, Skipped, or Error, and only *Scored* results feed the averages and pass rates. An evaluator that couldn't fairly judge an example doesn't drag the numbers down.
-- **Samples can be degraded.** Before scoring, each trace is normalized into a canonical transcript. If a trace can't be faithfully reconstructed, its sample is marked degraded and excluded from aggregates, surfaced separately so you can see what was left out. Long-trace samples also record how much of the trace the judge actually saw.
+- **Samples can be degraded.** Before scoring, each trace is normalised into a canonical transcript. If a trace can't be faithfully reconstructed, its sample is marked degraded and excluded from aggregates, surfaced separately so you can see what was left out. Long-trace samples also record how much of the trace the judge actually saw.
 
-Run reports can be shared by link. Links are auth-gated: viewers must be signed in, and must either be project members or, if you explicitly widen the link, any authenticated user. Links can be labeled, expired, and revoked. There are no anonymous public URLs.
+Run reports can be shared by link. Links are auth-gated: viewers must be signed in, and must either be project members or, if you explicitly widen the link, any authenticated user. Links can be labelled, expired, and revoked. There are no anonymous public URLs.
 
 {/* TODO(screenshot): Run report with variant comparison and a sample drill-down open */}
 
@@ -100,13 +100,13 @@ Evaluator scores accumulate into a history per agent, which powers the trend cha
 
 ## Calibrating judges
 
-LLM judges are only as trustworthy as their agreement with you. Samples accept **annotations**, human labels with an optional note, which give you a ground-truth signal to compare judge behavior against. When a judge and your annotations disagree consistently, tighten the rubric. The checklist compilation makes it easy to see which specific criterion is drifting.
+LLM judges are only as trustworthy as their agreement with you. Samples accept **annotations**, human labels with an optional note, which give you a ground-truth signal to compare judge behaviour against. When a judge and your annotations disagree consistently, tighten the rubric. The checklist compilation makes it easy to see which specific criterion is drifting.
 
 ## How Eval connects
 
 - **Datasets** supply the rows, and the Workshop's readiness verdict tells you whether a dataset can support the evaluators you've chosen. See [Datasets](/core/datasets).
 - **Observability** displays live trace scores from the agent's trace-scoring evaluators, and eval runs can draw directly from trace filters. See [Observability](/core/observability).
-- **The Optimizer** scores every candidate change with the eval set pinned at run creation, so optimization is measured exactly like evaluation. See [Optimizers](/agent-testing/optimizers).
+- **The Optimiser** scores every candidate change with the eval set pinned at run creation, so optimisation is measured exactly like evaluation. See [Optimisers](/agent-testing/optimisers).
 - **Training** runs judge evals against your production model before and after a fine-tune, using the rubric you select at launch. See [Training](/models/training).
 
 ## Getting started sensibly
