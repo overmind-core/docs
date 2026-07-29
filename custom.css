@@ -8,51 +8,45 @@
  *
  * Design language source of truth: overmind-platform/frontend/design.md
  *  - Warm layered surfaces with soft brown-tinted depth
- *  - Voice model: NeueBit = labels / chrome, PP Neue Montreal = body/content,
- *    PP Mondwest = editorial display (doc headings)
- *  - Sharp, small radii (2-6px); real font weights only, no faux bold
+ *  - Voice model: Geist Pixel throughout — one face for chrome, body, and
+ *    display, sized and inked for hierarchy rather than weighted for it
+ *  - Sharp, small radii (2-6px)
+ *
+ * Geist Pixel ships a single 400 master, so hierarchy is carried by size
+ * and ink level. Weight synthesis is off everywhere except inline emphasis,
+ * where there is no other signal available.
  *
  * Selectors target the luma theme's actual DOM: #navigation-items,
  * .sidebar-group-header, ul.sidebar-group, a[aria-current="page"], ul.toc.
  * These are theme internals and may need a nudge after Mintlify updates.
  */
 
-/* ─── Supplementary font cuts ──────────────────────────────────────────── */
+/* ─── Geist Pixel ──────────────────────────────────────────────────────────
+ * Self-hosted from the Google Fonts release, both subsets, so the docs pull
+ * no fonts from a third-party CDN. docs.json declares the latin cut as the
+ * body family; latin-ext is added here for the accented characters.
+ */
 @font-face {
-  font-family: "NeueBit";
-  src: url("/fonts/PPNeueBit-Regular.woff2") format("woff2");
+  font-family: "Geist Pixel";
+  src: url("/fonts/GeistPixel-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  ascent-override: 80%;
-  descent-override: 20%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: "NeueBit";
-  src: url("/fonts/PPNeueBit-Bold.woff2") format("woff2");
-  font-weight: 700;
+  font-family: "Geist Pixel";
+  src: url("/fonts/GeistPixel-Regular-ext.woff2") format("woff2");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
-  ascent-override: 80%;
-  descent-override: 20%;
-}
-
-/* Real weight masters so emphasis is never browser-synthesized */
-@font-face {
-  font-family: "PP Neue Montreal";
-  src: url("/fonts/PPNeueMontreal-Medium.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "PP Neue Montreal";
-  src: url("/fonts/PPNeueMontreal-SemiBold.woff2") format("woff2");
-  font-weight: 600 700;
-  font-style: normal;
-  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 /* ─── Brand palette — straight from the eye ────────────────────────────── */
@@ -73,48 +67,58 @@
     0 4px 12px rgb(from var(--om-brown-deep) r g b / 0.06);
   --om-shadow-dark: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 16px rgb(0 0 0 / 0.35);
 
-  /* NeueBit is a bitmap face: it needs a larger nominal size to render at
-   * the visual weight of ~13px body text */
-  --om-nav-label-size: 16px; /* group / eyebrow labels */
-  --om-nav-item-size: 18px; /* nav rows and TOC entries */
+  /* Geist Pixel sets on a coarse grid, so chrome needs a larger nominal
+   * size than a smooth face would to read at the same visual weight */
+  --om-nav-label-size: 15px; /* group / eyebrow labels */
+  --om-nav-item-size: 15px; /* nav rows and TOC entries */
 }
 
 /* ─── Global typographic polish ────────────────────────────────────────── */
 html,
 body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Grayscale antialiasing eats the one-pixel stems of a bitmap face and
+   * leaves the whole page reading as a watermark. Default smoothing keeps
+   * the stems opaque, which is what Geist Pixel is drawn for. */
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
   letter-spacing: 0;
 }
 
-/* Headings — NeueBit pixel display for H1–H3, on the real Bold master.
- * Bitmap face rules: larger nominal sizes to hit the intended visual
- * weight, positive tracking, no synthesized weights. Body text stays in
- * PP Neue Montreal; deeper heading levels (unused in these docs) too. */
-#content-area :is(h1, h2, h3) {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-weight: 700;
-  letter-spacing: 0.015em;
-  line-height: 1.05;
-}
-#content-area h1 {
-  font-size: clamp(2.7rem, 1.9rem + 2.4vw, 4rem);
-}
-#content-area h2 {
-  font-size: 2rem;
-}
-#content-area h3 {
-  font-size: 1.6rem;
-}
-#content-area :is(h4, h5, h6) {
-  font-weight: 600; /* Montreal SemiBold master */
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+/* One master, so nothing anywhere gets a synthesized weight — except inline
+ * emphasis below, which has no other signal to work with. */
+* {
+  font-synthesis-weight: none;
 }
 
-/* Content emphasis lands on the real SemiBold master */
+/* Headings — Geist Pixel, sized apart rather than weighted apart. Bitmap
+ * face rules: generous size steps, positive tracking, tight leading so the
+ * pixel grid stays legible at display sizes. */
+#content-area :is(h1, h2, h3, h4, h5, h6) {
+  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+#content-area h1 {
+  font-size: clamp(2.1rem, 1.55rem + 1.7vw, 3rem);
+}
+#content-area h2 {
+  font-size: 1.6rem;
+}
+#content-area h3 {
+  font-size: 1.3rem;
+}
+#content-area :is(h4, h5, h6) {
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+/* Inline emphasis is the one place a synthesized weight earns its keep:
+ * with a single master there is nothing else to distinguish it inline. */
 #content-area :is(strong, b, th) {
-  font-weight: 600;
+  font-weight: 700;
+  font-synthesis-weight: auto;
 }
 
 /* ─── Navbar — floating warm bar with the lockup shown as-is ───────────── */
@@ -143,10 +147,10 @@ body {
 /* Console button — pixel-terminal chip instead of a generic pill */
 #navbar a[href*="console.overmindlab.ai"] {
   border-radius: 4px !important;
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 17px;
+  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   transition: background-color 150ms ease;
 }
 #navbar a[href*="console.overmindlab.ai"]:hover {
@@ -160,10 +164,10 @@ body {
   border-radius: 4px !important;
   background: rgb(from var(--om-cream) r g b / 0.5) !important;
   color: var(--om-rust) !important;
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 17px;
+  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  font-size: 13px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
 }
 .dark #navbar button[class*="group/search"] {
   border-color: var(--om-border-dark) !important;
@@ -188,13 +192,18 @@ body {
   }
 }
 
-/* ─── Sidebar — the console's sidebar contract (design.md §6.6) ──────────
+/* ─── Sidebar — a pixel rail, not a plain list ───────────────────────────
  * The rail sits directly on the page canvas: no tinted panel, no boxes.
- * Rows are NeueBit with 150ms color transitions; hover is a 4% foreground
- * wash; the active row is an 8% foreground wash plus bold — monochrome
- * ink, never an accent color, never a bar. Two text levels only:
- * categories in full ink (the loudest thing on the rail), pages in
- * muted-foreground. Sentence case, 2px radii, no shadows.
+ * A monochrome list read as filler next to the rest of the brand, so the
+ * rail now uses the same two devices the page itself uses: copper eyebrows
+ * for the section names, and a copper marker on the thing you are looking
+ * at — the same signal the "On this page" list already gives. The marker is
+ * a hard-edged square rather than a rounded dot or a bar, which is the
+ * motif the pixel face is already drawing.
+ *
+ * Three levels: section eyebrows in copper, pages in ink, current page in
+ * full ink over a copper wash with a lit marker. Hover steps the row one
+ * pixel-cell right, the way a terminal cursor advances.
  */
 :root {
   --om-ink: #231a14; /* design.md --foreground */
@@ -228,10 +237,10 @@ div:has(> #navigation-items) {
   scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
 }
 
-/* Groups — space does the structural work; no markers, no dividers */
+/* Groups — space does the structural work; no dividers */
 #navigation-items div:has(> .sidebar-group-header) {
   margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
-  margin-bottom: 28px;
+  margin-bottom: 26px;
 }
 
 #navigation-items ul.sidebar-group {
@@ -239,52 +248,114 @@ div:has(> #navigation-items) {
   margin-left: 0;
 }
 
-/* Category — the loudest ink on the rail */
-#navigation-items .sidebar-group-header {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 20px;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em;
-  line-height: 1.1;
-  color: var(--om-ink) !important;
-  margin-bottom: 4px !important;
-  padding: 0 8px !important;
+/* The rail was disappearing into the canvas: a one-pixel bitmap stem set in
+ * muted-foreground and then thinned again by grayscale antialiasing. With
+ * one master and no bold to reach for, the fix is ink and size — default
+ * smoothing keeps the stems opaque, categories sit in full ink, and pages
+ * come up from roughly 55% ink to 76%. */
+#navigation-items :is(.sidebar-group-header, .sidebar-group li a) {
+  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  font-weight: 400 !important;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
-/* Pages — one register quieter; hover washes, never recolors */
+/* Section eyebrow — copper and uppercase, matching the eyebrow above every
+ * page title, with a hairline that runs out to the edge of the rail */
+#navigation-items .sidebar-group-header {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--om-rust) !important;
+  margin-bottom: 10px !important;
+  padding: 0 8px !important;
+}
+.dark #navigation-items .sidebar-group-header {
+  color: rgb(from var(--om-orange) r g b / 0.85) !important;
+}
+#navigation-items .sidebar-group-header::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.2;
+}
+
+/* Pages — full ink, with a marker cell reserved on the left */
 #navigation-items .sidebar-group li a {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  line-height: 1.2;
-  padding: 6px 8px !important;
+  position: relative;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  padding: 6px 8px 6px 22px !important;
   border-radius: 2px;
   background: transparent;
-  color: var(--om-ink-muted) !important;
+  color: color-mix(in srgb, var(--om-ink) 74%, transparent) !important;
   transition:
     color 150ms ease,
-    background-color 150ms ease;
+    background-color 150ms ease,
+    padding-left 150ms ease;
+}
+
+/* The marker: a 4px square, dim until the row matters. Squares, not dots —
+ * a rounded marker fights the pixel face everything else is set in. */
+#navigation-items .sidebar-group li a::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  background: currentColor;
+  opacity: 0.25;
+  transition:
+    background-color 150ms ease,
+    opacity 150ms ease,
+    height 150ms ease,
+    margin-top 150ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
   background: color-mix(in srgb, var(--om-ink) 4%, transparent);
   color: var(--om-ink) !important;
+  padding-left: 25px !important; /* one cell right, like a cursor step */
+}
+#navigation-items .sidebar-group li a:hover::before {
+  opacity: 0.55;
 }
 
-/* Current page — 8% foreground wash + bold. Monochrome ink, no accent. */
+/* Current page — copper wash, full ink, and the marker lit and grown into a
+ * short bar. The accent is the point: this is the one row that answers. */
 #navigation-items .sidebar-group li a[aria-current="page"] {
-  font-weight: 700;
   text-shadow: none !important;
   color: var(--om-ink) !important;
-  background: color-mix(in srgb, var(--om-ink) 8%, transparent);
+  background: color-mix(in srgb, var(--om-copper) 12%, transparent);
+  padding-left: 22px !important;
+}
+#navigation-items .sidebar-group li a[aria-current="page"]::before {
+  background: var(--om-copper);
+  opacity: 1;
+  height: 12px;
+  margin-top: -6px;
+}
+.dark #navigation-items .sidebar-group li a[aria-current="page"] {
+  background: color-mix(in srgb, var(--om-orange) 13%, transparent);
+}
+.dark #navigation-items .sidebar-group li a[aria-current="page"]::before {
+  background: var(--om-orange);
 }
 
 /* ─── In-page TOC — same register as the sidebar ───────────────────────── */
 #table-of-contents-content ~ * button span,
 button:has(+ #table-of-contents-content) span,
 h2:has(#table-of-contents-content) span {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
+  font-family: "Geist Pixel", ui-monospace, monospace !important;
   font-size: var(--om-nav-label-size);
   text-transform: uppercase;
   letter-spacing: 0.09em;
@@ -295,12 +366,15 @@ h2:has(#table-of-contents-content) span {
 }
 
 ul.toc .toc-item a {
-  font-family: "NeueBit", "PP Neue Montreal", system-ui, sans-serif !important;
-  font-size: var(--om-nav-item-size);
-  letter-spacing: 0.04em;
-  line-height: 1.15;
+  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
+  /* Same bitmap-face treatment as the left rail */
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 /* ─── Copy-page split button + its dropdown — brand chrome, not gray ───── */
@@ -542,7 +616,6 @@ ul.toc .toc-item a {
 }
 #content-area [data-component-part="accordion-title"] {
   color: var(--om-ink-muted) !important;
-  font-weight: 500;
   transition: color 150ms ease;
 }
 #content-area [data-component-part="accordion-caret-right"],
@@ -556,7 +629,6 @@ ul.toc .toc-item a {
 }
 #content-area details[open] > summary [data-component-part="accordion-title"] {
   color: var(--om-ink) !important;
-  font-weight: 600; /* Montreal SemiBold master */
 }
 #content-area details[open] > summary [data-component-part="accordion-caret-right"],
 #content-area
@@ -769,63 +841,90 @@ ul.toc .toc-item a {
   color: rgb(from var(--om-orange) r g b / 0.85);
 }
 
-/* ─── Mermaid flowcharts — the ink contract, applied to diagrams ─────────
- * Mermaid injects a per-diagram stylesheet with id selectors, so overrides
- * need !important. Diagrams hydrate client-side; the svg is matched by its
- * aria-roledescription. Colors only — fonts and sizing are left to mermaid
- * so boxes always fit their labels. --om-ink flips with .dark on its own,
- * so only the edge-label backing (the literal page canvas) needs a dark
- * variant.
+/* ─── Overmind Flow diagrams — the ink contract, applied to diagrams ─────
+ * Rendered by diagrams.js from ```flow blocks. The engine emits geometry
+ * and semantic classes only; every colour lives here, so light and dark
+ * flip without a re-layout. --om-ink already flips with .dark, so only the
+ * chip backing (the literal page canvas) needs a dark variant.
  */
-#content-area svg[aria-roledescription] {
-  max-width: 100%;
+#content-area .om-flow {
+  --f-node-fill: color-mix(in srgb, var(--om-ink) 4%, transparent);
+  --f-node-stroke: color-mix(in srgb, var(--om-ink) 26%, transparent);
+  --f-edge: color-mix(in srgb, var(--om-ink) 42%, transparent);
+  --f-accent: var(--om-copper);
+  --f-canvas: #fdf6ec;
+
+  margin: 2rem 0;
+  display: flex;
+  justify-content: center;
+}
+.dark #content-area .om-flow {
+  --f-node-fill: color-mix(in srgb, var(--om-ink) 7%, transparent);
+  --f-node-stroke: color-mix(in srgb, var(--om-ink) 22%, transparent);
+  --f-accent: var(--om-orange);
+  --f-canvas: #120b06;
 }
 
-/* Nodes — a quiet ink wash with an ink outline */
-#content-area
-  svg[aria-roledescription]
-  .node
-  :is(rect, polygon, circle, path) {
-  fill: color-mix(in srgb, var(--om-ink) 5%, transparent) !important;
-  stroke: color-mix(in srgb, var(--om-ink) 35%, transparent) !important;
-  stroke-width: 1px !important;
+#content-area .om-flow-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
-/* Labels — full ink in nodes, body face */
-#content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel),
-#content-area svg[aria-roledescription] :is(.nodeLabel, .edgeLabel) p {
-  font-family:
-    "PP Neue Montreal",
-    system-ui,
-    sans-serif !important;
-  font-weight: 500 !important; /* the Medium master — reads at diagram scale */
-  color: var(--om-ink) !important;
+/* Nodes — a quiet ink wash with an ink outline; decisions answer in copper */
+#content-area .om-flow-shape {
+  fill: var(--f-node-fill);
+  stroke: var(--f-node-stroke);
+  stroke-width: 1;
+}
+#content-area .om-flow-node.is-decision .om-flow-shape {
+  fill: color-mix(in srgb, var(--f-accent) 7%, transparent);
+  stroke: color-mix(in srgb, var(--f-accent) 40%, transparent);
 }
 
-/* Edges and arrowheads — one register quieter than the nodes */
-#content-area
-  svg[aria-roledescription]
-  :is(.edgePath path, path.flowchart-link) {
-  stroke: var(--om-ink-muted) !important;
+/* Labels — full ink for the name, one register down for the gloss */
+#content-area .om-flow-title,
+#content-area .om-flow-sub,
+#content-area .om-flow-chip-text {
+  font-family: "Geist Pixel", ui-monospace, monospace;
+  font-weight: 400;
+  text-anchor: middle;
 }
-#content-area svg[aria-roledescription] .marker,
-#content-area svg[aria-roledescription] marker path {
-  fill: var(--om-ink-muted) !important;
-  stroke: var(--om-ink-muted) !important;
+#content-area .om-flow-title {
+  font-size: 14px;
+  fill: var(--om-ink);
+}
+#content-area .om-flow-sub {
+  font-size: 12px;
+  fill: var(--om-ink-muted);
 }
 
-/* Edge labels sit flat on the page canvas so lines pass cleanly */
-#content-area svg[aria-roledescription] .edgeLabel,
-#content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
-  background-color: #fdf6ec !important;
-  fill: #fdf6ec !important;
-  color: var(--om-ink-muted) !important;
+/* Edges — one register quieter than the nodes; returns quieter still */
+#content-area .om-flow-edge {
+  stroke: var(--f-edge);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  fill: none;
 }
-.dark #content-area svg[aria-roledescription] .edgeLabel,
-.dark #content-area svg[aria-roledescription] .edgeLabel :is(p, span, rect) {
-  background-color: #120b06 !important;
-  fill: #120b06 !important;
-  color: var(--om-ink-muted) !important;
+#content-area .om-flow-edge.is-dashed {
+  stroke-dasharray: 4 4;
+  stroke: color-mix(in srgb, var(--om-ink) 30%, transparent);
+}
+#content-area .om-flow-head {
+  fill: var(--f-edge);
+  stroke: none;
+}
+
+/* Edge labels sit flat on the page canvas so lines pass cleanly under them */
+#content-area .om-flow-chip[data-pending] {
+  opacity: 0;
+}
+#content-area .om-flow-chip-bg {
+  fill: var(--f-canvas);
+}
+#content-area .om-flow-chip-text {
+  font-size: 11px;
+  fill: var(--om-ink-muted);
 }
 
 /* ─── Custom animated cursor — Overmind signature, same as the platform ──

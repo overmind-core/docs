@@ -27,8 +27,8 @@
       "weight": 400
     },
     "body": {
-      "family": "PP Neue Montreal",
-      "source": "/fonts/PPNeueMontreal-Book.woff2",
+      "family": "Geist Pixel",
+      "source": "/fonts/GeistPixel-Regular.woff2",
       "format": "woff2",
       "weight": 400
     }

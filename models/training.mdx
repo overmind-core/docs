@@ -148,16 +148,16 @@ A succeeded run deploys its model automatically; there is no separate publish st
 
 When the benchmark says the fine-tune wins, the last step is switching your agent over. A **Model PR** does this the same way the Optimiser ships changes: Overmind edits your repository to point the agent at the new model and opens the pull request, and the switch happens through your normal review.
 
-```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart LR
-    D[FT dataset] --> T[Training run<br/>up to 4 experiments]
-    E[Eval dataset + rubric] --> B[Benchmark vs baseline]
-    T --> B
-    B -->|delta per metric| DEC{Fine-tune wins?}
-    DEC -->|Yes| DEP[Auto-deployed to Inference]
-    DEP --> PR[Model PR switches the agent]
-    DEC -->|No| IT[Adjust data or tier, rerun]
+```flow
+flow row
+title: How a training run is decided, from dataset to deployed model
+D[FT dataset] -> T[Training run | up to 4 experiments]
+E[Eval dataset + rubric] -> B[Benchmark vs baseline]
+T -> B
+B -> DEC{Fine-tune wins?} : delta per metric
+DEC -> DEP[Auto-deployed to Inference] : Yes
+DEP -> PR[Model PR switches the agent]
+DEC -> IT[Adjust data or tier, rerun] : No
 ```
 
 ## Good to know

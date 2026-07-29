@@ -17,16 +17,16 @@ Working from code also means improvements land as code. When the [Optimiser](/ag
 
 There are two paths, and most teams end up using both.
 
-```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart LR
-    A[GitHub repository] -->|repo scan| C[Agent]
-    B[Production telemetry] -->|agent attribution| C
-    C --> D[Traces]
-    C --> E[Datasets]
-    C --> F[Eval sets]
-    C --> G[Optimisation runs]
-    C --> H[Fine-tuned models]
+```flow
+flow row
+title: What Overmind reads to build an agent, and what hangs off it
+A[GitHub repository] -> C[Agent] : repo scan
+B[Production telemetry] -> C : agent attribution
+C -> D[Traces]
+C -> E[Datasets]
+C -> F[Eval sets]
+C -> G[Optimisation runs]
+C -> H[Fine-tuned models]
 ```
 
 ### Scanning a repository

@@ -8,17 +8,17 @@ Overmind helps you understand and improve the AI agents you run in production. I
 
 Everything in Overmind is one loop, and each product area is a step in it:
 
-```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart LR
-    A["Agents<br/>discovered from code + telemetry"] --> O["Observability<br/>traces, scored on arrival"]
-    O --> D["Datasets<br/>curated in the Workshop"]
-    D --> E["Eval<br/>what good means, measured"]
-    E --> OP["Optimisers<br/>code changes as PRs"]
-    E --> T["Training<br/>fine-tunes vs the baseline"]
-    T --> I["Inference<br/>served, OpenAI API compatible"]
-    OP -. "merged changes run in prod" .-> A
-    I -. "calls are traced" .-> O
+```flow
+flow row
+title: The Overmind loop, from agent discovery through to served inference
+A[Agents | discovered from code + telemetry] -> O[Observability | traces, scored on arrival]
+O -> D[Datasets | curated in the Workshop]
+D -> E[Eval | what good means, measured]
+E -> OP[Optimisers | code changes as PRs]
+E -> T[Training | fine-tunes vs the baseline]
+T -> I[Inference | served, OpenAI API compatible]
+OP ~> A : merged changes run in prod
+I ~> O : calls are traced
 ```
 
 Every change Overmind proposes arrives as a pull request in your repository: an observability PR, an optimisation PR, or a model-swap PR. You review and merge it. Overmind never silently changes what you ship.
