@@ -308,7 +308,9 @@ div:has(> #navigation-items) {
   content: "";
   position: absolute;
   left: 9px;
-  top: 50%;
+  /* Pinned to the first line, not the row's centre — "Projects &
+   * Administration" wraps, and a centred marker floats between its lines */
+  top: 15px;
   width: 4px;
   height: 4px;
   margin-top: -2px;
