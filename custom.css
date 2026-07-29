@@ -99,8 +99,16 @@ body {
   letter-spacing: 0.01em;
   line-height: 1.1;
 }
+/* Page title — PP Mondwest, the editorial display face from the lockup. It
+ * is the one place the docs get a voice other than the pixel face, and it
+ * only reads as display at a size the section headings never reach. Mondwest
+ * sits low and wide, so it wants more size and a touch less leading than
+ * Geist Pixel at the same optical weight. */
 #content-area h1 {
-  font-size: clamp(2.1rem, 1.55rem + 1.7vw, 3rem);
+  font-family: "PP Mondwest", "Geist Pixel", ui-monospace, monospace !important;
+  font-size: clamp(2.9rem, 2rem + 2.6vw, 4.2rem);
+  letter-spacing: 0.005em;
+  line-height: 1;
 }
 #content-area h2 {
   font-size: 1.6rem;
