@@ -79,14 +79,12 @@ Fixes come in three kinds (a deterministic transform, a targeted row patch, or a
 
 Every dataset carries a commit log from its initial seed onward. Each commit records what kind of change it was (seed, fix, restore, or manual edit), how many rows were added, removed, or modified, a compact row diff against its parent, and the score and verdict at that point. The history therefore doubles as a score timeline. You can restore an older state at any time; a restore creates a new commit on top instead of rewriting history, so nothing is ever lost. To compare against a different dataset of the same intent rather than an earlier commit of this one, use Compare.
 
-```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart LR
-    A[Seed] --> B[Fix: dedupe rows]
-    B --> C[Edit: relabel 12 rows]
-    C --> D[Fix: redact PII]
-    D --> E[Restore to Seed]
-    E -->|new commit, history intact| F[...]
+```flow
+flow row
+title: A dataset's edit history, where restoring is itself a new commit
+A[Seed] -> B[Fix: dedupe rows] -> C[Edit: relabel 12 rows]
+C -> D[Fix: redact PII] -> E[Restore to Seed]
+E -> F[...] : new commit, history intact
 ```
 
 This is also what makes results reproducible elsewhere on the platform: an eval run records the exact dataset commit it used, so re-running it later scores the same rows even if the dataset has since moved on.

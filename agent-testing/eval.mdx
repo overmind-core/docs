@@ -63,14 +63,14 @@ The same evaluator can serve in both roles. A set is runnable as soon as it has 
 
 An eval run is a controlled experiment: **one data source × N variants × M evaluators.** Runs are created via the CLI or API; the console is where you read the resulting report.
 
-```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 48, "rankSpacing": 56, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart LR
-    DS["Data source<br/>(dataset commit or trace filter)"] --> R[Eval run]
-    V1["Variant A, the baseline<br/>(e.g. production model)"] --> R
-    V2["Variant B<br/>(e.g. fine-tune or new prompt)"] --> R
-    E["Evaluators<br/>(frozen snapshots)"] --> R
-    R --> REP["Report: per-variant scores,<br/>deltas vs baseline, per-example grid"]
+```flow
+flow row
+title: What an eval run takes in, and the report it produces
+DS[Data source | dataset commit or trace filter] -> R[Eval run]
+V1[Variant A, the baseline | e.g. production model] -> R
+V2[Variant B | e.g. fine-tune or new prompt] -> R
+E[Evaluators | frozen snapshots] -> R
+R -> REP[Report | per-variant scores, deltas vs baseline, per-example grid]
 ```
 
 **The data source** is either a dataset or a trace filter that draws directly from captured production traffic. For datasets, the exact commit is recorded, so the run stays reproducible even as the dataset evolves. You can cap how many items are drawn.

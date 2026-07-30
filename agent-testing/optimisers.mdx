@@ -34,21 +34,21 @@ You also set a **run budget**: how many optimisation iterations, and how many ca
 
 ## How a run works
 
-```mermaid
-%%{init: {"flowchart": {"nodeSpacing": 44, "rankSpacing": 50, "padding": 12, "curve": "basis"}, "themeVariables": {"fontSize": "15px", "fontFamily": "PP Neue Montreal, system-ui, sans-serif"}}}%%
-flowchart TD
-    S[Smoke test] --> B[Baseline: run and score the agent as-is]
-    B --> G[Generate candidate diffs]
-    G --> R[Replay each candidate over the dataset]
-    R --> SC[Score with the pinned eval set]
-    SC --> D{Beats the best so far?}
-    D -->|Yes| K[Keep as new best]
-    D -->|No| X[Discard]
-    K --> P{Budget left and still improving?}
-    X --> P
-    P -->|Yes| G
-    P -->|No| W[Winner: best diff + scores]
-    W --> PR[Apply changes on GitHub]
+```flow
+flow col
+title: The optimisation loop, from smoke test to a pull request
+S[Smoke test] -> B[Baseline | run and score the agent as-is]
+B -> G[Generate candidate diffs]
+G -> R[Replay each candidate over the dataset]
+R -> SC[Score with the pinned eval set]
+SC -> D{Beats the best so far?}
+D -> K[Keep as new best] : Yes
+D -> X[Discard] : No
+K -> P{Budget left and still improving?}
+X -> P
+P ~> G : Yes
+P -> W[Winner | best diff + scores] : No
+W -> PR[Apply changes on GitHub]
 ```
 
 A run opens with a **smoke test**. Before spending anything, Overmind verifies it can actually invoke your agent's entrypoint. If the smoke test keeps failing, the run stops there with a clear message instead of producing a result you can't trust.
