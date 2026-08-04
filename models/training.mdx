@@ -54,7 +54,7 @@ Overmind fine-tunes 24 open-weight instruct models across six families: **Qwen 3
 Two things the catalogue doesn't show, both enforced at launch. A model's **max training context** is often shorter than its inference context window, so a run is rejected up front if your longest row exceeds it. And **tool calling** varies by model, so if your agent calls tools, only the models that support them are offered.
 
 <Note>
-The in-product picker is the live source of truth for exactly what's available to your project, and `GET /api/v1/models` lists what you can call.
+The in-product picker is the live source of truth for exactly what's available to your project.
 </Note>
 
 ## Watching a run
