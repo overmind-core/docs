@@ -77,25 +77,16 @@ curl https://api.overmindlab.ai/api/v1/chat/completions \
 
 </CodeGroup>
 
-### Endpoints
+Completions support the parameters you'd expect: `messages`, `stream`, `temperature`, `max_tokens`, `top_p`, `frequency_penalty`, and `presence_penalty`. Streaming is `stream: true`, as it is with any OpenAI SDK.
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `POST` | `/api/v1/chat/completions` | Generate a completion (streaming via `stream: true`) |
-| `GET` | `/api/v1/models` | List available models; filter with `?status=` (`ready` by default, or `deploying`, `warming`, `all`, …) |
-| `GET` | `/api/v1/models/{model_id}` | One model's status and metadata |
-| `DELETE` | `/api/v1/models/{model_id}` | Remove a deployed fine-tuned model |
-
-Chat completions support the parameters you'd expect: `messages`, `stream`, `temperature`, `max_tokens`, `top_p`, `frequency_penalty`, and `presence_penalty`.
-
-Frontier models are callable through the same API alongside your fine-tunes, from the same catalogue used for eval judging and run variants. Comparing your model against a frontier one is a change of the `model` field, not a second integration. `GET /api/v1/models` is the live source of truth for what you can call.
+Frontier models are callable through the same API alongside your fine-tunes, from the same catalogue used for eval judging and run variants. Comparing your model against a frontier one is a change of the `model` field, not a second integration. The models table above is the live source of truth for what you can call, and the [Model Library](https://www.overmindlab.ai/models) covers the base models behind them.
 
 ### Errors worth handling
 
 | Code | Meaning | What to do |
 | --- | --- | --- |
 | `404` | Model not found, or not in this project | Check the model reference and the key's project |
-| `503` | Model not ready, still deploying or warming | Retry shortly; poll `GET /models/{id}` for status |
+| `503` | Model not ready, still deploying or warming | Retry shortly; the Inference page shows when it turns Ready |
 | `502` | Transient backend error | Retry with backoff |
 | `409` | Deletion already in progress | Nothing, it's already being removed |
 
