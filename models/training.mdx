@@ -1,101 +1,83 @@
 ---
 title: Training
-description: Fine-tune open-weight models on your agent's own data, benchmark them against the model you run in production, and deploy the result.
+description: Training runs — dataset validation, model recommendations, live loss curves, and the benchmark against your production model.
 ---
 
-Training turns your agent's accumulated data into a model of your own. You pick a fine-tuning dataset, Overmind recommends which base models to try and how to train them, and every finished model is benchmarked with your own evaluators against the model your agent runs in production today. You don't need training infrastructure, and you see per-metric benchmark results before any traffic moves. The question a fine-tune has to answer is "does it beat what we already ship?", per metric, before anything changes.
-
-## Why fine-tune, and when
-
-Paying per token for a frontier model is a fine way to start. But once an agent does one job at volume, a smaller model trained on that agent's real data often matches it at a fraction of the cost per call. And it's yours: private to your project, downloadable, not subject to a provider deprecating it.
-
-The practical trigger is usually one of two things. Either [optimisation runs](/agent-testing/optimisers) have plateaued, meaning the prompts and code around the model are as good as they get and the remaining gap is in the model, or inference cost and latency have become the problem. In both cases the prerequisite is the same: enough curated, real examples to teach from, which is exactly what [Datasets](/core/datasets) exists to accumulate.
-
+Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch up to several experiments in parallel on managed GPU infrastructure. Loss curves stream live, and every finished model is judged with your own evaluators against the model your agent runs today — per metric, before anything changes in production.
 ## What a run needs
-
-A training run is defined by four choices, made in the wizard's first section:
 
 | Choice | Requirement |
 | --- | --- |
 | **Agent** | The agent whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A fine-tuning-intent dataset (chat-style `messages`, optionally with `tools`) |
+| **Training dataset** | A dataset with the training intent (chat-style messages). See [Datasets](/core/datasets#the-data-model) |
 | **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
 | **Rubric** | The eval set that does the measuring, chosen from the agent's sets |
 
-The separation between training and eval data is enforced, not advisory. Any training row whose source trace also appears in the eval dataset is excluded from training automatically, so the benchmark never scores data the model saw during training. Within the training data, a validation split (20% by default) is carved out, either randomly with trace-safe grouping or in order.
+The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). Dataset validation runs before launch with the same checks the [Data Workshop](/core/datasets#the-data-workshop) applies at ingest, so problems surface as fixable findings up front instead of a failed run an hour in.
 
-Dataset validation happens before you launch, with the same checks the [Data Workshop](/core/datasets#the-data-workshop) applies at ingest. A dataset that's valid when you built it is valid when training starts, and problems surface as fixable findings up front instead of as a failed job an hour in. The wizard also warns when the data looks too thin to teach much.
+## Configuring experiments
 
-## Choosing models and settings
+The wizard recommends configurations from your dataset's statistics and cost/duration estimates, via the same endpoints you can call directly:
 
-You don't start from a blank hyperparameter form. Overmind reads your dataset's statistics (size, token distributions, tool usage) and recommends configurations across four model **tiers**, compact through large, each with a rationale, estimated cost, and estimated duration attached. Context length is derived from your actual data, so a model whose context your longest rows would overflow is rejected at launch rather than silently truncated. If your agent calls tools, only models with tool-calling support are offered.
+```bash
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/models/"          # curated base-model catalogue
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/validate-dataset/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/recommend/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/estimate/"
+```
 
-The catalogue spans current open-weight instruct families, from 350M compact models to 35B-class mixture-of-experts, and is listed in full in the [Model Library](https://www.overmindlab.ai/models).
-
-A single run trains up to **four experiments in parallel**, each its own model and settings. The right size is rarely obvious in advance, so the useful move is to train a compact model and a mid-tier model side by side and let the benchmark decide.
-
-Every recommended setting stays editable per experiment:
-
-- **Training**: epochs, learning rate, batch size. Defaults scale with dataset size. Small datasets get more passes, large ones fewer.
-- **Method**: adapter training (LoRA) or full fine-tuning. Adapters train small additional matrices instead of all weights, which is cheaper and faster, and on small datasets usually indistinguishable from full fine-tuning in quality. LoRA rank, alpha, and dropout are exposed when you want them.
-
-Each field shows its recommended value and a one-click reset back to it, so you can always get back to the recommended setup. A summary totals the estimated cost and duration before you commit, and runs are seeded so a rerun with the same inputs is reproducible.
-
-{/* TODO(screenshot): Training wizard with tiered recommendations and per-experiment settings */}
+A single run trains multiple experiments in parallel — each with its own base model and settings — and the benchmark decides between them. Every recommended setting stays editable per experiment: epochs, learning rate, batch size, and context length (derived from your actual data), plus the training method — **adapter training (LoRA)**, with rank and alpha exposed, or **full fine-tuning**.
 
 ## Supported models
 
-Overmind fine-tunes 24 open-weight instruct models across six families: **Qwen 3.6**, **Qwen 3.5**, **Qwen 3**, **Qwen 2.5**, **Llama 3**, and **Antares**. They range from 350M to 35B parameters, and every one of them supports both LoRA adapter training and full fine-tuning, serves through the same [OpenAI-compatible API](/models/inference#calling-your-model), and produces weights you can download and run anywhere.
+Overmind trains open-weight instruct models across the Qwen, Llama, and Antares families — from compact models up to large mixture-of-experts. Every one supports both LoRA and full fine-tuning, serves through the same [OpenAI-compatible API](/models/inference#calling-your-model), and produces downloadable weights.
 
 <Card title="Model Library" icon="layer-group" href="https://www.overmindlab.ai/models">
   The full catalogue: every model with its parameters, context window, and training and inference pricing.
 </Card>
 
-Two things the catalogue doesn't show, both enforced at launch. A model's **max training context** is often shorter than its inference context window, so a run is rejected up front if your longest row exceeds it. And **tool calling** varies by model, so if your agent calls tools, only the models that support them are offered.
-
-<Note>
-The in-product picker is the live source of truth for exactly what's available to your project.
-</Note>
+Two things the catalogue doesn't show, both enforced at launch. A model's **max training context** is often shorter than its inference context window, so a run is rejected up front if your longest row exceeds it. And **tool calling** varies by model, so if your agent calls tools, only the models that support them are offered. The in-product picker is the live source of truth for exactly what's available to your project.
 
 ## Watching a run
 
-A launched run moves through **Queued → Preparing → Running → Deploying → Succeeded**, or ends as Failed or Cancelled, both of which can be retried. The monitor shows each experiment live: progress and ETA, tokens processed, train and validation loss curves updating as the model learns, and an append-only timeline of everything that happened. A run going wrong shows up in the curves, since validation loss climbing away from train loss is visible long before the job ends, and you can cancel early instead of discovering the problem at the end.
+<Frame caption="A finished experiment: train loss per step, the learning-rate schedule, the run configuration (ctx 4096, batch 1, 1 epoch, lr 1e-4), and the deployed model reference.">
+  <img src="/images/platform/training-run.png" alt="Training run monitor with loss curve and config" />
+</Frame>
 
-Grouped experiments appear as cards you can focus one at a time, and each job reports its final cost when it completes.
+The monitor streams per-step metrics for every experiment — train loss, learning-rate schedule, token accuracy (train and validation), and gradient norm — with progress, ETA, tokens processed, and credits used. The same data is available raw:
 
-{/* TODO(screenshot): Training monitor with loss curves across parallel experiments */}
+```bash
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/{id}/loss-curves/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/{id}/events/"
+```
 
-## The benchmark: your fine-tune vs. your production model
+A run going wrong is visible in the curves long before it ends — validation loss climbing away from train loss — and any experiment can be cancelled individually and retried later (`POST .../cancel/`, `POST .../retry/`).
 
-This is the part that makes a Training run conclusive. Each job spawns judge evaluations at two points:
+<Frame caption="Two parallel experiments: one cancelled at 75%, one succeeded with a +21% score against the baseline and its model auto-deployed.">
+  <img src="/images/platform/finished-job.png" alt="Parallel experiments with cancel and success states" />
+</Frame>
 
-1. **Baseline**: the agent's production model, snapshotted at submit time, scored on your eval dataset with your chosen rubric.
-2. **Final**: the finished model, scored on the same data with the same rubric.
+## The benchmark: your trained model vs. your production model
 
-The headline number is the **baseline delta**, final score minus baseline score, per metric. The benchmark deliberately compares against the model your agent actually runs, not the untouched base model, because that's the comparison a switch decision needs.
+Each run spawns judge evaluations at two points, both scored on your chosen eval dataset with your chosen rubric:
 
-When your eval dataset's references are labels, the benchmark also produces classification metrics: per-class precision, recall, F1, and support, with accuracy and a confusion matrix. For classifier-style agents like routers and triagers, this is usually the clearest lens.
+1. **Baseline** — the agent's production model, snapshotted at submit time.
+2. **Final** — your newly trained model.
+
+The headline number is the delta per metric. The comparison is deliberately against the model your agent actually runs — not the untouched base model — because that's the comparison a switch decision needs.
+
+<Frame caption="The Evals table under the metrics: Baseline and Final rows per experiment, scored with the same rubric.">
+  <img src="/images/platform/training-metrics.png" alt="Training metrics with baseline and final eval scores" />
+</Frame>
 
 ## After training
 
-A succeeded run deploys its model automatically; there is no separate publish step. The model appears in [Inference](/models/inference), ready to serve and call, and on the agent's **Models** tab alongside the baseline. The final weights belong to you and are downloadable if you want to run the model elsewhere. Everything stays linked, so a served model traces back to its training job, its exact dataset commit, and the eval scores that justified it.
+A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the agent's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
 
-When the benchmark says the fine-tune wins, the last step is switching your agent over. A **Model PR** does this the same way the Optimiser ships changes: Overmind edits your repository to point the agent at the new model and opens the pull request, and the switch happens through your normal review.
-
-```flow
-flow row
-title: How a training run is decided, from dataset to deployed model
-D[FT dataset] -> T[Training run | up to 4 experiments]
-E[Eval dataset + rubric] -> B[Benchmark vs baseline]
-T -> B
-B -> DEC{Fine-tune wins?} : delta per metric
-DEC -> DEP[Auto-deployed to Inference] : Yes
-DEP -> PR[Model PR switches the agent]
-DEC -> IT[Adjust data or tier, rerun] : No
-```
+When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the agent at the new model and opens the pull request — the switch happens through your normal review, never automatically.
 
 ## Good to know
 
-- Model quality comes almost entirely from the data. A few hundred clean, representative, trace-sourced rows beat thousands of noisy ones. Get the Workshop verdict to **Ready** before spending on a run.
-- The training dataset is locked while the job runs (see [Datasets](/core/datasets#constraints-worth-knowing)). Finish curation first, or duplicate the dataset to keep working.
-- A run is rejected up front, with an explicit message, if your longest row exceeds the chosen model's trainable context.
+- Model quality comes almost entirely from the data. Get the Workshop verdict to **Ready** before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
+- The training dataset is [locked](/core/datasets#the-data-model) while the run is in flight. Finish curation first, or duplicate the dataset.
+- Each experiment reports its final credit cost; estimates are shown before you commit.

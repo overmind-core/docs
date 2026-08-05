@@ -1,0 +1,83 @@
+---
+title: REST API
+description: Base URL, authentication, and the endpoint map — everything the console does is available over plain JSON.
+---
+
+The console is built on the same REST API you can call directly. Base URL:
+
+```text
+https://api.overmindlab.ai
+```
+
+An OpenAPI schema and interactive explorer are served by the API itself at `/api/schema/` and `/api/docs/` (Swagger UI).
+
+## Authentication
+
+Three ways to authenticate; the first is right for almost all programmatic use:
+
+| Method | How | Use for |
+| --- | --- | --- |
+| **API key** | `X-Api-Key: ovr_...` or `Authorization: Bearer ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, inference |
+| **JWT** | `POST /api/auth/token/` with credentials → short-lived access + refresh tokens (`POST /api/auth/token/refresh/`) | User-context integrations |
+| **Console session** | Handled by the console's sign-in | Browser only |
+
+API keys are project-scoped: every request authenticated with a key operates inside that key's project. Keys are created and revoked under **Projects → your project → API keys** or via the API:
+
+```bash
+# Create (the key is returned once), list, revoke
+curl -X POST -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+  -d '{"name": "ci-key", "expires_in_days": 90}' \
+  "https://api.overmindlab.ai/api/auth/api-keys/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/auth/api-keys/"
+curl -X DELETE -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/auth/api-keys/{id}/"
+```
+
+## Endpoint map
+
+Standard REST resources follow Django REST Framework conventions: `GET` list with query-param filtering, `POST` create, `GET/PATCH/DELETE` on `/{id}/`, plus the custom actions listed here.
+
+### Core resources
+
+| Resource | Base path | Custom actions |
+| --- | --- | --- |
+| Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove) |
+| Agents | `/api/agents/` | `GET .../eval_spec/`, `GET .../prompts/` |
+| Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
+| Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
+| Datasets | `/api/datasets/` | `POST from_traces/`, `POST .../add_datapoints/`, `POST .../add_datapoints_from_traces/`, `POST .../remove_datapoints/`, `POST .../activate/`, `POST .../analyze/`, `GET .../datapoints/`, the `/workshop/` family |
+| Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
+
+### Evaluation
+
+| Resource | Base path | Custom actions |
+| --- | --- | --- |
+| Evaluators | `/api/evaluators/` | `GET catalog/`, `GET score-history/`, `POST author/`, `POST compile-rubric/`, `POST .../preview/`, `POST bulk-create/` |
+| Eval sets | `/api/eval-sets/` | `.../members/`, `POST .../activate/`, `POST .../generate-evals/` |
+| Eval runs | `/api/eval-runs/` | `POST .../run/`, `POST .../cancel/`, `GET .../comparison/`, `GET .../compare/`, `GET .../trend/` |
+| Samples / scores / annotations | `/api/eval-samples/`, `/api/eval-scores/`, `/api/eval-annotations/` | |
+
+### Optimisation, training, serving
+
+| Resource | Base path | Custom actions |
+| --- | --- | --- |
+| Optimiser runs | `/api/optimizer-experiments/` | `GET .../iterations/`, `GET .../commands/`, `POST .../cancel/`, `POST .../create-pr/`, `GET connection/` |
+| Training runs | `/api/finetuning-jobs/` | `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `GET models/`, `GET dataset-overlap/`, `GET .../loss-curves/`, `GET .../events/`, `POST .../cancel/`, `POST .../retry/`, `POST .../create-model-pr/` |
+| Deployed models | `/api/deployed-models/` | `POST .../deploy/`, `POST .../undeploy/`, `POST .../retry/`, `GET .../metrics/`, `GET .../activity/`, `GET .../checkpoints/` (+ `download/`) |
+
+### Special endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/v1/traces` (alias `/v1/traces`) | [OTLP trace ingest](/core/observability#the-otlp-endpoint) — protobuf, not JSON |
+| `POST /api/v1/chat/completions`, `GET /api/v1/models` | [OpenAI-compatible inference](/models/inference#endpoints) |
+| `GET /api/models/catalog/` | The frontier-model catalogue used for judges and run variants |
+| `GET /health` | Health check (no auth) |
+| `/api/github/...` | GitHub App connection, repo listing, scan triggers, observability-PR status |
+| `/api/connector-credentials/` | Tracing connectors; `POST .../sync/`, `GET .../langfuse-projects/` |
+| `/api/billing/...` | Subscription, credits ledger, checkout, top-up |
+
+## Conventions
+
+- **Filtering** uses django-filter query parameters on list endpoints (the console's filter bar builds exactly these URLs — copy them from your browser).
+- **Errors**: `401` unauthenticated, `402` insufficient credits for compute-consuming actions (trace ingest is never credit-gated), `403` plan limits, `404` wrong project or missing resource.
+- **IDs** are UUIDs except spans (16-hex `span_id`) and traces (32-hex `trace_id`).

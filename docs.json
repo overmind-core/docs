@@ -3,8 +3,8 @@
   "name": "Overmind",
   "theme": "luma",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/overmind-eye-copper.svg",
+    "dark": "/logo/overmind-eye-copper.svg"
   },
   "favicon": "/favicon.svg",
   "colors": {
@@ -14,10 +14,9 @@
   },
   "background": {
     "color": {
-      "light": "#fdf6ec",
-      "dark": "#120b06"
-    },
-    "decoration": "grid"
+      "light": "#f6f5f1",
+      "dark": "#16120f"
+    }
   },
   "fonts": {
     "heading": {
@@ -27,8 +26,8 @@
       "weight": 400
     },
     "body": {
-      "family": "Geist Pixel",
-      "source": "/fonts/GeistPixel-Regular.woff2",
+      "family": "Geist",
+      "source": "/fonts/Geist-Regular.woff2",
       "format": "woff2",
       "weight": 400
     }
@@ -54,11 +53,18 @@
         ]
       },
       {
+        "group": "Tracing",
+        "pages": [
+          "core/observability",
+          "tracing/sdk-python",
+          "tracing/sdk-typescript"
+        ]
+      },
+      {
         "group": "Core",
         "pages": [
           "core/agents",
-          "core/datasets",
-          "core/observability"
+          "core/datasets"
         ]
       },
       {
@@ -78,6 +84,7 @@
       {
         "group": "Platform",
         "pages": [
+          "platform/api",
           "platform/administration",
           "platform/glossary"
         ]

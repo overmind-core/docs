@@ -1,58 +1,64 @@
 ---
 title: Quickstart
-description: From a fresh account to an agent with traces, a scored dataset, and a first measurement in about fifteen minutes.
+description: From zero to traces in the console — create an API key, paste the agent prompt, watch traces land.
 ---
 
-This page gets you from nothing to a working setup: a project, an agent Overmind understands, production data flowing in, and your first dataset scored.
-
 <Steps>
-  <Step title="Create your account and project">
-    Sign up at [console.overmindlab.ai](https://console.overmindlab.ai). Everything in Overmind lives inside a **project**: agents, traces, datasets, runs, models, keys. Create one per product or use case; you can add more later and switch from the project menu. See [Projects & Administration](/platform/administration).
-  </Step>
-  <Step title="Scan your repository">
-    Connect GitHub (or paste a public repo URL) and let Overmind scan the branch your agent lives on. The scan discovers your agents and maps their prompts, tools, and control flow. Check the flow graph against reality before moving on. See [Agents](/core/agents).
-  </Step>
-  <Step title="Get traces flowing">
-    Create an API key from your project's **API Keys** card, then get traces flowing whichever way suits your codebase. Add the tracing SDK to your app, or let Overmind add observability at the repo level, where it writes the missing tracing code and opens a PR against your branch. If you already collect traces in another tool (Langfuse, LangSmith, and others), connect it and import what you have; enable auto-sync so new traces keep landing without a manual sync each time. Set the agent identity in the SDK so traces land on the right agent. See [Observability](/core/observability).
+  <Step title="Create a project and an API key">
+    Sign up at [console.overmindlab.ai](https://console.overmindlab.ai). The onboarding wizard creates your first **project** — the scoping unit for agents, traces, datasets, runs, models, and keys.
 
-    Set `OVERMIND_API_KEY` in your environment so the SDK picks it up automatically:
+    Create an API key from your project's page (**Projects → your project → API keys**) or from the Observability page's empty state. Keys are prefixed `ovr_`, stored hashed, and **shown once at creation** — copy the key immediately. Optional expiry: 30/90/180 days, 1 year, or never.
 
-    ```python
-    from overmind import init, set_agent_name
-
-    init(
-        service_name="my-service",
-        environment="production",
-        providers=["openai", "anthropic", "google", "agno"],
-    )
-    set_agent_name("Support Triage")
+    ```bash
+    export OVERMIND_API_KEY="ovr_..."
     ```
   </Step>
-  <Step title="Build your first dataset">
-    Once traces are arriving, select a representative batch in Observability and create a dataset from them, or drag a CSV/JSONL file you already have onto the Datasets page. Open the dataset and run the analysis to get a score and readiness verdict. See [Datasets](/core/datasets).
+  <Step title="Paste the setup prompt into your coding agent">
+    Open your app in Cursor, Claude Code, or another coding agent and paste this prompt (same text as the Observability empty state):
+
+    ```text
+    Install the Overmind AI skill from github.com/overmind-core/overmind and use it to add tracing to this application with Overmind following best practices.
+    ```
+
+    The skill installs the SDK, initialises tracing, and instruments your LLM providers. Keep `OVERMIND_API_KEY` in the environment (or a `.env` file) so the agent can run and verify without pasting the key into chat.
+
+    Prefer to wire it by hand? See the [Python SDK](/tracing/sdk-python) or [TypeScript SDK](/tracing/sdk-typescript).
   </Step>
-  <Step title="Measure something">
-    Overmind already authored a starter set of evaluators for your agent from the scan; review them, keep or edit what fits, and add more from the library. Evaluators marked for trace scoring start scoring incoming traffic; run the set against your dataset and you have a baseline. See [Eval](/agent-testing/eval).
+  <Step title="Not using Python or Node? Export OTLP directly">
+    The ingest endpoint accepts standard OTLP/HTTP **protobuf** from any OpenTelemetry SDK. Point your exporter at the API base URL (the exporter appends `/v1/traces`) and pass your key as a header:
+
+    ```bash
+    export OTEL_EXPORTER_OTLP_ENDPOINT="https://api.overmindlab.ai"
+    export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"   # JSON and gRPC are not accepted
+    export OTEL_EXPORTER_OTLP_HEADERS="x-api-key=ovr_..."
+    ```
+
+    See [Observability](/core/observability#the-otlp-endpoint) for the attribute conventions the ingest pipeline reads.
+  </Step>
+  <Step title="Check the console">
+    Open **Observability**. Each row is a root span; click one for the span tree, timeline, and full model-call transcripts.
+
+    <Frame caption="The trace list: duration, tokens, cost, model, status, scores, and agent per root trace.">
+      <img src="/images/platform/tracing-list.png" alt="Observability trace list in the Overmind console" />
+    </Frame>
+
+    The **Get started** page in the console tracks the same setup as a live checklist: project → repository scan → API key → tracing → dataset.
   </Step>
 </Steps>
 
-The console's **Get started** page tracks these same steps as a checklist, so you always know what's next.
-
-## Where to go from the baseline
-
-After these five steps you have real data, curated examples, and a score you can trust. What to do next depends on what the score tells you.
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="The score should be higher" icon="arrow-trend-up" href="/agent-testing/optimisers">
-    Run the Optimiser. It proposes code changes, tests each against your dataset and metrics, and opens the winner as a PR.
+  <Card title="Structure your traces" icon="sitemap" href="/tracing/sdk-python">
+    Add `@entry_point`, `@workflow`, and `@tool` spans so traces mirror your agent's real control flow.
   </Card>
-  <Card title="Cost or latency is the problem" icon="gauge-high" href="/models/training">
-    Fine-tune a smaller model on your own data and benchmark it against the model you run today.
+  <Card title="Connect your repository" icon="github" href="/core/agents">
+    A repo scan builds the agent's flow graph, extracts its prompts, and measures trace coverage.
   </Card>
-  <Card title="You're not sure what's failing" icon="magnifying-glass" href="/core/observability">
-    Filter to low-scoring traces and read them. The timeline and transcripts show you exactly where a run went wrong.
+  <Card title="Build a dataset from traces" icon="database" href="/core/datasets">
+    Select traces and convert them into an eval or training dataset with provenance intact.
   </Card>
-  <Card title="The data needs work first" icon="database" href="/core/datasets">
-    Open the dataset and follow its insights: fix what's blocking the verdict first, then the high-severity findings.
+  <Card title="Define evaluators" icon="clipboard-check" href="/agent-testing/eval">
+    Score outputs in batch runs — and live on arriving traces — with the same evaluators.
   </Card>
 </CardGroup>
