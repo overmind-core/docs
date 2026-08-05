@@ -54,11 +54,18 @@
         ]
       },
       {
+        "group": "Tracing",
+        "pages": [
+          "core/observability",
+          "tracing/sdk-python",
+          "tracing/sdk-typescript"
+        ]
+      },
+      {
         "group": "Core",
         "pages": [
           "core/agents",
-          "core/datasets",
-          "core/observability"
+          "core/datasets"
         ]
       },
       {
@@ -78,6 +85,7 @@
       {
         "group": "Platform",
         "pages": [
+          "platform/api",
           "platform/administration",
           "platform/glossary"
         ]

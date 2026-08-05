@@ -4,61 +4,67 @@ title: Introduction
 
 ## What is Overmind?
 
-Overmind helps you understand and improve the AI agents you run in production. It reads your agent's code and watches its production traffic. From that data you build test datasets, measure quality with evaluators, and ship improvements as pull requests. When prompt and code changes stop improving the score, Overmind can fine-tune a model on your own data and benchmark it against the model you use today.
+Overmind is a platform for improving production AI agents with their own data. It ingests OpenTelemetry traces from your agent, scores them with evaluators as they arrive, turns them into curated datasets, runs controlled eval experiments, proposes code changes as pull requests, and fine-tunes and serves models benchmarked against the model you run today.
 
-Everything in Overmind is one loop, and each product area is a step in it:
+Everything speaks standard protocols: trace ingest is OTLP/HTTP, the REST API is plain JSON over HTTPS, and model serving is OpenAI-compatible. Two endpoints matter:
+
+| Surface | URL |
+| --- | --- |
+| API (ingest, REST, inference) | `https://api.overmindlab.ai` |
+| Console | `https://console.overmindlab.ai` |
+
+All programmatic access authenticates with a project-scoped API key (prefixed `ovr_`), sent as `X-Api-Key: <key>` or `Authorization: Bearer <key>`.
+
+## How data flows
 
 ```flow
 flow row
-title: The Overmind loop, from agent discovery through to served inference
-A[Agents | discovered from code + telemetry] -> O[Observability | traces, scored on arrival]
-O -> D[Datasets | curated in the Workshop]
-D -> E[Eval | what good means, measured]
-E -> OP[Optimisers | code changes as PRs]
-E -> T[Training | fine-tunes vs the baseline]
-T -> I[Inference | served, OpenAI API compatible]
-OP ~> A : merged changes run in prod
-I ~> O : calls are traced
+title: From your agent's process to a served fine-tune
+A[Your agent | SDK or any OTel exporter] -> B[OTLP ingest | POST /api/v1/traces]
+B -> C[Spans in Postgres | scored on arrival]
+C -> D[Datasets | curated from traces]
+D -> E[Eval runs | variants vs baseline]
+E -> OP[Optimiser | code diffs, replayed + scored]
+D -> T[Training | fine-tunes vs baseline]
+T -> I[Inference | OpenAI-compatible API]
+OP ~> A : winning diff lands as a PR
+I ~> B : served model's calls are traced
 ```
 
-Every change Overmind proposes arrives as a pull request in your repository: an observability PR, an optimisation PR, or a model-swap PR. You review and merge it. Overmind never silently changes what you ship.
-
-## Who it's for
-
-Teams with an agent doing a real job against real data: a support triager, a lead qualifier, a document extractor. You'll get the most value if the agent lives in a GitHub repository, since Overmind reads the code to understand it, and if you can send production traces, since Overmind measures against situations the agent actually faced. You don't need an eval harness, a labelling pipeline, or training infrastructure. Those are the parts Overmind provides.
+There is no proprietary agent framework to adopt. The SDKs (`pip install overmind`, `npm install @overmind-lab/trace-sdk`) auto-instrument your existing OpenAI, Anthropic, and Gemini clients over OpenTelemetry, and any OTel SDK in any language can export to the same endpoint directly.
 
 ## The product areas
 
 <CardGroup cols={3}>
+  <Card title="Observability" href="/core/observability" icon="eye">
+    OTLP ingestion, the span data model, attribute mapping, and the trace explorer.
+  </Card>
+  <Card title="Python SDK" href="/tracing/sdk-python" icon="python">
+    `init()`, provider auto-instrumentation, span decorators, and context helpers.
+  </Card>
+  <Card title="TypeScript SDK" href="/tracing/sdk-typescript" icon="node-js">
+    `OvermindClient`, `initTracing()`, and manual span helpers for Node.js.
+  </Card>
   <Card title="Agents" href="/core/agents" icon="robot">
-    The working model of each agent in your code, with its structure, behaviour, and everything attached to it.
+    How agents are modelled: repo scans, telemetry attribution, eval specs.
   </Card>
   <Card title="Datasets" href="/core/datasets" icon="database">
-    Traces and files become scored, versioned datasets in the Data Workshop.
-  </Card>
-  <Card title="Observability" href="/core/observability" icon="eye">
-    Every production run, with tokens, cost, latency, and quality scores on arrival.
+    Datapoint schema, intents, trace-to-dataset conversion, and the Data Workshop.
   </Card>
   <Card title="Eval" href="/agent-testing/eval" icon="clipboard-check">
-    Evaluators, eval sets, and runs. Define what good looks like and score your agent against it.
+    Evaluator kinds, eval sets, live trace scoring, and run reports.
   </Card>
   <Card title="Optimisers" href="/agent-testing/optimisers" icon="wand-magic-sparkles">
-    Candidate code changes, tested against your data, shipped as a PR.
+    The optimisation loop, the local executioner, and the resulting PR.
   </Card>
   <Card title="Training" href="/models/training" icon="dumbbell">
-    Fine-tune on your own data, benchmarked per metric against your production model.
+    Fine-tuning jobs, dataset validation, loss curves, and the baseline benchmark.
   </Card>
   <Card title="Inference" href="/models/inference" icon="server">
-    Your models, served and monitored, behind an OpenAI-compatible API.
-  </Card>
-  <Card title="Administration" href="/platform/administration" icon="gear">
-    Projects, keys, connections, jobs, and billing.
-  </Card>
-  <Card title="Glossary" href="/platform/glossary" icon="book">
-    One canonical definition per platform term.
+    Serving lifecycle and the OpenAI-compatible `/api/v1/chat/completions` API.
   </Card>
 </CardGroup>
 
 ## Where to start
 
-The [Quickstart](/quickstart) takes you from a fresh account to an agent with traces, a scored dataset, and a first measurement in about fifteen minutes. If you'd rather read first, start with [Agents](/core/agents), since every other page builds on it, then follow the loop: [Observability](/core/observability), [Datasets](/core/datasets), [Eval](/agent-testing/eval).
+The [Quickstart](/quickstart) gets a first trace into the console in a few minutes: create an API key, initialise the SDK, make an LLM call. From there, [Observability](/core/observability) explains exactly what happens to a span after it leaves your process, and the [REST API](/platform/api) page lists every endpoint the console itself is built on.
