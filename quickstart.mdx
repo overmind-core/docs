@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: From zero to traces in the console — install the SDK, create an API key, make an LLM call.
+description: From zero to traces in the console — create an API key, paste the agent prompt, watch traces land.
 ---
 
 <Steps>
@@ -13,66 +13,16 @@ description: From zero to traces in the console — install the SDK, create an A
     export OVERMIND_API_KEY="ovr_..."
     ```
   </Step>
-  <Step title="Install the SDK">
-    <CodeGroup>
+  <Step title="Paste the setup prompt into your coding agent">
+    Open your app in Cursor, Claude Code, or another coding agent and paste this prompt (same text as the Observability empty state):
 
-    ```bash Python
-    pip install overmind openai   # or: anthropic, google-genai, agno
+    ```text
+    Install the Overmind AI skill from github.com/overmind-core/overmind and use it to add tracing to this application with Overmind following best practices.
     ```
 
-    ```bash TypeScript
-    npm install @overmind-lab/trace-sdk openai
-    ```
+    The skill installs the SDK, initialises tracing, and instruments your LLM providers. Keep `OVERMIND_API_KEY` in the environment (or a `.env` file) so the agent can run and verify without pasting the key into chat.
 
-    </CodeGroup>
-  </Step>
-  <Step title="Initialise tracing and make a call">
-    Initialise once at process startup, before any LLM call. Your existing provider client code is instrumented in place — no import swaps, no proxy.
-
-    <CodeGroup>
-
-    ```python Python
-    import overmind
-    from openai import OpenAI
-
-    overmind.init(
-        service_name="my-service",
-        environment="production",
-        providers=["openai"],          # omit to auto-detect installed providers
-        agent_name="Support Triage",   # attribute traces to an agent
-    )
-
-    client = OpenAI()
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": "Classify this ticket: ..."}],
-    )
-    ```
-
-    ```ts TypeScript
-    import { OpenAI } from "openai";
-    import { OvermindClient } from "@overmind-lab/trace-sdk";
-
-    const overmind = new OvermindClient({
-      apiKey: process.env.OVERMIND_API_KEY!,
-      appName: "my-service",
-      agentName: "Support Triage", // attribute traces to an agent
-    });
-
-    overmind.initTracing({ enabledProviders: { openai: OpenAI } });
-
-    const openai = new OpenAI();
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: "Classify this ticket: ..." }],
-    });
-
-    await overmind.shutdown(); // flush before a short-lived process exits
-    ```
-
-    </CodeGroup>
-
-    Spans export over OTLP/HTTP to `https://api.overmindlab.ai/api/v1/traces` and appear in **Observability** in near real time.
+    Prefer to wire it by hand? See the [Python SDK](/tracing/sdk-python) or [TypeScript SDK](/tracing/sdk-typescript).
   </Step>
   <Step title="Not using Python or Node? Export OTLP directly">
     The ingest endpoint accepts standard OTLP/HTTP **protobuf** from any OpenTelemetry SDK. Point your exporter at the API base URL (the exporter appends `/v1/traces`) and pass your key as a header:

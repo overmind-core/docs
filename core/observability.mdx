@@ -43,6 +43,14 @@ The API key pins every span in the request to its project. Trace ingest is delib
 
 ## Getting traces in
 
+The fastest path is the same prompt as the Observability empty state — paste it into your coding agent and let the [Overmind Telemetry skill](https://github.com/overmind-core/overmind) install and wire the SDK:
+
+```text
+Install the Overmind AI skill from github.com/overmind-core/overmind and use it to add tracing to this application with Overmind following best practices.
+```
+
+Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough, see the [Quickstart](/quickstart). To instrument by hand:
+
 <Tabs>
   <Tab title="Python SDK">
     ```python
