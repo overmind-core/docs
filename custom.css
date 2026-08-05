@@ -1,31 +1,65 @@
 /*
- * Overmind docs theme — applies the Overmind design language on top of
- * Mintlify (luma theme).
+ * Overmind docs — quiet technical theme.
  *
- * The palette is taken directly from the brand eye (logo/overmind-eye-copper.svg):
+ * Goal: turbopuffer-like restraint (clean canvas, readable prose, dense
+ * technical content) with one Overmind brand signal: copper accent + Mondwest
+ * page titles. Pixel faces are chrome-only (eyebrows, nav labels), never body.
+ *
+ * Palette from the brand eye / website stone+copper tokens:
  *   #ED670F copper · #F69A5B light orange · #79380D rust
- *   #2F1606 deep brown · #3B1B06 dark brown · #FEEEDD cream
- *
- * Design language source of truth: overmind-platform/frontend/design.md
- *  - Warm layered surfaces with soft brown-tinted depth
- *  - Voice model: Geist Pixel throughout — one face for chrome, body, and
- *    display, sized and inked for hierarchy rather than weighted for it
- *  - Sharp, small radii (2-6px)
- *
- * Geist Pixel ships a single 400 master, so hierarchy is carried by size
- * and ink level. Weight synthesis is off everywhere except inline emphasis,
- * where there is no other signal available.
- *
- * Selectors target the luma theme's actual DOM: #navigation-items,
- * .sidebar-group-header, ul.sidebar-group, a[aria-current="page"], ul.toc.
- * These are theme internals and may need a nudge after Mintlify updates.
+ *   #F6F5F1 stone-100 · #16120F stone-900 · #231A14 ink
  */
 
-/* ─── Geist Pixel ──────────────────────────────────────────────────────────
- * Self-hosted from the Google Fonts release, both subsets, so the docs pull
- * no fonts from a third-party CDN. docs.json declares the latin cut as the
- * body family; latin-ext is added here for the accented characters.
- */
+/* ─── Fonts ─────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: "PP Mondwest";
+  src: url("/fonts/PPMondwest-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: "Geist Pixel";
   src: url("/fonts/GeistPixel-Regular.woff2") format("woff2");
@@ -49,206 +83,337 @@
     U+A720-A7FF;
 }
 
-/* ─── Brand palette — straight from the eye ────────────────────────────── */
+/* ─── Tokens ────────────────────────────────────────────────────────────── */
+
 :root {
   --om-copper: #ed670f;
   --om-orange: #f69a5b;
   --om-rust: #79380d;
   --om-brown-deep: #2f1606;
-  --om-brown: #3b1b06;
   --om-cream: #feeedd;
+  --om-stone: #f6f5f1;
+  --om-stone-dark: #16120f;
 
-  --om-border-light: rgb(from var(--om-rust) r g b / 0.16);
-  --om-border-dark: rgb(from var(--om-orange) r g b / 0.14);
+  --om-ink: #231a14;
+  --om-ink-muted: #645e54;
+  --om-border: rgb(from var(--om-rust) r g b / 0.14);
 
-  /* Warm brown-tinted depth, never gray */
-  --om-shadow-light:
-    0 1px 2px rgb(from var(--om-brown-deep) r g b / 0.05),
-    0 4px 12px rgb(from var(--om-brown-deep) r g b / 0.06);
-  --om-shadow-dark: 0 1px 2px rgb(0 0 0 / 0.45), 0 6px 16px rgb(0 0 0 / 0.35);
-
-  /* Geist Pixel sets on a coarse grid, so chrome needs a larger nominal
-   * size than a smooth face would to read at the same visual weight */
-  --om-nav-label-size: 15px; /* group / eyebrow labels */
-  --om-nav-item-size: 15px; /* nav rows and TOC entries */
+  --om-code-bg: #faf8f4;
+  --om-shadow: 0 1px 2px rgb(from var(--om-brown-deep) r g b / 0.04);
 }
 
-/* ─── Global typographic polish ────────────────────────────────────────── */
+.dark {
+  --om-ink: #f5f3ee;
+  --om-ink-muted: #9f9b92;
+  --om-border: rgb(from var(--om-orange) r g b / 0.16);
+  --om-code-bg: #1c1815;
+  --om-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+/* ─── Global ────────────────────────────────────────────────────────────── */
+
+/* Flat stone canvas — hide Mintlify decorative overlays when present.
+ * (docs.json has no decoration key; this covers residual theme defaults.) */
+body > div[aria-hidden="true"][class*="pointer-events-none"],
+body div.pointer-events-none.fixed[aria-hidden="true"] {
+  display: none !important;
+}
+
 html,
 body {
-  /* Grayscale antialiasing eats the one-pixel stems of a bitmap face and
-   * leaves the whole page reading as a watermark. Default smoothing keeps
-   * the stems opaque, which is what Geist Pixel is drawn for. */
-  -webkit-font-smoothing: auto;
-  -moz-osx-font-smoothing: auto;
-  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
 }
 
-/* One master, so nothing anywhere gets a synthesized weight — except inline
- * emphasis below, which has no other signal to work with. */
-* {
-  font-synthesis-weight: none;
+body,
+#content-area {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
+  color: var(--om-ink);
 }
 
-/* Headings — Geist Pixel, sized apart rather than weighted apart. Bitmap
- * face rules: generous size steps, positive tracking, tight leading so the
- * pixel grid stays legible at display sizes. */
+#content-area :is(p, li, td, dd) {
+  font-size: 0.975rem;
+  line-height: 1.65;
+  color: color-mix(in srgb, var(--om-ink) 88%, transparent);
+}
+
+#content-area :is(p, li) a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--om-ink) 28%, transparent);
+  text-underline-offset: 2px;
+  transition: text-decoration-color 120ms ease, color 120ms ease;
+}
+
+#content-area :is(p, li) a:hover {
+  color: var(--om-copper);
+  text-decoration-color: var(--om-copper);
+}
+
+.dark #content-area :is(p, li) a:hover {
+  color: var(--om-orange);
+  text-decoration-color: var(--om-orange);
+}
+
+/* ─── Headings ──────────────────────────────────────────────────────────── */
+
 #content-area :is(h1, h2, h3, h4, h5, h6) {
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
-  font-weight: 400 !important;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--om-ink) !important;
 }
-/* Page title — PP Mondwest, the editorial display face from the lockup. It
- * is the one place the docs get a voice other than the pixel face, and it
- * only reads as display at a size the section headings never reach. Mondwest
- * sits low and wide, so it wants more size and a touch less leading than
- * Geist Pixel at the same optical weight. */
+
+/* Page title — Mondwest is the one brand voice at display size */
 #content-area h1 {
-  font-family: "PP Mondwest", "Geist Pixel", ui-monospace, monospace !important;
-  font-size: clamp(2.9rem, 2rem + 2.6vw, 4.2rem);
-  letter-spacing: 0.005em;
-  line-height: 1;
-}
-#content-area h2 {
-  font-size: 1.6rem;
-}
-#content-area h3 {
-  font-size: 1.3rem;
-}
-#content-area :is(h4, h5, h6) {
-  font-size: 1.05rem;
+  font-family: "PP Mondwest", "Geist", ui-serif, serif !important;
+  font-weight: 400 !important;
+  font-size: clamp(2.25rem, 1.6rem + 1.8vw, 3.25rem);
   letter-spacing: 0;
+  line-height: 1.05;
+  margin-bottom: 1.25rem;
+}
+
+#content-area h2 {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 1.35rem;
   line-height: 1.25;
+  margin-top: 2.5rem;
 }
 
-/* Inline emphasis is the one place a synthesized weight earns its keep:
- * with a single master there is nothing else to distinguish it inline. */
+#content-area h3 {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+#content-area :is(h4, h5, h6) {
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.975rem;
+  line-height: 1.35;
+}
+
 #content-area :is(strong, b, th) {
-  font-weight: 700;
-  font-synthesis-weight: auto;
+  font-weight: 600;
 }
 
-/* ─── Navbar — floating warm bar with the lockup shown as-is ───────────── */
+/* ─── Code ──────────────────────────────────────────────────────────────── */
+
+#content-area :is(p, li, td, th) code:not(pre code),
+#content-area :not(pre) > code {
+  font-family: "Geist Mono", ui-monospace, monospace !important;
+  font-size: 0.875em;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  background: color-mix(in srgb, var(--om-ink) 5%, transparent) !important;
+  border: 0 !important;
+  color: var(--om-ink) !important;
+}
+
+#content-area pre,
+#content-area pre code,
+#content-area [data-component-part="code-block-root"] code {
+  font-family: "Geist Mono", ui-monospace, monospace !important;
+  font-size: 0.84rem !important;
+  line-height: 1.55 !important;
+  letter-spacing: -0.01em;
+}
+
+#content-area [data-component-part="code-block-root"] {
+  border: 1px solid var(--om-border);
+  border-radius: 4px;
+  box-shadow: none;
+  overflow: hidden;
+  background: var(--om-code-bg);
+}
+
+#content-area [data-component-part="code-block-root"] pre,
+#content-area .code-block pre,
+#content-area pre {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/*
+ * Copy button is position:absolute over the code block. Narrow the content
+ * shell (the w-0/min-w-full wrapper) so a permanent right gutter stays clear.
+ */
+#content-area .code-block > div[class*="min-w-full"],
+#content-area [data-component-part="code-block-root"] > div[class*="min-w-full"] {
+  width: calc(100% - 3rem) !important;
+  max-width: calc(100% - 3rem) !important;
+  min-width: 0 !important;
+}
+
+#content-area [style*="--shiki-dark-bg" i],
+#content-area pre {
+  background-color: var(--om-code-bg) !important;
+}
+
+/*
+ * Shiki dual-theme: light colors are inline `color: rgb(...)`, dark colors
+ * live in `--shiki-dark`. Mintlify no longer emits hex in the color
+ * property, so hex-matching remaps left dark-mode text at light-theme
+ * ink on a dark paper (invisible). Use the CSS variable in dark mode.
+ */
+.dark #content-area pre span[style*="--shiki-dark"] {
+  color: var(--shiki-dark) !important;
+}
+
+/* Optional warm accents on top of the default dark palette */
+.dark #content-area pre span[style*="--shiki-dark: #C586C0" i],
+.dark #content-area pre span[style*="--shiki-dark:#C586C0" i] {
+  color: #ed670f !important;
+}
+.dark #content-area pre span[style*="--shiki-dark: #569CD6" i],
+.dark #content-area pre span[style*="--shiki-dark:#569CD6" i] {
+  color: #d9822b !important;
+}
+.dark #content-area pre span[style*="--shiki-dark: #CE9178" i],
+.dark #content-area pre span[style*="--shiki-dark:#CE9178" i] {
+  color: #e0a878 !important;
+}
+.dark #content-area pre span[style*="--shiki-dark: #6A9955" i],
+.dark #content-area pre span[style*="--shiki-dark:#6A9955" i] {
+  color: #8a7a68 !important;
+}
+
+#content-area [data-testid="copy-code-button"] {
+  border-radius: 3px !important;
+  background: var(--om-code-bg) !important;
+  border: 1px solid var(--om-border);
+  color: var(--om-ink-muted) !important;
+}
+#content-area [data-testid="copy-code-button"]:hover {
+  color: var(--om-copper) !important;
+  border-color: rgb(from var(--om-copper) r g b / 0.4);
+}
+.dark #content-area [data-testid="copy-code-button"]:hover {
+  color: var(--om-orange) !important;
+}
+#content-area [data-fade-overlay] {
+  background: var(--om-code-bg) !important;
+}
+
+/* ─── Navbar ────────────────────────────────────────────────────────────── */
+
 #navbar img,
 #navbar a:hover img {
   opacity: 1 !important;
   filter: none !important;
 }
 
-/* frosted warm background + brand hairline instead of flat gray */
-#navbar > div.z-0 {
-  background: rgb(from var(--om-cream) r g b / 0.72) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-.dark #navbar > div.z-0 {
-  background: rgb(from var(--om-brown-deep) r g b / 0.55) !important;
-}
-#navbar > div.z-10.absolute {
-  border-color: var(--om-border-light) !important;
-}
-.dark #navbar > div.z-10.absolute {
-  border-color: var(--om-border-dark) !important;
+/* Eye + Mondwest wordmark lockup */
+#navbar a[href="/"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.7rem !important;
+  text-decoration: none !important;
 }
 
-/* Console button — pixel-terminal chip instead of a generic pill */
+#navbar a[href="/"] img,
+#navbar a[href="/"] img.nav-logo {
+  height: 28px !important;
+  width: 28px !important;
+  max-width: 28px !important;
+  flex-shrink: 0;
+}
+
+#navbar a[href="/"]::after {
+  content: "Overmind";
+  font-family: "PP Mondwest", ui-serif, serif;
+  font-weight: 700 !important;
+  font-synthesis-weight: auto;
+  font-size: 1.25rem;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  color: var(--om-ink);
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark #navbar a[href="/"]::after {
+  color: #f5f3ee;
+}
+
+#navbar > div.z-0 {
+  background: rgb(from var(--om-stone) r g b / 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark #navbar > div.z-0 {
+  background: rgb(from var(--om-stone-dark) r g b / 0.85) !important;
+}
+#navbar > div.z-10.absolute {
+  border-color: var(--om-border) !important;
+}
+
 #navbar a[href*="console.overmindlab.ai"] {
-  border-radius: 4px !important;
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  border-radius: 3px !important;
+  font-family: "Geist", ui-sans-serif, sans-serif !important;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  transition: background-color 150ms ease;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 #navbar a[href*="console.overmindlab.ai"]:hover {
   opacity: 1 !important;
   background: var(--om-rust) !important;
 }
 
-/* Search — warm field with the label register */
 #navbar button[class*="group/search"] {
-  border: 1px solid var(--om-border-light) !important;
-  border-radius: 4px !important;
-  background: rgb(from var(--om-cream) r g b / 0.5) !important;
-  color: var(--om-rust) !important;
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
+  border: 1px solid var(--om-border) !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: var(--om-ink-muted) !important;
+  font-family: "Geist", ui-sans-serif, sans-serif !important;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.dark #navbar button[class*="group/search"] {
-  border-color: var(--om-border-dark) !important;
-  background: rgb(from var(--om-orange) r g b / 0.05) !important;
-  color: rgb(from var(--om-orange) r g b / 0.75) !important;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-/* ─── Footer — removed; content keeps a comfortable bottom margin ──────── */
+/* ─── Footer ────────────────────────────────────────────────────────────── */
+
 #footer {
   display: none !important;
 }
 #content-area {
-  padding-bottom: 1rem;
+  padding-bottom: 3rem;
 }
 
-/* ─── Body width — spend the idle whitespace (696px → 784px) ───────────── */
 @media (min-width: 1024px) {
   #content-area {
-    max-width: 784px !important;
-    /* re-center: Mintlify's offset formula hardcodes half of 696px (348) */
-    margin-left: max(0px, calc(50vw - 392px - 14rem)) !important;
+    max-width: 720px !important;
+    margin-left: max(0px, calc(50vw - 360px - 14rem)) !important;
   }
 }
 
-/* ─── Sidebar — a pixel rail, not a plain list ───────────────────────────
- * The rail sits directly on the page canvas: no tinted panel, no boxes.
- * A monochrome list read as filler next to the rest of the brand, so the
- * rail now uses the same two devices the page itself uses: copper eyebrows
- * for the section names, and a copper marker on the thing you are looking
- * at — the same signal the "On this page" list already gives. The marker is
- * a hard-edged square rather than a rounded dot or a bar, which is the
- * motif the pixel face is already drawing.
- *
- * Three levels: section eyebrows in copper, pages in ink, current page in
- * full ink over a copper wash with a lit marker. Hover steps the row one
- * pixel-cell right, the way a terminal cursor advances.
- */
-:root {
-  --om-ink: #231a14; /* design.md --foreground */
-  --om-ink-muted: #75685f; /* design.md --muted-foreground */
-}
-.dark {
-  --om-ink: #f5f3ee;
-  --om-ink-muted: #a9a39a;
-}
+/* ─── Sidebar — quiet rail, copper only on current ──────────────────────── */
 
 div:has(> #navigation-items) {
-  background: transparent; /* the rail is the canvas */
-  border-right: 1px solid rgb(from var(--om-rust) r g b / 0.12);
-}
-.dark div:has(> #navigation-items) {
-  border-right-color: transparent; /* dark separates by tone alone */
+  background: transparent;
+  border-right: 1px solid var(--om-border);
 }
 
-/* Container — reclaim the airy default padding and hide the gutter the
- * always-visible scrollbar was carving out of the rail */
 #navigation-items {
-  padding: 14px 10px 14px 14px !important;
+  padding: 16px 12px 24px 16px !important;
   scrollbar-gutter: auto !important;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
 #navigation-items:hover {
-  scrollbar-color: rgb(from var(--om-rust) r g b / 0.25) transparent;
-}
-.dark #navigation-items:hover {
-  scrollbar-color: rgb(from var(--om-orange) r g b / 0.25) transparent;
+  scrollbar-color: color-mix(in srgb, var(--om-ink) 20%, transparent) transparent;
 }
 
-/* Groups — space does the structural work; no dividers */
 #navigation-items div:has(> .sidebar-group-header) {
-  margin-top: 0 !important; /* Mintlify's mt-6/mt-8 made the groups drift apart */
-  margin-bottom: 26px;
+  margin-top: 0 !important;
+  margin-bottom: 22px;
 }
 
 #navigation-items ul.sidebar-group {
@@ -256,543 +421,203 @@ div:has(> #navigation-items) {
   margin-left: 0;
 }
 
-/* The rail was disappearing into the canvas: a one-pixel bitmap stem set in
- * muted-foreground and then thinned again by grayscale antialiasing. With
- * one master and no bold to reach for, the fix is ink and size — default
- * smoothing keeps the stems opaque, categories sit in full ink, and pages
- * come up from roughly 55% ink to 76%. */
-#navigation-items :is(.sidebar-group-header, .sidebar-group li a) {
+/* Section eyebrows — pixel face, copper, uppercase (chrome only) */
+#navigation-items .sidebar-group-header {
   font-family: "Geist Pixel", ui-monospace, monospace !important;
   font-weight: 400 !important;
-  -webkit-font-smoothing: auto;
-  -moz-osx-font-smoothing: auto;
-}
-
-/* Section eyebrow — copper and uppercase, matching the eyebrow above every
- * page title, with a hairline that runs out to the edge of the rail */
-#navigation-items .sidebar-group-header {
-  position: relative;
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
   font-size: 11px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   line-height: 1;
   text-transform: uppercase;
   color: var(--om-rust) !important;
-  margin-bottom: 10px !important;
+  margin-bottom: 8px !important;
   padding: 0 8px !important;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 .dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-orange) r g b / 0.85) !important;
-}
-#navigation-items .sidebar-group-header::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: currentColor;
-  opacity: 0.2;
+  color: rgb(from var(--om-orange) r g b / 0.8) !important;
 }
 
-/* Pages — full ink, with a marker cell reserved on the left */
 #navigation-items .sidebar-group li a {
-  position: relative;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  line-height: 1.25;
-  padding: 6px 8px 6px 22px !important;
-  border-radius: 2px;
-  background: transparent;
-  color: color-mix(in srgb, var(--om-ink) 74%, transparent) !important;
-  transition:
-    color 150ms ease,
-    background-color 150ms ease,
-    padding-left 150ms ease;
-}
-
-/* The marker: a 4px square, dim until the row matters. Squares, not dots —
- * a rounded marker fights the pixel face everything else is set in. */
-#navigation-items .sidebar-group li a::before {
-  content: "";
-  position: absolute;
-  left: 9px;
-  /* Pinned to the first line, not the row's centre — "Projects &
-   * Administration" wraps, and a centred marker floats between its lines */
-  top: 15px;
-  width: 4px;
-  height: 4px;
-  margin-top: -2px;
-  background: currentColor;
-  opacity: 0.25;
-  transition:
-    background-color 150ms ease,
-    opacity 150ms ease,
-    height 150ms ease,
-    margin-top 150ms ease;
+  font-family: "Geist", ui-sans-serif, sans-serif !important;
+  font-weight: 450 !important;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  padding: 5px 8px !important;
+  border-radius: 3px;
+  color: var(--om-ink-muted) !important;
+  transition: color 120ms ease, background-color 120ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
   background: color-mix(in srgb, var(--om-ink) 4%, transparent);
   color: var(--om-ink) !important;
-  padding-left: 25px !important; /* one cell right, like a cursor step */
-}
-#navigation-items .sidebar-group li a:hover::before {
-  opacity: 0.55;
 }
 
-/* Current page — copper wash, full ink, and the marker lit and grown into a
- * short bar. The accent is the point: this is the one row that answers. */
 #navigation-items .sidebar-group li a[aria-current="page"] {
   text-shadow: none !important;
   color: var(--om-ink) !important;
-  background: color-mix(in srgb, var(--om-copper) 12%, transparent);
-  padding-left: 22px !important;
-}
-#navigation-items .sidebar-group li a[aria-current="page"]::before {
-  background: var(--om-copper);
-  opacity: 1;
-  height: 12px;
-  margin-top: -6px;
+  background: color-mix(in srgb, var(--om-copper) 10%, transparent);
+  font-weight: 500 !important;
 }
 .dark #navigation-items .sidebar-group li a[aria-current="page"] {
-  background: color-mix(in srgb, var(--om-orange) 13%, transparent);
-}
-.dark #navigation-items .sidebar-group li a[aria-current="page"]::before {
-  background: var(--om-orange);
+  background: color-mix(in srgb, var(--om-orange) 12%, transparent);
 }
 
-/* ─── In-page TOC — same register as the sidebar ───────────────────────── */
-#table-of-contents-content ~ * button span,
-button:has(+ #table-of-contents-content) span,
-h2:has(#table-of-contents-content) span {
+/* Remove the old square marker pseudo-elements if any linger via specificity */
+#navigation-items .sidebar-group li a::before {
+  display: none !important;
+}
+
+/* ─── In-page TOC ───────────────────────────────────────────────────────── */
+
+h2:has(#table-of-contents-content) span,
+button:has(+ #table-of-contents-content) span {
   font-family: "Geist Pixel", ui-monospace, monospace !important;
-  font-size: var(--om-nav-label-size);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
   color: var(--om-rust);
+  -webkit-font-smoothing: auto;
 }
 .dark h2:has(#table-of-contents-content) span {
-  color: rgb(from var(--om-orange) r g b / 0.8);
+  color: rgb(from var(--om-orange) r g b / 0.75);
 }
 
 ul.toc .toc-item a {
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  line-height: 1.25;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
-  /* Same bitmap-face treatment as the left rail */
-  -webkit-font-smoothing: auto;
-  -moz-osx-font-smoothing: auto;
+  font-family: "Geist", ui-sans-serif, sans-serif !important;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  color: var(--om-ink-muted);
 }
 
-/* ─── Copy-page split button + its dropdown — brand chrome, not gray ───── */
+/* ─── Copy-page controls ────────────────────────────────────────────────── */
+
 #content-area button[class*="rounded-l-xl"],
 #content-area button[class*="rounded-r-xl"] {
-  border-color: var(--om-border-light) !important;
-  color: var(--om-rust) !important;
-  background: rgb(from var(--om-cream) r g b / 0.5) !important;
-}
-.dark #content-area button[class*="rounded-l-xl"],
-.dark #content-area button[class*="rounded-r-xl"] {
-  border-color: var(--om-border-dark) !important;
-  color: rgb(from var(--om-orange) r g b / 0.85) !important;
-  background: rgb(from var(--om-orange) r g b / 0.05) !important;
+  border-color: var(--om-border) !important;
+  color: var(--om-ink-muted) !important;
+  background: transparent !important;
+  border-radius: 3px !important;
 }
 #content-area button[class*="rounded-l-xl"]:hover,
 #content-area button[class*="rounded-r-xl"]:hover {
-  background: rgb(from var(--om-copper) r g b / 0.1) !important;
+  background: color-mix(in srgb, var(--om-copper) 8%, transparent) !important;
   color: var(--om-copper) !important;
 }
-.dark #content-area button[class*="rounded-l-xl"]:hover,
-.dark #content-area button[class*="rounded-r-xl"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.12) !important;
-  color: var(--om-orange) !important;
-}
 
-/* Dropdown renders in a body-level Radix portal */
 [data-radix-menu-content] {
-  background: #fbeedb !important; /* unmistakably brand cream, not white */
-  border: 1px solid var(--om-border-light) !important;
-  border-radius: 6px !important;
-  box-shadow: var(--om-shadow-light) !important;
-  color: var(--om-brown-deep);
+  background: var(--om-stone) !important;
+  border: 1px solid var(--om-border) !important;
+  border-radius: 4px !important;
+  box-shadow: var(--om-shadow) !important;
+  color: var(--om-ink);
 }
 .dark [data-radix-menu-content] {
-  background: #1c120a !important;
-  border-color: var(--om-border-dark) !important;
-  box-shadow: var(--om-shadow-dark) !important;
-  color: var(--om-cream);
-}
-
-[data-radix-menu-content] :is([role="menuitem"], a, button) {
-  color: inherit !important;
-  border-radius: 4px;
-}
-
-/* the little icon tiles inside menu items */
-[data-radix-menu-content] [class*="border-gray-200"] {
-  border-color: var(--om-border-light) !important;
-  background: rgb(from var(--om-cream) r g b / 0.45);
-}
-.dark [data-radix-menu-content] [class*="border-gray-200"] {
-  border-color: var(--om-border-dark) !important;
-  background: rgb(from var(--om-orange) r g b / 0.06);
+  background: #201c19 !important;
+  border-color: var(--om-border) !important;
+  color: var(--om-ink);
 }
 [data-radix-menu-content]
   :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
-  background: rgb(from var(--om-copper) r g b / 0.1) !important;
+  background: color-mix(in srgb, var(--om-copper) 10%, transparent) !important;
   color: var(--om-copper) !important;
 }
-.dark
-  [data-radix-menu-content]
-  :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
-  background: rgb(from var(--om-orange) r g b / 0.12) !important;
-  color: var(--om-orange) !important;
-}
 
-/* ─── Content depth — warm layered surfaces, brown-tinted shadows ──────── */
-#content-area pre {
-  border: 1px solid var(--om-border-light) !important;
+/* ─── Cards ─────────────────────────────────────────────────────────────── */
+
+#content-area .card {
+  border-color: var(--om-border) !important;
+  background: transparent !important;
   border-radius: 4px !important;
-  box-shadow: var(--om-shadow-light) !important;
+  box-shadow: none !important;
+  transition: border-color 120ms ease;
 }
-.dark #content-area pre {
-  border-color: var(--om-border-dark) !important;
-  box-shadow: var(--om-shadow-dark) !important;
+#content-area .card:hover {
+  border-color: rgb(from var(--om-copper) r g b / 0.45) !important;
 }
-
-#content-area :is(.card, .callout, .accordion, table) {
-  box-shadow: var(--om-shadow-light);
-  border-radius: 6px;
-}
-.dark #content-area :is(.card, .callout, .accordion, table) {
-  box-shadow: var(--om-shadow-dark);
+.dark #content-area .card:hover {
+  border-color: rgb(from var(--om-orange) r g b / 0.4) !important;
 }
 
-#content-area :is(p, li, td) code:not(pre code) {
-  border-radius: 3px;
-}
+/* ─── Callouts ──────────────────────────────────────────────────────────── */
 
-/* ─── Selection — copper highlight ─────────────────────────────────────── */
-::selection {
-  background-color: rgb(from var(--om-copper) r g b / 0.25);
-  color: var(--om-brown-deep);
-}
-.dark ::selection {
-  background-color: rgb(from var(--om-orange) r g b / 0.35);
-  color: var(--om-cream);
-}
-
-/* ─── Focus ring — light orange, both modes ────────────────────────────── */
-:is(
-  a,
-  button,
-  [role="button"],
-  input,
-  select,
-  textarea,
-  [tabindex]
-):focus-visible {
-  outline: 2px solid var(--om-orange);
-  outline-offset: 2px;
-}
-
-/* ─── Scrollbar — subtle warm tone ─────────────────────────────────────── */
-* {
-  scrollbar-color: rgb(from var(--om-rust) r g b / 0.3) transparent;
-}
-.dark * {
-  scrollbar-color: rgb(from var(--om-orange) r g b / 0.3) transparent;
-}
-
-
-/* ─── MDX components — a quiet warm pass, nothing loud ───────────────────
- * Steps, Cards, Accordions, Tabs, Callouts, CodeGroups, tables, kbd, and
- * mermaid flowcharts keep Mintlify's layout and typography; this only
- * replaces the cool grays with the warm palette and lets interactive
- * states answer in copper. Hooks are the stable data-component-part
- * attributes plus the semantic .card/.callout/.accordion classes.
- */
-
-/* Callouts — soft warm tints per type instead of saturated blue/yellow */
 #content-area .callout {
-  --om-acc: var(--om-copper); /* Note (blue in the default theme) */
-  border-color: rgb(from var(--om-acc) r g b / 0.25) !important;
-  background: rgb(from var(--om-acc) r g b / 0.05) !important;
+  --om-acc: var(--om-copper);
+  border-color: rgb(from var(--om-acc) r g b / 0.22) !important;
+  background: rgb(from var(--om-acc) r g b / 0.04) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
 }
 #content-area .callout[class*="border-neutral"] {
-  --om-acc: var(--om-rust); /* Info */
+  --om-acc: var(--om-rust);
 }
 #content-area .callout[class*="border-green"] {
-  --om-acc: #4e7a45; /* Tip — moss, sits naturally on cream */
+  --om-acc: #4e7a45;
 }
 #content-area .callout[class*="border-yellow"] {
-  --om-acc: #a97a10; /* Warning — goldenrod, not lemon */
+  --om-acc: #a97a10;
 }
 #content-area .callout[class*="border-red"] {
-  --om-acc: #a83a1c; /* Danger — brick, in the rust family */
-}
-.dark #content-area .callout {
-  border-color: rgb(from var(--om-acc) r g b / 0.35) !important;
-  background: rgb(from var(--om-acc) r g b / 0.08) !important;
+  --om-acc: #a83a1c;
 }
 #content-area .callout [data-component-part="callout-icon"],
 #content-area .callout [data-component-part="callout-icon"] svg {
   color: var(--om-acc) !important;
   fill: var(--om-acc) !important;
 }
-.dark #content-area .callout [data-component-part="callout-icon"],
-.dark #content-area .callout [data-component-part="callout-icon"] svg {
-  color: rgb(from var(--om-acc) r g b / 0.9) !important;
-  fill: rgb(from var(--om-acc) r g b / 0.9) !important;
-}
-
-/* Callout text reads in the page's warm ink, never the type color —
- * the accent lives only in the border and the icon. Links keep primary. */
 #content-area .callout [data-component-part="callout-content"],
 #content-area .callout [data-component-part="callout-content"] :is(p, li, strong, em) {
-  color: var(--om-brown-deep) !important;
-}
-.dark #content-area .callout [data-component-part="callout-content"],
-.dark
-  #content-area
-  .callout
-  [data-component-part="callout-content"]
-  :is(p, li, strong, em) {
-  color: rgb(from var(--om-cream) r g b / 0.92) !important;
+  color: var(--om-ink) !important;
 }
 
-/* Steps — the default circle, warmed: copper number, warm connecting line */
+/* ─── Steps ─────────────────────────────────────────────────────────────── */
+
 #content-area .step div[class*="step-indicator"] {
-  background: rgb(from var(--om-copper) r g b / 0.09) !important;
+  background: color-mix(in srgb, var(--om-copper) 10%, transparent) !important;
   color: var(--om-copper) !important;
 }
 .dark #content-area .step div[class*="step-indicator"] {
-  background: rgb(from var(--om-orange) r g b / 0.12) !important;
+  background: color-mix(in srgb, var(--om-orange) 14%, transparent) !important;
   color: var(--om-orange) !important;
 }
 #content-area .step [data-component-part="step-line"],
 #content-area .step > div > div[class*="w-px"] {
   background: linear-gradient(
     to bottom,
-    rgb(from var(--om-rust) r g b / 0.22),
-    transparent
-  ) !important;
-}
-.dark #content-area .step [data-component-part="step-line"],
-.dark #content-area .step > div > div[class*="w-px"] {
-  background: linear-gradient(
-    to bottom,
-    rgb(from var(--om-orange) r g b / 0.2),
+    color-mix(in srgb, var(--om-ink) 18%, transparent),
     transparent
   ) !important;
 }
 
-/* Cards — warm hairline and surface; hover answers with a copper edge */
-#content-area .card {
-  border-color: var(--om-border-light) !important;
-  background: rgb(from var(--om-cream) r g b / 0.35) !important;
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease;
-}
-.dark #content-area .card {
-  border-color: var(--om-border-dark) !important;
-  background: rgb(from var(--om-orange) r g b / 0.03) !important;
-}
-#content-area .card:hover {
-  border-color: rgb(from var(--om-copper) r g b / 0.45) !important;
-}
-.dark #content-area .card:hover {
-  border-color: rgb(from var(--om-orange) r g b / 0.45) !important;
-}
+/* ─── Accordions ────────────────────────────────────────────────────────── */
 
-/* Accordions — one flat surface. Closed rows sit in muted ink; hover is a
- * 4% foreground wash; the open row is a 6% wash with the title stepping
- * up to full ink and real SemiBold. No accent color, no bars, no per-row
- * fills — hairline dividers carry the structure. */
 #content-area :is(.accordion, .accordion-group) {
-  border-color: rgb(from var(--om-ink) r g b / 0.14) !important;
+  border-color: var(--om-border) !important;
   background: transparent !important;
   box-shadow: none !important;
-}
-#content-area .accordion {
-  background: transparent !important;
-}
-#content-area [data-component-part="accordion-button"]:hover {
-  background: color-mix(in srgb, var(--om-ink) 4%, transparent) !important;
+  border-radius: 4px !important;
 }
 #content-area [data-component-part="accordion-title"] {
   color: var(--om-ink-muted) !important;
-  transition: color 150ms ease;
-}
-#content-area [data-component-part="accordion-caret-right"],
-#content-area [data-component-part="accordion-caret-right"] svg {
-  color: var(--om-ink-muted) !important;
-  fill: var(--om-ink-muted) !important;
-}
-#content-area details[open] > summary {
-  background: color-mix(in srgb, var(--om-ink) 6%, transparent) !important;
-  box-shadow: none;
 }
 #content-area details[open] > summary [data-component-part="accordion-title"] {
   color: var(--om-ink) !important;
 }
-#content-area details[open] > summary [data-component-part="accordion-caret-right"],
-#content-area
-  details[open]
-  > summary
-  [data-component-part="accordion-caret-right"]
-  svg {
-  color: var(--om-ink) !important;
-  fill: var(--om-ink) !important;
-}
 
-/* Tabs — the active tab is already copper via the primary color; just
- * warm the rail and the inactive hover */
+/* ─── Tabs ──────────────────────────────────────────────────────────────── */
+
 #content-area [data-component-part="tabs-list"] {
-  border-bottom-color: var(--om-border-light) !important;
-}
-.dark #content-area [data-component-part="tabs-list"] {
-  border-bottom-color: var(--om-border-dark) !important;
-}
-#content-area [data-component-part="tab-button"][data-active="false"]:hover {
-  border-bottom-color: rgb(from var(--om-copper) r g b / 0.35) !important;
+  border-bottom-color: var(--om-border) !important;
 }
 
-/* Code blocks — one boundary, not two: the code-block wrapper carries the
- * border and warm shadow; the inner pre (bordered by the "Content depth"
- * rule above for bare code fences) goes borderless inside it */
-#content-area [data-component-part="code-block-root"] {
-  border: 1px solid var(--om-border-light);
-  border-radius: 6px;
-  box-shadow: var(--om-shadow-light);
-  overflow: hidden;
-}
-.dark #content-area [data-component-part="code-block-root"] {
-  border-color: var(--om-border-dark);
-  box-shadow: var(--om-shadow-dark);
-}
-#content-area [data-component-part="code-block-root"] pre {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
+/* ─── Tables ────────────────────────────────────────────────────────────── */
 
-/* ── Code syntax — the brand-warm token palette ─────────────────────────
- * The highlighter inlines GitHub-Light hexes (light) and Dark+ hexes via
- * --shiki-dark (dark). The docs only ship Python, TypeScript, and shell,
- * so the emitted set is small and mapped 1:1 to warm equivalents. Dark
- * rules key off the --shiki-dark hex and out-specify the light rules via
- * the .dark ancestor. The `i` flag absorbs the highlighter's mixed casing.
- */
-
-/* Surfaces — warm paper instead of pure white / cool near-black */
-#content-area [style*="--shiki-dark-bg" i] {
-  background-color: #fffaf3 !important;
-}
-.dark #content-area [style*="--shiki-dark-bg" i] {
-  background-color: #150d07 !important;
-}
-
-/* Light tokens (GitHub Light → warm ink) */
-#content-area pre span[style*="color:#1F2328" i] {
-  color: #2f1606 !important; /* plain text */
-}
-#content-area pre span[style*="color:#CF222E" i] {
-  color: #b3400b !important; /* keywords */
-}
-#content-area pre span[style*="color:#0A3069" i] {
-  color: #9a4d00 !important; /* strings */
-}
-#content-area pre span[style*="color:#953800" i] {
-  color: #79380d !important; /* identifiers */
-}
-#content-area pre span[style*="color:#0550AE" i] {
-  color: #8a5a00 !important; /* constants, numbers */
-}
-#content-area pre span[style*="color:#8250DF" i] {
-  color: #a3540a !important; /* functions */
-}
-
-/* Dark tokens (Dark+ → warm glow) */
-.dark #content-area pre span[style*="--shiki-dark:#D4D4D4" i] {
-  color: #efe0d1 !important; /* plain text */
-}
-.dark #content-area pre span[style*="--shiki-dark:#C586C0" i] {
-  color: #ed670f !important; /* control keywords */
-}
-.dark #content-area pre span[style*="--shiki-dark:#569CD6" i] {
-  color: #d9822b !important; /* declaration keywords */
-}
-.dark #content-area pre span[style*="--shiki-dark:#CE9178" i] {
-  color: #f69a5b !important; /* strings */
-}
-.dark #content-area pre span[style*="--shiki-dark:#9CDCFE" i] {
-  color: #f0c9a6 !important; /* identifiers, properties */
-}
-.dark #content-area pre span[style*="--shiki-dark:#DCDCAA" i] {
-  color: #e6b45e !important; /* functions */
-}
-.dark #content-area pre span[style*="--shiki-dark:#B5CEA8" i] {
-  color: #d9a83c !important; /* numbers */
-}
-.dark #content-area pre span[style*="--shiki-dark:#4FC1FF" i] {
-  color: #f2a25c !important; /* constants */
-}
-.dark #content-area pre span[style*="--shiki-dark:#D7BA7D" i] {
-  color: #d9a83c !important; /* regex, special */
-}
-.dark #content-area pre span[style*="--shiki-dark:#6A9955" i] {
-  color: #9a7a55 !important; /* comments — muted, stays secondary */
-}
-#content-area pre span[style*="color:#59636E" i],
-#content-area pre span[style*="color:#6E7781" i] {
-  color: #8a6f5a !important; /* comments (light) */
-}
-
-/* Code copy button — a warm chip on the code paper, not a white pill.
- * The floating overlay that keeps it readable over long lines takes the
- * same paper color as the block, so nothing cool shows through. */
-#content-area [data-testid="copy-code-button"] {
-  border-radius: 4px !important;
-  background: #fffaf3 !important; /* the light code paper */
-  border: 1px solid var(--om-border-light);
-  color: var(--om-rust) !important;
-  transition:
-    background-color 120ms ease,
-    color 120ms ease,
-    border-color 120ms ease;
-}
-.dark #content-area [data-testid="copy-code-button"] {
-  background: #150d07 !important; /* the dark code paper */
-  border-color: var(--om-border-dark);
-  color: rgb(from var(--om-orange) r g b / 0.75) !important;
-}
-#content-area [data-testid="copy-code-button"]:hover {
-  background: rgb(from var(--om-copper) r g b / 0.1) !important;
-  border-color: rgb(from var(--om-copper) r g b / 0.4);
-  color: var(--om-copper) !important;
-}
-.dark #content-area [data-testid="copy-code-button"]:hover {
-  background: rgb(from var(--om-orange) r g b / 0.12) !important;
-  border-color: rgb(from var(--om-orange) r g b / 0.4);
-  color: var(--om-orange) !important;
-}
-#content-area [data-floating-buttons] {
-  background: transparent !important;
-}
-#content-area [data-fade-overlay] {
-  background: #fffaf3 !important;
-}
-.dark #content-area [data-fade-overlay] {
-  background: #150d07 !important;
-}
-
-/* Tables — no frames, no nesting: a header strip, hairline rows, and
- * faint zebra striping carry the whole structure */
 #content-area table,
 #content-area [data-table-wrapper] {
   border: 0 !important;
@@ -802,77 +627,74 @@ ul.toc .toc-item a {
 }
 
 #content-area table th {
-  padding: 10px 14px !important;
-  font-size: 0.875rem;
-  background: rgb(from var(--om-cream) r g b / 0.6);
-  border-bottom: 1px solid rgb(from var(--om-rust) r g b / 0.28) !important;
-  color: var(--om-brown-deep) !important;
-}
-.dark #content-area table th {
-  background: rgb(from var(--om-orange) r g b / 0.07);
-  border-bottom-color: rgb(from var(--om-orange) r g b / 0.3) !important;
-  color: rgb(from var(--om-cream) r g b / 0.95) !important;
+  padding: 8px 12px !important;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--om-ink) 22%, transparent) !important;
+  color: var(--om-ink) !important;
 }
 
 #content-area table td {
-  padding: 10px 14px !important;
+  padding: 9px 12px !important;
   vertical-align: top;
-  border-color: rgb(from var(--om-rust) r g b / 0.1) !important;
-}
-.dark #content-area table td {
-  border-color: rgb(from var(--om-orange) r g b / 0.09) !important;
+  border-color: color-mix(in srgb, var(--om-ink) 10%, transparent) !important;
 }
 
 #content-area table tbody tr:nth-child(even) td {
-  background: rgb(from var(--om-cream) r g b / 0.3);
-}
-.dark #content-area table tbody tr:nth-child(even) td {
-  background: rgb(from var(--om-orange) r g b / 0.03);
+  background: color-mix(in srgb, var(--om-ink) 2.5%, transparent);
 }
 #content-area table tbody tr:hover td {
-  background: rgb(from var(--om-copper) r g b / 0.06);
-}
-.dark #content-area table tbody tr:hover td {
-  background: rgb(from var(--om-orange) r g b / 0.07);
+  background: color-mix(in srgb, var(--om-copper) 5%, transparent);
 }
 
-/* kbd — quiet warm keycap in the body face */
+/* ─── kbd ───────────────────────────────────────────────────────────────── */
+
 #content-area kbd {
   padding: 1px 5px;
-  border: 1px solid var(--om-border-light);
-  border-radius: 4px;
-  background: rgb(from var(--om-cream) r g b / 0.55);
-  color: var(--om-rust);
+  border: 1px solid var(--om-border);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
+  color: var(--om-ink-muted);
+  font-family: "Geist Mono", ui-monospace, monospace;
   font-size: 0.85em;
 }
-.dark #content-area kbd {
-  border-color: var(--om-border-dark);
-  background: rgb(from var(--om-orange) r g b / 0.06);
-  color: rgb(from var(--om-orange) r g b / 0.85);
+
+/* ─── Selection / focus ─────────────────────────────────────────────────── */
+
+::selection {
+  background-color: rgb(from var(--om-copper) r g b / 0.22);
+  color: var(--om-ink);
 }
 
-/* ─── Overmind Flow diagrams — the ink contract, applied to diagrams ─────
- * Rendered by diagrams.js from ```flow blocks. The engine emits geometry
- * and semantic classes only; every colour lives here, so light and dark
- * flip without a re-layout. --om-ink already flips with .dark, so only the
- * chip backing (the literal page canvas) needs a dark variant.
- */
+:is(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--om-orange);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-color: color-mix(in srgb, var(--om-ink) 22%, transparent) transparent;
+}
+
+/* ─── Flow diagrams ─────────────────────────────────────────────────────── */
+
 #content-area .om-flow {
-  --f-node-fill: color-mix(in srgb, var(--om-ink) 4%, transparent);
-  --f-node-stroke: color-mix(in srgb, var(--om-ink) 26%, transparent);
-  --f-edge: color-mix(in srgb, var(--om-ink) 42%, transparent);
+  --f-node-fill: color-mix(in srgb, var(--om-ink) 3%, transparent);
+  --f-node-stroke: color-mix(in srgb, var(--om-ink) 22%, transparent);
+  --f-edge: color-mix(in srgb, var(--om-ink) 38%, transparent);
   --f-accent: var(--om-copper);
-  --f-canvas: #fdf6ec;
+  --f-canvas: var(--om-stone);
 
   margin: 2rem 0;
   display: flex;
   justify-content: center;
 }
 .dark #content-area .om-flow {
-  --f-node-fill: color-mix(in srgb, var(--om-ink) 7%, transparent);
-  --f-node-stroke: color-mix(in srgb, var(--om-ink) 22%, transparent);
+  --f-node-fill: color-mix(in srgb, var(--om-ink) 6%, transparent);
+  --f-node-stroke: color-mix(in srgb, var(--om-ink) 20%, transparent);
   --f-accent: var(--om-orange);
-  --f-canvas: #120b06;
+  --f-canvas: var(--om-stone-dark);
 }
 
 #content-area .om-flow-svg {
@@ -881,7 +703,6 @@ ul.toc .toc-item a {
   overflow: visible;
 }
 
-/* Nodes — a quiet ink wash with an ink outline; decisions answer in copper */
 #content-area .om-flow-shape {
   fill: var(--f-node-fill);
   stroke: var(--f-node-stroke);
@@ -892,24 +713,22 @@ ul.toc .toc-item a {
   stroke: color-mix(in srgb, var(--f-accent) 40%, transparent);
 }
 
-/* Labels — full ink for the name, one register down for the gloss */
 #content-area .om-flow-title,
 #content-area .om-flow-sub,
 #content-area .om-flow-chip-text {
-  font-family: "Geist Pixel", ui-monospace, monospace;
+  font-family: "Geist Mono", ui-monospace, monospace;
   font-weight: 400;
   text-anchor: middle;
 }
 #content-area .om-flow-title {
-  font-size: 14px;
+  font-size: 13px;
   fill: var(--om-ink);
 }
 #content-area .om-flow-sub {
-  font-size: 12px;
+  font-size: 11px;
   fill: var(--om-ink-muted);
 }
 
-/* Edges — one register quieter than the nodes; returns quieter still */
 #content-area .om-flow-edge {
   stroke: var(--f-edge);
   stroke-width: 1.25;
@@ -918,14 +737,13 @@ ul.toc .toc-item a {
 }
 #content-area .om-flow-edge.is-dashed {
   stroke-dasharray: 4 4;
-  stroke: color-mix(in srgb, var(--om-ink) 30%, transparent);
+  stroke: color-mix(in srgb, var(--om-ink) 28%, transparent);
 }
 #content-area .om-flow-head {
   fill: var(--f-edge);
   stroke: none;
 }
 
-/* Edge labels sit flat on the page canvas so lines pass cleanly under them */
 #content-area .om-flow-chip[data-pending] {
   opacity: 0;
 }
@@ -937,53 +755,13 @@ ul.toc .toc-item a {
   fill: var(--om-ink-muted);
 }
 
-/* ─── Custom animated cursor — Overmind signature, same as the platform ──
- * Three states: default, pointer over interactive elements, and a pressed
- * "active" frame while the mouse button is down.
- */
-*,
-*::before,
-*::after {
-  cursor:
-    url("/images/cursor-default.svg") 3 2,
-    auto !important;
+/* ─── Frame / screenshots — quiet, no card chrome ───────────────────────── */
+
+#content-area figure,
+#content-area [class*="frame"] {
+  border-radius: 4px;
 }
 
-a,
-a *,
-button,
-button *,
-[role="button"],
-[role="button"] *,
-[type="button"],
-[type="submit"],
-[type="reset"],
-label[for],
-select,
-option,
-summary,
-[tabindex]:not([tabindex="-1"]),
-input[type="checkbox"],
-input[type="radio"],
-.cursor-pointer,
-.cursor-pointer * {
-  cursor:
-    url("/images/cursor-pointer.svg") 3 2,
-    pointer !important;
-}
-
-a:active,
-a:active *,
-button:active,
-button:active *,
-[role="button"]:active,
-[role="button"]:active *,
-[type="button"]:active,
-[type="submit"]:active,
-[type="reset"]:active,
-.cursor-pointer:active,
-.cursor-pointer:active * {
-  cursor:
-    url("/images/cursor-active.svg") 3 2,
-    pointer !important;
+#content-area img {
+  border-radius: 3px;
 }

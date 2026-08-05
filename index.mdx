@@ -2,20 +2,7 @@
 title: Introduction
 ---
 
-## What is Overmind?
-
-Overmind is a platform for improving production AI agents with their own data. It ingests OpenTelemetry traces from your agent and scores them with evaluators as they arrive. Traces become curated datasets, and datasets feed three kinds of work: controlled eval experiments, optimisation runs that propose code changes as pull requests, and training runs that produce models benchmarked against the one you run today.
-
-Everything speaks standard protocols: trace ingest is OTLP/HTTP, the REST API is plain JSON over HTTPS, and model serving is OpenAI-compatible. Two endpoints matter:
-
-| Surface | URL |
-| --- | --- |
-| API (ingest, REST, inference) | `https://api.overmindlab.ai` |
-| Console | `https://console.overmindlab.ai` |
-
-All programmatic access authenticates with a project-scoped API key (prefixed `ovr_`), sent as `X-Api-Key: <key>` or `Authorization: Bearer <key>`.
-
-## How data flows
+Overmind improves production AI agents with their own data. It ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval experiments, optimisation runs that open pull requests, and training runs that produce models benchmarked against the one you ship today.
 
 ```flow
 flow row
@@ -31,40 +18,66 @@ OP ~> A : winning diff lands as a PR
 I ~> B : served model's calls are traced
 ```
 
-There is no proprietary agent framework to adopt. The SDKs (`pip install overmind`, `npm install @overmind-lab/trace-sdk`) auto-instrument your existing OpenAI, Anthropic, and Gemini clients over OpenTelemetry, and any OTel SDK in any language can export to the same endpoint directly.
+Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, OpenAI-compatible serving for models.
 
-## The product areas
+| Surface | URL |
+| --- | --- |
+| API | `https://api.overmindlab.ai` |
+| Console | `https://console.overmindlab.ai` |
 
-<CardGroup cols={3}>
+Authenticate with a project-scoped `ovr_` key as `X-Api-Key: <key>` or `Authorization: Bearer <key>`. There is no proprietary agent framework — the SDKs auto-instrument OpenAI, Anthropic, and Gemini over OpenTelemetry, and any OTel exporter can POST to the same endpoint.
+
+Overmind gives you:
+
+- **Live scoring** — evaluators run on root spans as they land
+- **Datasets from traffic** — convert traces into eval and training data
+- **Eval runs** — variants measured against a baseline with typed scores
+- **Optimiser** — local execution, scored candidates, a PR with the winning diff
+- **Training** — managed GPU runs, loss curves, benchmark vs your production model
+- **Inference** — OpenAI-compatible API for your trained models and frontier models
+
+## Guides
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" href="/quickstart" icon="rocket">
+    API key, SDK init, first trace in the console.
+  </Card>
   <Card title="Observability" href="/core/observability" icon="eye">
-    OTLP ingestion, the span data model, attribute mapping, and the trace explorer.
+    OTLP ingest, span model, attribute mapping, explorer.
   </Card>
   <Card title="Python SDK" href="/tracing/sdk-python" icon="python">
-    `init()`, provider auto-instrumentation, span decorators, and context helpers.
+    `init()`, auto-instrumentation, decorators, context.
   </Card>
   <Card title="TypeScript SDK" href="/tracing/sdk-typescript" icon="node-js">
-    `OvermindClient`, `initTracing()`, and manual span helpers for Node.js.
+    `OvermindClient`, `initTracing()`, manual spans.
   </Card>
   <Card title="Agents" href="/core/agents" icon="robot">
-    How agents are modelled: repo scans, telemetry attribution, eval specs.
+    Repo scans, telemetry attribution, eval specs.
   </Card>
   <Card title="Datasets" href="/core/datasets" icon="database">
-    Datapoint schema, intents, trace-to-dataset conversion, and the Data Workshop.
+    Schema, intents, Workshop, trace-to-dataset.
   </Card>
   <Card title="Eval" href="/agent-testing/eval" icon="clipboard-check">
-    Evaluator kinds, eval sets, live trace scoring, and run reports.
+    Evaluator kinds, eval sets, run reports.
   </Card>
   <Card title="Optimisers" href="/agent-testing/optimisers" icon="wand-magic-sparkles">
-    The optimisation loop, the local executioner, and the resulting PR.
-  </Card>
-  <Card title="Training" href="/models/training" icon="dumbbell">
-    Training runs, dataset validation, loss curves, and the baseline benchmark.
-  </Card>
-  <Card title="Inference" href="/models/inference" icon="server">
-    Serving lifecycle and the OpenAI-compatible `/api/v1/chat/completions` API.
+    Loop, local executioner, resulting PR.
   </Card>
 </CardGroup>
 
-## Where to start
+## Models & API
 
-The [Quickstart](/quickstart) gets a first trace into the console in a few minutes: create an API key, initialise the SDK, make an LLM call. From there, [Observability](/core/observability) explains exactly what happens to a span after it leaves your process, and the [REST API](/platform/api) page lists every endpoint the console itself is built on.
+<CardGroup cols={2}>
+  <Card title="Training" href="/models/training" icon="dumbbell">
+    Runs, validation, loss curves, baseline benchmark.
+  </Card>
+  <Card title="Inference" href="/models/inference" icon="server">
+    Serving lifecycle and `/api/v1/chat/completions`.
+  </Card>
+  <Card title="REST API" href="/platform/api" icon="code">
+    Auth, endpoint map, conventions, Swagger.
+  </Card>
+  <Card title="Model Library" href="https://www.overmindlab.ai/models" icon="layer-group">
+    Base models, context windows, training and inference pricing.
+  </Card>
+</CardGroup>
