@@ -68,7 +68,7 @@ from overmind import SpanType
 
 ### Decorators
 
-`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, `@retrieval`, and `@function` are typed shortcuts. All capture arguments as `inputs` and the return value as `outputs` (JSON-serialised, best-effort), record duration and status, re-raise exceptions after recording them, and work on sync and async functions alike.
+`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, `@retrieval`, and `@function` are typed shortcuts. All of them capture arguments as `inputs` and the return value as `outputs` (JSON-serialised, best effort). They record duration and status, re-raise exceptions after recording them, and work on both sync and async functions.
 
 ```python
 import overmind
@@ -93,11 +93,11 @@ Because each function calls the next, spans nest into one tree: `handle_request`
 Always add an `@entry_point()`. It marks the unit that trace scoring and dataset conversion treat as one run — without it, model calls arrive as disconnected spans. Tools are the next most valuable layer; most teams stop there.
 </Tip>
 
-For functions that handle secrets or oversized payloads, `observe_safe` traces without capturing inputs/outputs.
+For functions that handle secrets or oversized payloads, `observe_safe` traces without capturing inputs or outputs.
 
 ### `start_span()` — blocks and loops
 
-A context manager for regions that aren't whole functions. Opens a child span under whatever span is active; unlike the decorators it captures nothing automatically — attach metadata via `attributes` or `set_tag()`.
+A context manager for regions that aren't whole functions. It opens a child span under whatever span is active. Unlike the decorators, it captures nothing automatically — attach metadata via `attributes` or `set_tag()`.
 
 ```python
 from overmind import start_span, set_tag, SpanType
@@ -163,7 +163,7 @@ system_prompt = PromptString(
 )
 ```
 
-Use the same `id` for logically identical prompts across providers and versions and Overmind groups them as one agent. One `PromptString` per LLM call — the SDK raises if it detects more.
+Use the same `id` for logically identical prompts across providers and versions, and Overmind groups them as one agent. Use one `PromptString` per LLM call — the SDK raises an error if it detects more.
 
 ## Full example
 

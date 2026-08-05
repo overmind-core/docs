@@ -3,7 +3,7 @@ title: Agents
 description: How Overmind models the agents in your codebase — repo scans, telemetry attribution, eval specs, and the agent page.
 ---
 
-An agent in Overmind is a model of an agent you already run, not something you build in the console. The record joins two sides: static structure read from your repository (prompts, tools, control flow, entrypoint) and runtime behaviour from telemetry (traces, token usage, live scores). Everything else on the platform hangs off it — traces are attributed to an agent, datasets can be bound to one, evaluators are scoped per agent, optimisation runs edit an agent's code, and fine-tunes are benchmarked against an agent's production model.
+An agent in Overmind is a record of an agent you already run, not something you build in the console. The record joins two sides: static structure read from your repository (prompts, tools, control flow, entrypoint) and runtime behaviour from telemetry (traces, token usage, live scores). Everything else on the platform hangs off it — traces are attributed to an agent, datasets can be bound to one, evaluators are scoped per agent, optimisation runs edit an agent's code, and trained models are benchmarked against an agent's production model.
 
 ## How agents get into Overmind
 
@@ -17,14 +17,14 @@ C -> E[Traces]
 C -> F[Datasets]
 C -> G[Eval sets]
 C -> H[Optimisation runs]
-C -> I[Fine-tuned models]
+C -> I[Trained models]
 ```
 
 ### Repository scan
 
-Connect GitHub from **Agents → Connect a repository** (or during onboarding). You install the Overmind GitHub App on the specific repositories you choose; for a public repository, paste its URL instead — no account connection needed. Pick a branch and Overmind clones and analyses it, discovering each agent with its prompt, tools, and control flow mapped.
+Connect GitHub from **Agents → Connect a repository** (or during onboarding). You install the Overmind GitHub App on the specific repositories you choose; for a public repository, paste its URL instead — no account connection needed. Pick a branch and Overmind clones and analyses it, discovering each agent and mapping its prompt, tools, and control flow.
 
-The scan populates the agent's **evaluation spec** — its input schema, expected output fields, tool configuration, and consistency rules — plus the split between **optimisable elements** and **fixed elements** that later bounds what the [Optimiser](/agent-testing/optimisers) may touch. It also generates a starter set of [evaluators](/agent-testing/eval) grounded in the agent's job, and a **policy document** describing correct behaviour, both editable afterwards.
+The scan populates the agent's **evaluation spec** — its input schema, expected output fields, tool configuration, and consistency rules — plus the split between **optimisable elements** and **fixed elements** that later bounds what the [Optimiser](/agent-testing/optimisers) may touch. It also generates a starter set of [evaluators](/agent-testing/eval) grounded in the agent's job and a **policy document** describing correct behaviour; both remain editable afterwards.
 
 A background check compares the scanned commit against your branch head; when the branch moves on, the agent shows as out of sync and you can re-analyse.
 
@@ -38,7 +38,7 @@ When spans arrive carrying an agent identity — `overmind.agent.id` or `overmin
 
 ## The agent page
 
-Open an agent from the **Agents** list. The header carries copyable **agent id** and **project id** chips (you'll need the agent id for trace attribution), a **View traces** shortcut into its filtered Observability view, and **Archive**.
+Open an agent from the **Agents** list. The header carries copyable **agent id** and **project id** chips (you'll need the agent id for trace attribution), a **View traces** shortcut into its filtered Observability view, and an **Archive** action.
 
 <Frame caption="Agent overview: model, source, components, trace coverage, the extracted system prompt, and the flow graph.">
   <img src="/images/platform/agent-overview.png" alt="Agent detail page overview tab" />
@@ -46,10 +46,10 @@ Open an agent from the **Agents** list. The header carries copyable **agent id**
 
 Four tabs:
 
-- **Overview** — a facts bar (model, source, built-from component counts, trace coverage), the system prompt lifted from your code, a components explorer with file-level provenance, and the interactive flow graph. The fastest way to check Overmind read your code correctly.
+- **Overview** — a facts bar (model, source, built-from component counts, trace coverage), the system prompt lifted from your code, a components explorer with file-level provenance, and the interactive flow graph. This is the fastest way to check that Overmind read your code correctly.
 - **Dataset** — datasets attached to this agent, built from its traces or uploaded. See [Datasets](/core/datasets).
 - **Eval metrics** — the agent's evaluators and eval sets, with score history. See [Eval](/agent-testing/eval).
-- **Models** — the production baseline and any models fine-tuned from this agent's data, linking into [Training](/models/training) and [Inference](/models/inference).
+- **Models** — the production baseline and any models trained on this agent's data, linking into [Training](/models/training) and [Inference](/models/inference).
 
 <Frame caption="The flow graph: inputs, prompt-builder lanes, tool calls, and the output contract, as parsed from the repository.">
   <img src="/images/platform/agent-flow.png" alt="Agent flow graph fullscreen view" />

@@ -7,7 +7,7 @@ description: From zero to traces in the console — install the SDK, create an A
   <Step title="Create a project and an API key">
     Sign up at [console.overmindlab.ai](https://console.overmindlab.ai). The onboarding wizard creates your first **project** — the scoping unit for agents, traces, datasets, runs, models, and keys.
 
-    Create an API key from your project's page (**Projects → your project → API keys**) or from the Observability page's empty state. Keys are prefixed `ovr_`, are stored hashed, and are **shown once at creation** — copy it immediately. Optional expiry: 30/90/180 days, 1 year, or never.
+    Create an API key from your project's page (**Projects → your project → API keys**) or from the Observability page's empty state. Keys are prefixed `ovr_`, stored hashed, and **shown once at creation** — copy the key immediately. Optional expiry: 30/90/180 days, 1 year, or never.
 
     ```bash
     export OVERMIND_API_KEY="ovr_..."
@@ -106,9 +106,9 @@ description: From zero to traces in the console — install the SDK, create an A
     A repo scan builds the agent's flow graph, extracts its prompts, and measures trace coverage.
   </Card>
   <Card title="Build a dataset from traces" icon="database" href="/core/datasets">
-    Select traces and convert them into an eval or fine-tuning dataset with provenance intact.
+    Select traces and convert them into an eval or training dataset with provenance intact.
   </Card>
   <Card title="Define evaluators" icon="clipboard-check" href="/agent-testing/eval">
-    Score outputs in batch runs and live on arriving traces with the same evaluators.
+    Score outputs in batch runs — and live on arriving traces — with the same evaluators.
   </Card>
 </CardGroup>

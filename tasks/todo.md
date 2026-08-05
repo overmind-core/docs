@@ -99,3 +99,20 @@ protobuf only (no JSON/gRPC); auth is X-Api-Key / Authorization Bearer with
 - Exact eval-run creation payload field names beyond the model's fields (docs
   show a representative shape and point to /api/docs/ Swagger).
 - Rate limits, pagination format — not documented because not verified.
+
+## Follow-up pass: grammar, formatting, terminology (Aug 5, 2026)
+
+- [x] Terminology: "fine-tune" never used as a noun; generic prose is
+      "trained model" / "training" / "training run" (matches website copy).
+      "LoRA" / "full fine-tuning" kept only where the method matters
+      (models/training experiment config). API paths (`/api/finetuning-jobs/`),
+      enum values (`ft`), model refs (`ft-...`), and literal UI labels
+      (the dialog's "Fine-tuning" intent option) untouched.
+- [x] Grammar: proofread all 14 pages — split run-ons, fixed number
+      disagreements, removed repetitive phrasing, active voice.
+- [x] Formatting: headings confirmed sentence case throughout; British
+      spellings in prose (catalogue) with American API identifiers preserved;
+      Oxford commas; consistent bullet lead-in bolding on optimisers page.
+- [x] Verified: nav pages exist, images resolve, internal links + anchors OK,
+      `mint broken-links` clean (Node 22), all 14 pages return 200 on the
+      running dev server (port 3002).

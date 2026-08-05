@@ -105,7 +105,7 @@ Context and identity helpers, all operating on the active span/trace:
 
 ## Shutdown
 
-`shutdown()` flushes buffered spans and stops the SDK. Essential with batching (the default) in scripts and serverless handlers:
+`shutdown()` flushes buffered spans and stops the SDK. With batching enabled (the default), calling it is essential in scripts and serverless handlers:
 
 ```ts
 try {

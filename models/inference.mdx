@@ -1,19 +1,19 @@
 ---
 title: Inference
-description: Serving deployed fine-tunes and frontier models through one OpenAI-compatible API — endpoints, auth, statuses, and error semantics.
+description: Serving your trained models and frontier models through one OpenAI-compatible API — endpoints, auth, statuses, and error semantics.
 ---
 
-Deployed fine-tunes are served behind an OpenAI-compatible API at `https://api.overmindlab.ai/api/v1`, authenticated with the same `ovr_` key you use everywhere else. Frontier models are callable through the same gateway, so comparing your fine-tune against a hosted model is a change of the `model` field, not a second integration.
+Your trained models are served behind an OpenAI-compatible API at `https://api.overmindlab.ai/api/v1`, authenticated with the same `ovr_` key you use everywhere else. Frontier models are callable through the same gateway, so comparing your trained model against a hosted one is a change of the `model` field, not a second integration.
 
 ## Deployment lifecycle
 
 Deployment starts automatically when a training experiment succeeds. A model moves through **Queued → Quantizing → Deploying → Warming → Ready**, and only Ready models accept traffic; failed deployments can be retried without retraining. Deleting a model is irreversible and removes the weights — download them first if in doubt.
 
-<Frame caption="The Inference page: every deployed model with its base model, agent, training job, copyable reference, status, and usage.">
+<Frame caption="The Inference page: every deployed model with its base model, agent, training run, copyable reference, status, and usage.">
   <img src="/images/platform/inference-endpoints.png" alt="Inference page with deployed models table" />
 </Frame>
 
-Opening a model shows its lineage (base model, agent, training job — each linked), live metrics (requests, tokens, throughput in tokens/s, model-inference latency), downloadable weights (a zip of adapter, config, and tokenizer files), and the delete danger zone.
+Opening a model shows its lineage (base model, agent, training run — each linked), live metrics (requests, tokens, throughput in tokens/s, model-inference latency), downloadable weights (a zip of adapter, config, and tokenizer files), and the delete danger zone.
 
 <Frame caption="A served model: 1,018 requests, 551k tokens, activity/throughput/latency charts, weights download, and the Model PR button.">
   <img src="/images/platform/served-endpoint.png" alt="Deployed model detail with metrics and weights download" />
@@ -93,11 +93,11 @@ curl https://api.overmindlab.ai/api/v1/chat/completions \
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/api/v1/chat/completions` | Generate a completion; streaming via `stream: true` |
-| `GET` | `/api/v1/models` | List deployed fine-tunes and callable frontier models. Filter with `?status=` — `ready` (default), `queued`, `deploying`, `warming`, `failed`, `deleting`, `deleted`, or `all` |
+| `GET` | `/api/v1/models` | List your deployed trained models and the callable frontier models. Filter with `?status=` — `ready` (default), `queued`, `deploying`, `warming`, `failed`, `deleting`, `deleted`, or `all` |
 | `GET` | `/api/v1/models/{model_id}` | One model's status and metadata (any status) |
-| `DELETE` | `/api/v1/models/{model_id}` | Stop serving and remove a fine-tuned model's weights |
+| `DELETE` | `/api/v1/models/{model_id}` | Stop serving a trained model and remove its weights |
 
-The gateway routes by model ID: your `ft-...` references go to Overmind's serving infrastructure; frontier IDs (`openai/...`, `anthropic/...`, `meta-llama/...`, `qwen/...`) are proxied to their providers. Every call is metered and appears in the model's usage metrics.
+The gateway routes by model ID: your `ft-...` references go to Overmind's serving infrastructure; frontier IDs (`openai/...`, `anthropic/...`, `meta-llama/...`, `qwen/...`) are proxied to their providers. Every call is metered and appears in the model's usage metrics. The models table above is the live source of truth for what you can call; the [Model Library](https://www.overmindlab.ai/models) covers the base models behind your trained ones, with parameters, context windows, and pricing.
 
 ### Errors worth handling
 
@@ -111,4 +111,4 @@ The gateway routes by model ID: your `ft-...` references go to Overmind's servin
 
 ## Closing the loop
 
-Point your traced application at a deployed model and its calls flow back into [Observability](/core/observability) like any other provider's — tokens, latency, and live eval scores included. A model switch is therefore measurable in production with the same evaluators that justified it offline. For the switch itself, the **Model PR** from the [training job](/models/training#after-training) edits your repository and opens the pull request.
+Point your traced application at a deployed model and its calls flow back into [Observability](/core/observability) like any other provider's — tokens, latency, and live eval scores included. A model switch is therefore measurable in production with the same evaluators that justified it offline. For the switch itself, the **Model PR** from the [training run](/models/training#after-training) edits your repository and opens the pull request.

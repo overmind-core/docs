@@ -36,13 +36,13 @@ Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajector
 
 ### Authoring
 
-Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator — the generated prompt template references the agent's output as `{{output.<path>}}` and dataset references as `{{reference.<path>}}`, and everything stays editable before saving. Repository scans also author a starter set per agent automatically.
+Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Repository scans also author a starter set per agent automatically.
 
 <Frame caption="The evaluator editor: write the rubric yourself or generate it from a description; the compiled evaluation prompt uses {{output.*}} and {{reference.*}} variables.">
   <img src="/images/platform/generated-rubrics.png" alt="Edit evaluator dialog in the Eval Library" />
 </Frame>
 
-Evaluators are either platform-managed templates, project-wide, or scoped to a single agent — a triage agent and a planner never accidentally share criteria.
+Evaluators are platform-managed templates, project-wide, or scoped to a single agent — a triage agent and a planner never accidentally share criteria.
 
 ## Eval sets
 
@@ -58,7 +58,7 @@ The same evaluator can hold both roles. One set per agent is **active** — it's
 An eval run is a controlled experiment: **one data source × N variants × M evaluators.**
 
 - **Data source** — a dataset (the exact commit is recorded, so the run stays reproducible as the dataset evolves) or a trace filter drawing directly from captured traffic. `max_items` caps how many rows are drawn.
-- **Variants** — the columns of the experiment. A variant either **generates** fresh outputs by re-running a model over each datapoint, or grades **existing** traces as-is. Each pins a model (catalogue model, registered endpoint, or one of your fine-tunes) and optionally a prompt version; one variant is the **baseline** that every other is deltaed against.
+- **Variants** — the columns of the experiment. A variant either **generates** fresh outputs by re-running a model over each datapoint, or grades **existing** traces as-is. Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt version; one variant is the **baseline** that every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits can't change what a completed run measured.
 
 ```bash

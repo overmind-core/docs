@@ -3,7 +3,7 @@ title: Datasets
 description: The datapoint schema, dataset intents and surfaces, trace-to-dataset conversion, and the Data Workshop.
 ---
 
-A dataset is the curated slice of your data that eval runs, optimisation runs, and fine-tunes consume. Datasets are built from production traces, uploaded files, or connector imports, and every datapoint built from a trace keeps a link back to it, so any row can be audited to the run that produced it.
+A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Datasets are built from production traces, uploaded files, or connector imports. Every datapoint built from a trace keeps a link back to it, so any row can be audited against the run that produced it.
 
 ## The data model
 
@@ -25,20 +25,20 @@ Columns that don't fit the canonical shape land in `extra` rather than being dro
 | Field | Values | Meaning |
 | --- | --- | --- |
 | `source` | `custom`, `traces`, `external` | Where the rows came from: upload, trace conversion, or a connector |
-| `intent` | `eval`, `ft`, `unstructured` | What the dataset is for. Eval data feeds [eval runs](/agent-testing/eval) and the [Optimiser](/agent-testing/optimisers); fine-tuning data feeds [Training](/models/training) |
+| `intent` | `eval`, `ft`, `unstructured` | What the dataset is for. Eval data feeds [eval runs](/agent-testing/eval) and the [Optimiser](/agent-testing/optimisers); training data (`ft`) feeds [Training](/models/training) |
 | `surface` | `agent`, `model` | For trace-built datasets: the agent's delivered input/output, or the raw LLM call inside it |
 
-Intent is fixed at creation. To reuse eval data for fine-tuning (or vice versa) you re-ingest: a new dataset is derived in the target shape with a `derived_from` link back, and the original is never mutated.
+Intent is fixed at creation. To reuse eval data for training (or vice versa), you re-ingest: a new dataset is derived in the target shape with a `derived_from` link back, and the original is never mutated.
 
 <Warning>
-A dataset is locked while a training job, eval run, or optimisation run is reading it — edits are rejected until the job reaches a terminal state. This protects run reproducibility; duplicate the dataset if you need to keep curating.
+A dataset is locked while a training run, eval run, or optimisation run is reading it — edits are rejected until that run reaches a terminal state. This protects reproducibility; duplicate the dataset if you need to keep curating.
 </Warning>
 
 ## Creating datasets
 
 <Tabs>
   <Tab title="From traces">
-    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. The dialog walks Source → Intent → Agent → Summary: it detects the likely purpose from the data (evaluation, fine-tuning, or raw), lets you pick the trace surface — **Agent** (delivered behaviour) vs **Model** (the raw prompt/completion pair inside) — and shows the field mapping (`"input" → "expected_output"`) before anything is ingested.
+    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. The dialog walks Source → Intent → Agent → Summary: it detects the likely purpose from the data (the UI's **Evaluation**, **Fine-tuning**, and **Raw** options), lets you pick the trace surface — **Agent** (delivered behaviour) or **Model** (the raw prompt/completion pair inside) — and shows the field mapping (`"input" → "expected_output"`) before anything is ingested.
 
     <Frame caption="Converting 25 selected traces: intent detection, the agent-vs-model surface choice, and the field mapping plan.">
       <img src="/images/platform/data-from-traces.png" alt="New dataset dialog converting traces" />
@@ -58,9 +58,9 @@ A dataset can be bound to an agent or left project-scoped. Binding unlocks the a
 
 ## The Data Workshop
 
-Opening a dataset opens the Workshop: a spreadsheet-style table beside a quality report. **Re-analyse** runs the scoring pass — deterministic checks plus an AI analyst pass over the corpus — producing a score out of 100 and a verdict: **Ready**, **Ready with warnings**, or **Not ready**.
+Opening a dataset lands you in the Workshop: a spreadsheet-style table beside a quality report. **Re-analyse** runs the scoring pass — deterministic checks plus an AI analyst pass over the corpus — producing a score out of 100 and a verdict: **Ready**, **Ready with warnings**, or **Not ready**.
 
-<Frame caption="A fine-tuning dataset scoring 70.2/100, Ready with warnings. Each pillar explains what it measures and its contribution.">
+<Frame caption="A training dataset scoring 70.2/100, Ready with warnings. Each pillar explains what it measures and its contribution.">
   <img src="/images/platform/dataws.png" alt="Data Workshop with score and pillar breakdown" />
 </Frame>
 
@@ -68,7 +68,7 @@ The score rolls up from weighted pillars — **Coverage** (do rows span the brea
 
 Findings surface as **insights**, each with severity, evidence, and a proposed fix. Fixes are dry-run against your real rows before they're offered, and applying one is staged: preview the row diff, approve or discard, and the change lands as a **commit** in the dataset's history. Checks you've judged acceptable can be **waived** — the waiver records who accepted it and stays visible. Any older state can be restored; a restore is itself a new commit, so history is never rewritten. This is what makes results reproducible: an eval run records the exact dataset commit it scored.
 
-The table itself supports search, sort and filter, cell editing with row diffs, multi-row selection and deletion, per-column statistics, and export.
+The table itself supports search, sorting, filtering, cell editing with row diffs, multi-row selection and deletion, per-column statistics, and export.
 
 ## API
 

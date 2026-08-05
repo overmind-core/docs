@@ -61,7 +61,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
 | Optimiser runs | `/api/optimizer-experiments/` | `GET .../iterations/`, `GET .../commands/`, `POST .../cancel/`, `POST .../create-pr/`, `GET connection/` |
-| Fine-tuning jobs | `/api/finetuning-jobs/` | `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `GET models/`, `GET dataset-overlap/`, `GET .../loss-curves/`, `GET .../events/`, `POST .../cancel/`, `POST .../retry/`, `POST .../create-model-pr/` |
+| Training runs | `/api/finetuning-jobs/` | `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `GET models/`, `GET dataset-overlap/`, `GET .../loss-curves/`, `GET .../events/`, `POST .../cancel/`, `POST .../retry/`, `POST .../create-model-pr/` |
 | Deployed models | `/api/deployed-models/` | `POST .../deploy/`, `POST .../undeploy/`, `POST .../retry/`, `GET .../metrics/`, `GET .../activity/`, `GET .../checkpoints/` (+ `download/`) |
 
 ### Special endpoints

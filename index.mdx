@@ -4,7 +4,7 @@ title: Introduction
 
 ## What is Overmind?
 
-Overmind is a platform for improving production AI agents with their own data. It ingests OpenTelemetry traces from your agent, scores them with evaluators as they arrive, turns them into curated datasets, runs controlled eval experiments, proposes code changes as pull requests, and fine-tunes and serves models benchmarked against the model you run today.
+Overmind is a platform for improving production AI agents with their own data. It ingests OpenTelemetry traces from your agent and scores them with evaluators as they arrive. Traces become curated datasets, and datasets feed three kinds of work: controlled eval experiments, optimisation runs that propose code changes as pull requests, and training runs that produce models benchmarked against the one you run today.
 
 Everything speaks standard protocols: trace ingest is OTLP/HTTP, the REST API is plain JSON over HTTPS, and model serving is OpenAI-compatible. Two endpoints matter:
 
@@ -19,13 +19,13 @@ All programmatic access authenticates with a project-scoped API key (prefixed `o
 
 ```flow
 flow row
-title: From your agent's process to a served fine-tune
+title: From your agent's process to a model you own
 A[Your agent | SDK or any OTel exporter] -> B[OTLP ingest | POST /api/v1/traces]
 B -> C[Spans in Postgres | scored on arrival]
 C -> D[Datasets | curated from traces]
 D -> E[Eval runs | variants vs baseline]
 E -> OP[Optimiser | code diffs, replayed + scored]
-D -> T[Training | fine-tunes vs baseline]
+D -> T[Training | trained models vs baseline]
 T -> I[Inference | OpenAI-compatible API]
 OP ~> A : winning diff lands as a PR
 I ~> B : served model's calls are traced
@@ -58,7 +58,7 @@ There is no proprietary agent framework to adopt. The SDKs (`pip install overmin
     The optimisation loop, the local executioner, and the resulting PR.
   </Card>
   <Card title="Training" href="/models/training" icon="dumbbell">
-    Fine-tuning jobs, dataset validation, loss curves, and the baseline benchmark.
+    Training runs, dataset validation, loss curves, and the baseline benchmark.
   </Card>
   <Card title="Inference" href="/models/inference" icon="server">
     Serving lifecycle and the OpenAI-compatible `/api/v1/chat/completions` API.
