@@ -46,13 +46,14 @@
 
   /* ─── Type and geometry ─────────────────────────────────────────────── */
 
-  // Geist Pixel ships one master, so these are all 400 — the sizes here must
-  // stay in step with the .om-flow rules in custom.css or boxes will be
-  // measured against type they are not actually drawn with.
-  var FACE = '"Geist Pixel", ui-monospace, monospace';
+  // These sizes and this face must stay in step with the .om-flow-title /
+  // .om-flow-sub / .om-flow-chip-text rules in custom.css — text is
+  // measured here before it's ever drawn, so a mismatch against what the
+  // SVG actually renders with is exactly what makes wrapping/overflow flaky.
+  var FACE = '"Geist Mono", ui-monospace, monospace';
   var T = {
-    title: "400 14px " + FACE,
-    sub: "400 12px " + FACE,
+    title: "400 13px " + FACE,
+    sub: "400 11px " + FACE,
     label: "400 11px " + FACE,
     titleLead: 19,
     subLead: 16,
@@ -71,8 +72,10 @@
     chamfer: 10,
     pillRadius: 999,
     portSpread: 0.56, // fraction of a node face used to fan its edges
-    laneGap: 16, // between stacked back-edge lanes
-    laneInset: 20, // from the diagram edge to the first back-edge lane
+    laneGap: 20, // between stacked back-edge lanes
+    laneInset: 24, // from the diagram edge to the first back-edge lane
+    laneJog: 14, // how far a back edge climbs into the rank gap before it
+    // turns toward the lane — keeps the turn clear of every node's rank band
     corner: 9, // back-edge corner rounding
     labelPadX: 5,
     labelPadY: 2,
@@ -394,6 +397,8 @@
       p.points.forEach(function (pt) {
         box.cMin = Math.min(box.cMin, pt.c);
         box.cMax = Math.max(box.cMax, pt.c);
+        box.fMin = Math.min(box.fMin, pt.f);
+        box.fMax = Math.max(box.fMax, pt.f);
       });
     });
 
@@ -678,55 +683,59 @@
     return d;
   }
 
-  // Return arcs leave the cross-minimum face, run along a private lane
-  // outside the node block, and re-enter their target the same way.
+  // A chain of straight runs with each interior corner eased into a short
+  // quadratic arc — the general tool a routed path (any number of turns)
+  // needs, in place of hand-picked control points per turn.
+  function roundedPolyline(points, radius) {
+    var d = "M " + fmt(points[0]);
+    for (var i = 1; i < points.length - 1; i++) {
+      var prev = points[i - 1];
+      var cur = points[i];
+      var next = points[i + 1];
+      var r = Math.min(radius, dist(prev, cur) / 2, dist(cur, next) / 2);
+      d += " L " + fmt(along(cur, prev, r)) + " Q " + fmt(cur) + " " + fmt(along(cur, next, r));
+    }
+    d += " L " + fmt(points[points.length - 1]);
+    return d;
+  }
+
+  function dist(p, q) {
+    return Math.hypot(p.f - q.f, p.c - q.c);
+  }
+
+  function along(from, to, distance) {
+    var len = dist(from, to) || 1;
+    return {
+      f: from.f + ((to.f - from.f) / len) * distance,
+      c: from.c + ((to.c - from.c) / len) * distance,
+    };
+  }
+
+  // Return arcs leave a node from its rank-band face (the same edge a
+  // forward edge would enter or exit through), climb straight into the gap
+  // between ranks — a strip no node ever occupies, regardless of its cross
+  // position — before turning toward the private lane outside the whole
+  // node block. That gap-first jog is what keeps a back edge from cutting
+  // straight through a sibling that shares its rank, the way a shortest
+  // path from the node's own side face would.
   function backPath(r, box, lane) {
     var a = r.chain[0];
     var b = r.chain[1];
     var laneC = box.cMin - G.laneInset - lane * G.laneGap;
-    var aFace = { f: a.f, c: a.c - a.csize / 2 };
-    var bFace = { f: b.f, c: b.c - b.csize / 2 };
-    var corner = Math.min(
-      G.corner,
-      Math.abs(a.f - b.f) / 2,
-      Math.abs(aFace.c - laneC) / 2
-    );
 
-    var dir = b.f < a.f ? -1 : 1;
-    var d =
-      "M " +
-      fmt(aFace) +
-      " L " +
-      n(aFace.f) +
-      "," +
-      n(laneC + corner) +
-      " Q " +
-      n(aFace.f) +
-      "," +
-      n(laneC) +
-      " " +
-      n(aFace.f + dir * corner) +
-      "," +
-      n(laneC) +
-      " L " +
-      n(bFace.f - dir * corner) +
-      "," +
-      n(laneC) +
-      " Q " +
-      n(bFace.f) +
-      "," +
-      n(laneC) +
-      " " +
-      n(bFace.f) +
-      "," +
-      n(laneC + corner) +
-      " L " +
-      fmt(bFace);
+    var aFace = { f: a.f - a.fsize / 2, c: a.c };
+    var bFace = { f: b.f - b.fsize / 2, c: b.c };
+    var aTurn = { f: aFace.f - G.laneJog, c: a.c };
+    var bTurn = { f: bFace.f - G.laneJog, c: b.c };
+    var aLane = { f: aTurn.f, c: laneC };
+    var bLane = { f: bTurn.f, c: laneC };
+
+    var points = [aFace, aTurn, aLane, bLane, bTurn, bFace];
 
     return {
       edge: r.edge,
-      points: [aFace, { f: (a.f + b.f) / 2, c: laneC }, bFace],
-      d: d,
+      points: points,
+      d: roundedPolyline(points, G.corner),
       arrowAt: "end",
       back: true,
     };
