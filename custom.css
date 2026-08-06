@@ -66,9 +66,10 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
-    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
-    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -77,10 +78,10 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
-    U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
-    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
-    U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 /* ─── Tokens ────────────────────────────────────────────────────────────── */
@@ -143,7 +144,9 @@ body,
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--om-ink) 28%, transparent);
   text-underline-offset: 2px;
-  transition: text-decoration-color 120ms ease, color 120ms ease;
+  transition:
+    text-decoration-color 120ms ease,
+    color 120ms ease;
 }
 
 #content-area :is(p, li) a:hover {
@@ -223,31 +226,28 @@ body,
   letter-spacing: -0.01em;
 }
 
-#content-area [data-component-part="code-block-root"] {
-  border: 1px solid var(--om-border);
-  border-radius: 4px;
-  box-shadow: none;
+/*
+ * .code-block is the real bordered/rounded container Mintlify renders (the
+ * [data-component-part="code-block-root"] selector this used to target does
+ * not exist in the current DOM, so the block was falling through to
+ * Mintlify's default rounded-2xl + gray border while `pre` inside it got
+ * our flush, square-cornered styling — two roundings on one block). Keep
+ * every inner layer flush so the whole component has exactly one border
+ * and one radius.
+ */
+#content-area .code-block {
+  border: 1px solid var(--om-border) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: var(--om-code-bg) !important;
   overflow: hidden;
-  background: var(--om-code-bg);
 }
 
-#content-area [data-component-part="code-block-root"] pre,
 #content-area .code-block pre,
 #content-area pre {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-}
-
-/*
- * Copy button is position:absolute over the code block. Narrow the content
- * shell (the w-0/min-w-full wrapper) so a permanent right gutter stays clear.
- */
-#content-area .code-block > div[class*="min-w-full"],
-#content-area [data-component-part="code-block-root"] > div[class*="min-w-full"] {
-  width: calc(100% - 3rem) !important;
-  max-width: calc(100% - 3rem) !important;
-  min-width: 0 !important;
 }
 
 #content-area [style*="--shiki-dark-bg" i],
@@ -283,21 +283,31 @@ body,
   color: #8a7a68 !important;
 }
 
+/* A plain icon, not a chip — the block itself already carries the one
+ * border and radius the component needs. */
 #content-area [data-testid="copy-code-button"] {
   border-radius: 3px !important;
-  background: var(--om-code-bg) !important;
-  border: 1px solid var(--om-border);
+  background: transparent !important;
+  border: 0 !important;
   color: var(--om-ink-muted) !important;
 }
 #content-area [data-testid="copy-code-button"]:hover {
+  background: color-mix(in srgb, var(--om-ink) 8%, transparent) !important;
   color: var(--om-copper) !important;
-  border-color: rgb(from var(--om-copper) r g b / 0.4);
 }
 .dark #content-area [data-testid="copy-code-button"]:hover {
   color: var(--om-orange) !important;
 }
+/*
+ * The scrim behind the copy button: flat, our own code background, and
+ * rounded to match .code-block's own top-right corner (6px) instead of
+ * Mintlify's default 16px, which read as a mismatched corner poking out
+ * once the block itself was retargeted above.
+ */
 #content-area [data-fade-overlay] {
   background: var(--om-code-bg) !important;
+  background-image: none !important;
+  border-radius: 0 6px 0 0 !important;
 }
 
 /* ─── Navbar ────────────────────────────────────────────────────────────── */
@@ -408,7 +418,8 @@ div:has(> #navigation-items) {
   scrollbar-color: transparent transparent;
 }
 #navigation-items:hover {
-  scrollbar-color: color-mix(in srgb, var(--om-ink) 20%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--om-ink) 20%, transparent)
+    transparent;
 }
 
 #navigation-items div:has(> .sidebar-group-header) {
@@ -448,7 +459,9 @@ div:has(> #navigation-items) {
   padding: 5px 8px !important;
   border-radius: 3px;
   color: var(--om-ink-muted) !important;
-  transition: color 120ms ease, background-color 120ms ease;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
 }
 
 #navigation-items .sidebar-group li a:hover {
@@ -498,12 +511,24 @@ ul.toc .toc-item a {
 
 /* ─── Copy-page controls ────────────────────────────────────────────────── */
 
+/*
+ * A split button: "rounded-l-xl"/"rounded-r-xl" mean round-on-the-left-only
+ * and round-on-the-right-only, meant to sit flush as one pill. Rounding
+ * every corner on both halves gave the two inner corners their own curve
+ * right next to each other, reading as a collision instead of a seam.
+ */
 #content-area button[class*="rounded-l-xl"],
 #content-area button[class*="rounded-r-xl"] {
   border-color: var(--om-border) !important;
   color: var(--om-ink-muted) !important;
   background: transparent !important;
-  border-radius: 3px !important;
+}
+#content-area button[class*="rounded-l-xl"] {
+  border-radius: 6px 0 0 6px !important;
+  border-right-width: 0 !important;
+}
+#content-area button[class*="rounded-r-xl"] {
+  border-radius: 0 6px 6px 0 !important;
 }
 #content-area button[class*="rounded-l-xl"]:hover,
 #content-area button[class*="rounded-r-xl"]:hover {
@@ -572,7 +597,10 @@ ul.toc .toc-item a {
   fill: var(--om-acc) !important;
 }
 #content-area .callout [data-component-part="callout-content"],
-#content-area .callout [data-component-part="callout-content"] :is(p, li, strong, em) {
+#content-area
+  .callout
+  [data-component-part="callout-content"]
+  :is(p, li, strong, em) {
   color: var(--om-ink) !important;
 }
 
@@ -668,13 +696,22 @@ ul.toc .toc-item a {
   color: var(--om-ink);
 }
 
-:is(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+:is(
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  [tabindex]
+):focus-visible {
   outline: 2px solid var(--om-orange);
   outline-offset: 2px;
 }
 
 * {
-  scrollbar-color: color-mix(in srgb, var(--om-ink) 22%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--om-ink) 22%, transparent)
+    transparent;
 }
 
 /* ─── Flow diagrams ─────────────────────────────────────────────────────── */
@@ -755,13 +792,41 @@ ul.toc .toc-item a {
   fill: var(--om-ink-muted);
 }
 
-/* ─── Frame / screenshots — quiet, no card chrome ───────────────────────── */
+/* ─── Frame / screenshots — one wrapper, one rounding ───────────────────── */
 
-#content-area figure,
-#content-area [class*="frame"] {
-  border-radius: 4px;
+/*
+ * Mintlify's <Frame> is figure.frame > (grid backdrop, the clipping
+ * div.overflow-hidden that actually holds the image, a border-ring overlay,
+ * figcaption). `#content-area figure` only reached the outer figure, so its
+ * card padding/background/radius stayed live while the inner clipping div
+ * kept its own separate (larger) radius underneath — rounded and square at
+ * once. Strip the figure down to a plain box and put the one visible
+ * border+radius on the div that actually clips the image.
+ */
+#content-area figure.frame {
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#content-area figure.frame > div[class*="bg-grid"],
+#content-area
+  figure.frame
+  > div[class*="pointer-events-none"][class*="border"] {
+  display: none !important;
+}
+
+#content-area figure.frame > div.overflow-hidden {
+  border-radius: 8px !important;
+  border: 1px solid var(--om-border) !important;
+}
+
+#content-area figure.frame figcaption {
+  color: var(--om-ink-muted);
+  font-size: 0.85rem;
 }
 
 #content-area img {
-  border-radius: 3px;
+  border-radius: 0;
 }
