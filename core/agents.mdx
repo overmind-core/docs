@@ -30,7 +30,7 @@ A background check compares the scanned commit against your branch head; when th
 
 ### Telemetry
 
-When spans arrive carrying an agent identity — `overmind.agent.id` or `overmind.agent.name`, set via the [SDK](/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching agent, creating it automatically from the name if it doesn't exist yet. Names are slugified into a stable identity, so keep them constant across deploys; a drifting name mints duplicate agents. An agent discovered from code and the same agent reporting telemetry resolve to one record.
+When spans arrive carrying an agent identity — `overmind.agent.id` or `overmind.agent.name`, set via the [SDK](/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching agent, creating it automatically from the name if it doesn't exist yet. Prefer `overmind.agent.id` (the agent's UUID): it is a direct lookup, so renames never break attribution and telemetry can never mint a duplicate. Names are slugified into a stable identity as a fallback, so keep them constant across deploys; a drifting name mints duplicate agents. An agent discovered from code and the same agent reporting telemetry resolve to one record. In a repo with several agents, each agent stamps its own id and name at its own entry point, so spans group per agent even when they share one process.
 
 ### The CLI
 

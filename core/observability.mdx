@@ -49,7 +49,7 @@ The fastest path is the same prompt as the Observability empty state — paste i
 Install the Overmind AI skill from github.com/overmind-core/overmind and use it to add tracing to this application with Overmind following best practices.
 ```
 
-Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough, see the [Quickstart](/quickstart). To instrument by hand:
+Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough, see the [Quickstart](/quickstart). For a specific agent in a multi-agent repo, use the **Set up tracing for this agent** card on its [agent page](/core/agents) — the copied prompt embeds the agent's UUID and model card so instrumentation lands on exactly that agent. To instrument by hand:
 
 <Tabs>
   <Tab title="Python SDK">
@@ -140,13 +140,15 @@ Traceloop instrumentation is normalised on the way in — scope names under `@tr
 
 Traces attach to an [agent](/core/agents) through the identity stamped on their spans:
 
-- **`overmind.agent.id`** — the agent's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
+- **`overmind.agent.id`** — the agent's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known. It is a UUID — copy it verbatim; never invent, truncate, or re-format it.
 - **`overmind.agent.name`** — a human-readable name. The server slugifies it into a stable identity and **creates the agent automatically** the first time it appears, so a name that changes between deploys creates duplicate agents.
 
-Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript.
+Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript. `OVERMIND_AGENT_ID` / `OVERMIND_AGENT_NAME` environment variables set the same identity.
+
+**Multi-agent repos.** A repo often contains several distinct agents sharing one process and one environment (one agent per file set, a common LLM client between them). Stamp each agent's identity at its own entry point — `overmind.init(agent_id=...)` per process, or the identity setters at the start of each agent's request path (they are scoped to the current request context) — so every span lands under the right agent. The agent page's **Set up tracing for this agent** card copies an agent-targeted prompt — identity, paths, entry point, prompt, and tools — that instruments exactly that agent.
 
 <Warning>
-Spans with no agent identity are still stored and browsable, but they won't appear on any agent's page, won't be live-scored by that agent's evaluators, and won't join agent-scoped datasets. Set the identity from day one.
+Spans with no agent identity are still stored and browsable, but they won't appear on any agent's page, won't be live-scored by that agent's evaluators, and won't join agent-scoped datasets. Set the identity from day one. A mangled `agent_id` is worse than none: every span is attributed to the wrong agent.
 </Warning>
 
 ### Sessions
