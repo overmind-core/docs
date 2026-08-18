@@ -635,12 +635,17 @@
       return cell.c - span / 2 + (span * idx) / (sorted.length - 1);
     }
 
-    var lanes = 0;
+    // Back edges alternate sides — the first goes left, the next right —
+    // so a pair of return arcs frames the diagram instead of stacking up
+    // as two lanes down one flank.
+    var lanes = [0, 0];
+    var backs = 0;
     var out = [];
 
     routes.forEach(function (r) {
       if (r.back) {
-        out.push(backPath(r, box, lanes++));
+        var side = backs++ % 2;
+        out.push(backPath(r, box, lanes[side]++, side));
         return;
       }
 
@@ -718,10 +723,13 @@
   // node block. That gap-first jog is what keeps a back edge from cutting
   // straight through a sibling that shares its rank, the way a shortest
   // path from the node's own side face would.
-  function backPath(r, box, lane) {
+  function backPath(r, box, lane, side) {
     var a = r.chain[0];
     var b = r.chain[1];
-    var laneC = box.cMin - G.laneInset - lane * G.laneGap;
+    var laneC =
+      side === 1
+        ? box.cMax + G.laneInset + lane * G.laneGap
+        : box.cMin - G.laneInset - lane * G.laneGap;
 
     var aFace = { f: a.f - a.fsize / 2, c: a.c };
     var bFace = { f: b.f - b.fsize / 2, c: b.c };
