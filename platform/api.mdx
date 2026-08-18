@@ -44,7 +44,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Agents | `/api/agents/` | `GET .../eval_spec/`, `GET .../prompts/` |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
-| Datasets | `/api/datasets/` | `POST from_traces/`, `POST .../add_datapoints/`, `POST .../add_datapoints_from_traces/`, `POST .../remove_datapoints/`, `POST .../activate/`, `POST .../analyze/`, `GET .../datapoints/`, the `/workshop/` family |
+| Datasets | `/api/datasets/` | read, rename and delete; `POST .../remove_datapoints/`, `POST .../activate/`, `GET .../cards/`, `GET .../eval-capabilities/`, `POST .../generate-evals/`, `POST .../context/refresh/`, `GET .../datapoints/`, the `/workshop/` family |
+| Dataset builds | `/api/uploads/`, `/api/ingestions/` | the only door that creates a dataset — see [Building a dataset](#building-a-dataset) |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
 
 ### Evaluation
@@ -75,6 +76,45 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | `/api/github/...` | GitHub App connection, repo listing, scan triggers, observability-PR status |
 | `/api/connector-credentials/` | Tracing connectors; `POST .../sync/`, `GET .../langfuse-projects/` |
 | `/api/billing/...` | Subscription, credits ledger, checkout, top-up |
+
+## Building a dataset
+
+A dataset is never POSTed into existence. Rows are staged, measured in full, and
+only then written — so the counts you approve are the counts that land. The same
+sequence backs the console's upload dialog and the agent's dataset tools.
+
+<Steps>
+  <Step title="Stage a source">
+    A file goes up in chunks (`POST /api/uploads/`, then `PUT /api/uploads/{id}/chunk/?offset=`).
+    Traces and existing datasets need no upload.
+
+    `POST /api/ingestions/` opens the build with exactly one source — `upload_id`,
+    a trace `selection` or `trace_ids`, or a `source_dataset` to re-read — plus the
+    `intent` (`eval` or `ft`) and, for traces, the `surface` (`agent` or `model`).
+    Omit `intent` to let the server infer it from the rows.
+  </Step>
+  <Step title="Read the measurement">
+    `GET /api/ingestions/{id}/` reports progress, then exact full-corpus counts:
+    accepted, rejected with reasons, the field mapping in force, a before→after
+    preview, and `effective` — what a commit would write right now.
+    `GET /api/ingestions/{id}/rows/?only=rejected` pages the rows themselves.
+  </Step>
+  <Step title="Change the question">
+    `POST /api/ingestions/{id}/plan/` sets a different intent, surface or column
+    mapping, or adds a `split` to produce a Training and an Evaluation dataset from
+    one measurement. Any change re-measures; the previous numbers are withheld
+    rather than shown against a new plan. `POST .../exclusions/` leaves individual
+    rows out.
+  </Step>
+  <Step title="Commit">
+    `POST /api/ingestions/{id}/commit/` writes the measured rows and returns the
+    dataset. A commit that cannot reproduce what the scan promised fails instead of
+    landing a different dataset. `DELETE /api/ingestions/{id}/` abandons a build.
+  </Step>
+</Steps>
+
+Intent is fixed at build time and cannot be edited afterwards: converting a dataset
+means re-reading it into a new one with `source_dataset`, which records the origin.
 
 ## Conventions
 

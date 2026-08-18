@@ -25,10 +25,12 @@ Columns that don't fit the canonical shape land in `extra` rather than being dro
 | Field | Values | Meaning |
 | --- | --- | --- |
 | `source` | `custom`, `traces`, `external` | Where the rows came from: upload, trace conversion, or a connector |
-| `intent` | `eval`, `ft`, `unstructured` | What the dataset is for. Eval data feeds [eval runs](/agent-testing/eval) and the [Optimiser](/agent-testing/optimisers); training data (`ft`) feeds [Training](/models/training) |
+| `intent` | `eval`, `ft` | What the dataset is for. Eval data feeds [eval runs](/agent-testing/eval) and the [Optimiser](/agent-testing/optimisers); training data (`ft`, shown as **Training**) feeds [Training](/models/training). A third value, `unstructured`, appears only on datasets that predate intents — nothing can build one, and nothing downstream reads one |
 | `surface` | `agent`, `model` | For trace-built datasets: the agent's delivered input/output, or the raw LLM call inside it |
 
-Intent is fixed at creation. To reuse eval data for training (or vice versa), you re-ingest: a new dataset is derived in the target shape with a `derived_from` link back, and the original is never mutated.
+Intent is fixed at creation, because the rows are stored in that intent's canonical shape. To reuse eval data for training (or vice versa), you re-ingest: the rows are read again into a new dataset in the target shape, with a `derived_from` link back, and the original is never mutated.
+
+Surface follows intent where the two conflict: a fine-tuned model is served inside your harness, so it can only learn the model call — a training dataset built from traces always reads the `model` surface.
 
 <Warning>
 A dataset is locked while a training run, eval run, or optimisation run is reading it — edits are rejected until that run reaches a terminal state. This protects reproducibility; duplicate the dataset if you need to keep curating.
@@ -38,13 +40,13 @@ A dataset is locked while a training run, eval run, or optimisation run is readi
 
 <Tabs>
   <Tab title="From traces">
-    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. The dialog walks Source → Intent → Agent → Summary: it detects the likely purpose from the data (the UI's **Evaluation**, **Fine-tuning**, and **Raw** options), lets you pick the trace surface — **Agent** (delivered behaviour) or **Model** (the raw prompt/completion pair inside) — and shows the field mapping (`"input" → "expected_output"`) before anything is ingested.
+    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. The dialog walks Source → Intent → Agent → Summary: it detects the likely purpose from the data (**Evaluation**, **Training**, or **Train + Eval** for both from one selection), lets you pick the trace surface — **Agent** (delivered behaviour) or **Model** (the raw prompt/completion pair inside) — and shows the field mapping (`"input" → "expected_output"`) before anything is ingested.
 
     <Frame caption="Converting 25 selected traces: intent detection, the agent-vs-model surface choice, and the field mapping plan.">
       <img src="/images/platform/data-from-traces.png" alt="New dataset dialog converting traces" />
     </Frame>
 
-    Over the API: `POST /api/datasets/from_traces/` creates a dataset from a trace filter, and `POST /api/datasets/{id}/add_datapoints_from_traces/` appends to an existing one.
+    Over the API: `POST /api/ingestions/` with a trace `selection` (or `trace_ids`) stages the build, and `POST /api/ingestions/{id}/commit/` writes it — see [Building a dataset](/platform/api#building-a-dataset). Passing `target_dataset` appends to an existing dataset instead of creating one.
   </Tab>
   <Tab title="Upload">
     Drag a **CSV, TSV, JSON, or JSONL** file anywhere onto the Datasets page. Uploads are the usual path for seed sets and labelled ground truth. For eval data, the expected shape is an array of `{"input": ..., "expected_output": ...}` objects; extra columns are preserved in `extra`.
