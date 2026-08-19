@@ -21,7 +21,9 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`.
 
-**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` in either SDK.
+**Conversation** — the judged turns that share a `conversation.id` attribute: one multi-turn exchange, with a verdict, a session score and the asks made across it. Set via `set_conversation_id()` in either SDK; a trace without one is a single-turn conversation.
+
+**Verdict** — the named state of a conversation: Delivered, Outstanding ask, First park, Repeated park, Wrong artifact, Critical step, Unbound, Awaiting suite, Scoring, Error exit or Interrupted. Every row of the Observability log leads with it and its reason.
 
 **OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`; JSON and gRPC are not accepted. See [Observability](/core/observability#the-otlp-endpoint).
 

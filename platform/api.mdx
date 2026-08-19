@@ -43,7 +43,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove) |
 | Agents | `/api/agents/` | `GET .../eval_spec/`, `GET .../prompts/` |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
-| Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
+| Conversations | `/api/conversations/` | judged turns grouped by `conversation.id`, with verdict and asks; `GET counts/` per verdict state, `GET thread/?key=` for one conversation |
+| Task executions | `/api/task-executions/` | one judged turn per row: route, step results, scores |
 | Datasets | `/api/datasets/` | `POST from_traces/`, `POST .../add_datapoints/`, `POST .../add_datapoints_from_traces/`, `POST .../remove_datapoints/`, `POST .../activate/`, `POST .../analyze/`, `GET .../datapoints/`, the `/workshop/` family |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
 

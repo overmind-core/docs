@@ -36,9 +36,9 @@ description: From zero to traces in the console — create an API key, paste the
     See [Observability](/core/observability#the-otlp-endpoint) for the attribute conventions the ingest pipeline reads.
   </Step>
   <Step title="Check the console">
-    Open **Observability**. Each row is a root span; click one for the span tree, timeline, and full model-call transcripts.
+    Open **Observability**. Each row is a conversation (or a single-turn trace) with its verdict and reason; click one for its turns, and a turn's trace for the span tree, timeline, and full model-call transcripts.
 
-    <Frame caption="The trace list: duration, tokens, cost, model, status, scores, and agent per root trace.">
+    <Frame caption="The log: verdict, reason, turns, task, agent, duration and cost per conversation.">
       <img src="/images/platform/tracing-list.png" alt="Observability trace list in the Overmind console" />
     </Frame>
 

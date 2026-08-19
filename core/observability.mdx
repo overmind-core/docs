@@ -149,9 +149,9 @@ Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=
 Spans with no agent identity are still stored and browsable, but they won't appear on any agent's page, won't be live-scored by that agent's evaluators, and won't join agent-scoped datasets. Set the identity from day one.
 </Warning>
 
-### Sessions
+### Conversations
 
-Stamp a shared `conversation.id` on the traces of one multi-turn exchange — `set_conversation_id("session-42")` in both SDKs — and Overmind groups them into a **session** with rolled-up trace counts, tokens, cost, and timespan. The **Sessions** view in Observability lists them.
+Stamp a shared `conversation.id` on the traces of one multi-turn exchange — `set_conversation_id("conv-42")` in both SDKs — and Overmind groups their judged turns into a **conversation**: one row in Observability with a verdict, a session score, the asks the user made across turns and which ones landed, and rolled-up duration, tokens and cost. A trace without a `conversation.id` is a conversation of one turn.
 
 ## Scores on arrival
 
@@ -159,15 +159,22 @@ Every ingested **root** span enqueues a scoring task. If the owning agent has ev
 
 This makes the trace list a live quality monitor: filter to low scores over the last hour and read exactly what failed.
 
-## Exploring traces in the console
+## Exploring the log in the console
 
-The **Observability** page is a filterable table with three views: **Root traces** (default, one row per end-to-end run), **All spans**, and **Sessions**. Quick filters cover LLM calls, successes, errors, slow (>5s), expensive (>$0.01), and high-token (≥5k) traces; columns include duration, tokens, cost, model, status, scores, and agent. Filters, sort order, and page number all live in the URL, so any slice is a shareable link.
+The **Observability** page is a running log with two modes on one toolbar:
 
-<Frame caption="Root traces with quick filters. The Scores column carries live evaluator results.">
-  <img src="/images/platform/tracing-list.png" alt="Trace list with quick filters and score column" />
+- **Conversations** (default) — one row per conversation. Each row leads with its **verdict** and session score, the running ask, and the one-line reason: *Delivered*, *Outstanding ask*, *First park*, *Repeated park*, *Wrong artifact*, *Critical step*, *Unbound*, *Awaiting suite*, *Scoring*, *Error exit* or *Interrupted*. The **Turns** column shows every turn as a dot grouped by ask, coloured by its score. State chips above the table carry live counts and filter the log with one click; the agent and task selects, the time range and the search box narrow it further.
+- **Traces** — one row per root trace (or every span with **All spans**), with the same filter builder as before plus a **Verdict** column and a pointer to the trace's conversation and turn.
+
+Filters, sort order, page, the open conversation and the focused turn all live in the URL, so any slice is a shareable link.
+
+Clicking a conversation opens it in a side pane next to the table: the session score and verdict with its reason, the **asks** folded from the conversation ledger (click one to focus its turns), a minimap of turns with *All / Failed / Verdicts only* filters, and the thread grouped by ask. A turn expands to the agent's reply, the turn's own verdict with its composition (outcome × gate-failed steps), and the judged **steps** with the tool calls under each — a failed step carries its rationale and a **root cause** chip. **Evidence** on a tool call, or **Open trace Tn**, opens the trace in the page body with that step's spans marked in the tree and a *Why you are here* box above the span detail, so a "session 0%" reads down to the exact tool call in three clicks. **Back** returns to the same open pane.
+
+<Frame caption="The conversation log: verdict and reason per row, turns as dots grouped by ask, state chips with live counts.">
+  <img src="/images/platform/tracing-list.png" alt="Observability conversation log" />
 </Frame>
 
-Clicking a trace opens its detail as a panel over the list: a span tree (switchable to a flame-chart waterfall) beside the selected span's detail — inputs, outputs, metadata, and any trace scores with their reasoning. Model-call spans render the full request/response; tool spans show the tool name and arguments.
+The trace view is unchanged underneath: a span tree (switchable to a flame-chart waterfall) beside the selected span's detail — inputs, outputs, metadata, and any trace scores with their reasoning. Model-call spans render the full request/response; tool spans show the tool name and arguments.
 
 <Frame caption="Span detail: the span tree with token/cost rollups, plus the selected span's input, output, and trace scores.">
   <img src="/images/platform/span-detail.png" alt="Trace detail with span tree and span details panel" />
@@ -175,7 +182,7 @@ Clicking a trace opens its detail as a panel over the list: a span tree (switcha
 
 ### From traces to datasets
 
-Select rows (or **Select all** across pages) and **Add to dataset**. This is the highest-leverage workflow in Observability: real production behaviour becomes the test set your agent is measured against, with each resulting datapoint keeping a link to its source trace. [Datasets](/core/datasets) covers what happens next.
+Select rows (in Traces mode also **Select all** across pages) and **Add to dataset**; from the pane, **Add to dataset** takes the whole conversation and **Add turn to dataset** one turn. This is the highest-leverage workflow in Observability: real production behaviour becomes the test set your agent is measured against, with each resulting datapoint keeping a link to its source trace. [Datasets](/core/datasets) covers what happens next.
 
 <Frame caption="Bulk selection: 3,876 traces about to become a dataset.">
   <img src="/images/platform/traces-add-to-dataset.png" alt="Trace selection bar with Add to dataset action" />
@@ -194,9 +201,13 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" \
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/traces/{trace_id}/"
 
-# Distinct service names, sessions
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/traces/services/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/sessions/"
+# Conversations (the log's row grain), their state counts, and one thread
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/conversations/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/conversations/counts/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/conversations/thread/?key=conv-42"
+
+# Judged turns
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/task-executions/"
 ```
 
 See the [REST API](/platform/api) page for the full endpoint list.
