@@ -7,7 +7,9 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Project** — the tenant boundary. Agents, traces, datasets, runs, models, connectors, and API keys belong to exactly one project. See [Administration](/platform/administration#projects).
 
-**Agent** — Overmind's record of an agent you run: code structure from a repository scan joined with runtime behaviour from telemetry. See [Agents](/core/agents).
+**Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/core/capabilities).
+
+**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from a repository scan joined with runtime behaviour from telemetry. Capabilities retire, reactivate, merge, and split; nothing is deleted. See [Agent & Capabilities](/core/capabilities).
 
 **API key** — a project-scoped credential (`ovr_...`, stored hashed, shown once at creation) that authenticates the SDKs, OTLP ingest, the REST API, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`.
 
@@ -27,13 +29,13 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Connector** — a pull-based import from another tracing platform. Langfuse is available; LangSmith, Braintrust, Opik, Helicone, and Arize Phoenix are coming soon.
 
-**Trace coverage** — the fraction of an agent's discovered components (entrypoints, tools) that emit telemetry, reported on the agent page.
+**Trace coverage** — the fraction of a capability's discovered components (entrypoints, tools) that emit telemetry, reported on its page.
 
 **Observability PR** — a pull request Overmind opens against your repository adding SDK initialisation and span instrumentation.
 
 ## Data
 
-**Dataset** — a curated collection of datapoints with a **source** (`custom`, `traces`, `external`), an **intent** (`eval` or `ft`), and for trace-built data a **surface** (`agent` or `model`). See [Datasets](/core/datasets).
+**Dataset** — a curated collection of datapoints with a **source** (`custom`, `traces`, `external`), an **intent** (`eval` or `ft`), and for trace-built data a **surface** (`capability` or `model`). See [Datasets](/core/datasets).
 
 **Datapoint** — one example: `input`, `expected_output`, optional tags/persona, an `extra` bag for non-canonical columns, and a `source_trace_id` when built from a trace.
 
@@ -49,7 +51,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Rubric / checklist** — an LLM judge's plain-language criteria, compiled into weighted atomic checklist items; items can be hard **gates**.
 
-**Eval set** — a named group of an agent's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, with a sampling rate). One set per agent is **active**.
+**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, with a sampling rate). One set per capability is **active**.
 
 **Eval run** — a controlled experiment: one data source × N variants × M evaluators, with evaluator snapshots frozen at creation. See [Eval](/agent-testing/eval#eval-runs).
 

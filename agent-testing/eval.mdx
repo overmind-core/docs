@@ -36,7 +36,7 @@ Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajector
 
 ### Authoring
 
-Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Repository scans also author a starter set per agent automatically.
+Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Repository scans also author a starter set per capability automatically.
 
 <Frame caption="The evaluator editor: write the rubric yourself or generate it from a description; the compiled evaluation prompt uses {{output.*}} and {{reference.*}} variables.">
   <img src="/images/platform/generated-rubrics.png" alt="Edit evaluator dialog in the Eval Library" />
@@ -46,12 +46,12 @@ Evaluators are platform-managed templates, project-wide, or scoped to a single a
 
 ## Eval sets
 
-An eval set is a named group of an agent's evaluators — the working definition of "good" for that agent. Each member carries a **role**:
+An eval set is a named group of a capability's evaluators — the working definition of "good" for that capability. Each member carries a **role**:
 
 - **Generative** members score outputs produced during eval runs and experiments.
 - **Trace scoring** members run on live production traces as they arrive (with a configurable sampling rate), writing scores into [Observability](/core/observability#scores-on-arrival).
 
-The same evaluator can hold both roles. One set per agent is **active** — it's what optimisation runs and benchmarks default to.
+The same evaluator can hold both roles. One set per capability is **active** — it's what optimisation runs and benchmarks default to.
 
 ## Eval runs
 
@@ -99,7 +99,7 @@ Two details in the scoring model are worth understanding:
 - **Outcomes are typed.** Every score is `scored`, `abstained`, `not_applicable`, `skipped`, or `error` — and only `scored` results feed averages and pass rates.
 - **Samples can be degraded.** Each trace is normalised into a canonical transcript before scoring; if it can't be faithfully reconstructed, the sample is marked degraded and excluded from aggregates rather than silently polluting them. Failure scores also carry a role — root cause vs. propagated — so one upstream failure doesn't read as five independent ones.
 
-Completed runs can be shared read-only via tokenised share links, and scores accumulate into a per-agent history that powers the trend charts on the agent page.
+Completed runs can be shared read-only via tokenised share links, and scores accumulate into a per-capability history that powers the trend charts on the capability page.
 
 ## Calibrating judges
 

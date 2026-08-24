@@ -136,17 +136,19 @@ The pipeline understands three attribute dialects — the Overmind SDKs' own key
 
 Traceloop instrumentation is normalised on the way in — scope names under `@traceloop/*` are rewritten to `@overmind/*` — so OpenLLMetry-instrumented apps work without changes. OpenInference (`openinference.*`) attributes are **not** parsed.
 
-### Agent attribution
+### Capability attribution
 
-Traces attach to an [agent](/core/agents) through the identity stamped on their spans:
+Traces attach to a [capability](/core/capabilities) through the identity stamped on their spans:
 
-- **`overmind.agent.id`** — the agent's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
-- **`overmind.agent.name`** — a human-readable name. The server slugifies it into a stable identity and **creates the agent automatically** the first time it appears, so a name that changes between deploys creates duplicate agents.
+- **`overmind.agent.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
+- **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename or a merge never breaks attribution.
 
 Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript.
 
+An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan, a merge, or a manual create makes that identity resolvable.
+
 <Warning>
-Spans with no agent identity are still stored and browsable, but they won't appear on any agent's page, won't be live-scored by that agent's evaluators, and won't join agent-scoped datasets. Set the identity from day one.
+Unbound spans are stored and browsable, but they won't appear on any capability's page, won't be live-scored by its evaluators, and won't join capability-scoped datasets until they bind. Set the identity from day one.
 </Warning>
 
 ### Sessions

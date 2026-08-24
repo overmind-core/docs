@@ -26,7 +26,7 @@ Columns that don't fit the canonical shape land in `extra` rather than being dro
 | --- | --- | --- |
 | `source` | `custom`, `traces`, `external` | Where the rows came from: upload, trace conversion, or a connector |
 | `intent` | `eval`, `ft` | What the dataset is for. Eval data feeds [eval runs](/agent-testing/eval) and the [Optimiser](/agent-testing/optimisers); training data (`ft`, shown as **Training**) feeds [Training](/models/training). A third value, `unstructured`, appears only on datasets that predate intents — nothing can build one, and nothing downstream reads one |
-| `surface` | `agent`, `model` | For trace-built datasets: the agent's delivered input/output, or the raw LLM call inside it |
+| `surface` | `capability`, `model` | For trace-built datasets: the capability's delivered input/output, or the raw LLM call inside it |
 
 Intent is fixed at creation, because the rows are stored in that intent's canonical shape. To reuse eval data for training (or vice versa), you re-ingest: the rows are read again into a new dataset in the target shape, with a `derived_from` link back, and the original is never mutated.
 
@@ -56,7 +56,7 @@ A dataset is locked while a training run, eval run, or optimisation run is readi
   </Tab>
 </Tabs>
 
-A dataset can be bound to an agent or left project-scoped. Binding unlocks the agent-fit checks below and surfaces the dataset on the agent's page.
+A dataset can be bound to a capability or left project-scoped. Binding unlocks the agent-fit checks below and surfaces the dataset on the capability's page.
 
 ## The Data Workshop
 
@@ -80,7 +80,7 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/datapoints/"
 
-# Create (versions auto-increment per agent), activate the version runs should use
+# Create (versions auto-increment per capability), activate the version runs should use
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
   -d '{"agent": "<agent-uuid>", "name": "triage-eval", "datapoints": [{"input": {...}, "expected_output": {...}}]}' \
   "https://api.overmindlab.ai/api/datasets/"

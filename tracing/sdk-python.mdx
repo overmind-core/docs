@@ -126,7 +126,7 @@ All operate on the current span/trace — call them inside a traced function or 
 
 | Helper | Effect |
 | --- | --- |
-| `set_agent_id(id)` / `set_agent_name(name)` | Bind downstream spans to an [agent](/core/agents) |
+| `set_agent_id(id)` / `set_agent_name(name)` | Bind downstream spans to a [capability](/core/capabilities) |
 | `set_project_id(id)` | Set the project explicitly |
 | `set_conversation_id(id)` | Group traces into a [session](/core/observability#sessions) (`conversation` is the decorator form) |
 | `set_workflow_name(name)` | Label every downstream span with a workflow name |
