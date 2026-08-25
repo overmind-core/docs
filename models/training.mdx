@@ -3,12 +3,12 @@ title: Training
 description: Training runs — dataset validation, model recommendations, live loss curves, and the benchmark against your production model.
 ---
 
-Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch up to several experiments in parallel on managed GPU infrastructure. Loss curves stream live, and every finished model is judged with your own evaluators against the model your agent runs today — per metric, before anything changes in production.
+Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch up to several experiments in parallel on managed GPU infrastructure. Loss curves stream live, and every finished model is judged with your own evaluators against the model the capability runs today — per metric, before anything changes in production.
 ## What a run needs
 
 | Choice | Requirement |
 | --- | --- |
-| **Agent** | The agent whose job the model is learning; its production model becomes the benchmark baseline |
+| **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
 | **Training dataset** | A dataset with the training intent (chat-style messages). See [Datasets](/core/datasets#the-data-model) |
 | **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
 | **Rubric** | The eval set that does the measuring, chosen from the capability's sets |
@@ -64,7 +64,7 @@ Each run spawns judge evaluations at two points, both scored on your chosen eval
 1. **Baseline** — the capability's production model, snapshotted at submit time.
 2. **Final** — your newly trained model.
 
-The headline number is the delta per metric. The comparison is deliberately against the model your agent actually runs — not the untouched base model — because that's the comparison a switch decision needs.
+The headline number is the delta per metric. The comparison is deliberately against the model the capability actually runs — not the untouched base model — because that's the comparison a switch decision needs.
 
 <Frame caption="The Evals table under the metrics: Baseline and Final rows per experiment, scored with the same rubric.">
   <img src="/images/platform/training-metrics.png" alt="Training metrics with baseline and final eval scores" />
@@ -74,7 +74,7 @@ The headline number is the delta per metric. The comparison is deliberately agai
 
 A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the capability's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
 
-When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the agent at the new model and opens the pull request — the switch happens through your normal review, never automatically.
+When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the capability at the new model and opens the pull request — the switch happens through your normal review, never automatically.
 
 ## Good to know
 

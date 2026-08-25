@@ -32,19 +32,15 @@ A background check compares the scanned commit against your branch head; when th
 
 ### Rescans keep identity
 
-A capability is recognised by its code footprint — anchors, prompt, tools, output contract — not by its title. A rescan after a refactor carries the same record: same id, same name, same attached data, even when the file moved or the scan would retitle it (the new title lands as a suggestion, never a silent rename). A capability the scan no longer finds moves to **history** instead of being deleted, and comes back in place if a later scan reproduces it.
+A capability is recognised by its code footprint — anchors, prompt, tools, output contract — not by its title. A rescan after a refactor carries the same record: same id, same name, same attached data, even when the file moved or the scan would retitle it (the new title lands as a suggestion, never a silent rename). A capability the scan no longer finds leaves the agent instead of being deleted, and comes back in place if a later scan reproduces it.
 
-From the console you can also reshape the graph yourself:
-
-- **Merge** one capability into another when they are the same purpose. Every reference — traces, sessions, datasets, eval sets, evaluators, training runs, experiments, prompts — moves to the survivor, and the old id redirects there forever.
-- **Split** a capability that covers several purposes. Each part becomes a new capability and takes the spans you map to it; everything else stays.
-- **Retire** a capability to history, and **reactivate** it later. Nothing is ever deleted.
+To remove a capability yourself, use **Delete capability** at the bottom of its page. The capability leaves the agent; its traces, datasets, and runs stay in place. A deleted capability is invisible to later scans, so if the code still has it, the next scan creates a fresh record.
 
 ### Telemetry
 
-When spans arrive carrying an identity — `overmind.agent.id` or `overmind.agent.name`, set via the [SDK](/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching capability. Every id, name, and slug a capability has ever had keeps resolving, so a rename or a merge never strands your telemetry.
+When spans arrive carrying an identity — `overmind.agent.id` or `overmind.agent.name`, set via the [SDK](/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching capability. Every id, name, and slug a capability has ever had keeps resolving, so a rename never strands your telemetry.
 
-An identity the project does not know leaves the span **unbound** rather than minting a phantom capability. Unbound traces are stored and browsable under Observability's Unbound filter, and they bind retroactively: when a scan, a merge, or a manual create later makes that identity resolvable, the backlog re-attaches on its own.
+An identity the project does not know leaves the span **unbound** rather than minting a phantom capability. Unbound traces are stored and browsable under Observability's Unbound filter, and they bind retroactively: when a scan or a manual create later makes that identity resolvable, the backlog re-attaches on its own.
 
 ### The CLI
 
@@ -52,7 +48,7 @@ An identity the project does not know leaves the span **unbound** rather than mi
 
 ## The agent page
 
-**Agent** in the sidebar opens the product view: the capability grid, the latest scan report, and a **History** drawer listing retired and merged capabilities with one-click reactivate and merge. Open a capability for its detail page. The header carries copyable **capability id** and **project id** chips (you'll need the capability id for trace attribution) and a **View traces** shortcut into its filtered Observability view.
+**Agent** in the sidebar opens the product view: the capability grid and the latest scan report. Open a capability for its detail page. The header carries copyable **capability id** and **project id** chips (you'll need the capability id for trace attribution) and a **View traces** shortcut into its filtered Observability view.
 
 <Frame caption="Capability overview: model, source, components, trace coverage, the extracted system prompt, and the flow graph.">
   <img src="/images/platform/agent-overview.png" alt="Capability detail page overview tab" />
@@ -82,7 +78,7 @@ Alternatively, Overmind can write the missing tracing code itself and open a pul
 ## API
 
 ```bash
-# The whole agent graph: current capabilities, edges, history, last scan
+# The whole agent graph: current capabilities, edges, last scan
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/agent/?project={project_id}"
 
 # List capabilities / one capability
@@ -94,10 +90,10 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilit
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/prompts/"
 ```
 
-`PATCH /api/capabilities/{id}/` updates mutable fields. There is no DELETE: `POST .../retire/` moves a capability to history, `POST .../reactivate/` brings it back, `POST .../merge/` folds it into a survivor (preview the moved counts with `GET .../merge-preview/`), and `POST .../split/` carves new capabilities out of it (`GET .../split-preview/` lists the span groups a split can partition). See the [REST API](/platform/api) overview for the full surface.
+`PATCH /api/capabilities/{id}/` updates mutable fields. `DELETE /api/capabilities/{id}/` hides the capability: it leaves lists, scans, and identity lookup, and its data stays. See the [REST API](/platform/api) overview for the full surface.
 
 ## Good to know
 
 - **Prompts are versioned.** Each scan or optimisation iteration snapshots the system prompt, tools JSON, and model as a numbered prompt version, retrievable via `/api/capabilities/{id}/prompts/`.
 - **The baseline matters.** The capability's `model` field is what training benchmarks and optimiser baselines measure against — keep it accurate.
-- **History hides, it doesn't delete.** Traces, datasets, and runs underneath a retired or merged capability remain intact, and a merged capability's id redirects to its survivor — including its `overmind/<id>` inference alias.
+- **Delete hides, it doesn't destroy.** Traces, datasets, and runs underneath a deleted capability remain intact. Its `overmind/<id>` inference alias stops serving.

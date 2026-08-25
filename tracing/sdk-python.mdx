@@ -151,7 +151,7 @@ async def add_user_context(request: Request, call_next):
 
 ## `PromptString` — explicit prompt structure
 
-Passing prompts as plain strings forces Overmind to infer which parts are template versus dynamic input. `PromptString` declares that structure, giving agent discovery a stable signal:
+Passing prompts as plain strings forces Overmind to infer which parts are template versus dynamic input. `PromptString` declares that structure, giving capability discovery a stable signal:
 
 ```python
 from overmind import PromptString
@@ -163,7 +163,7 @@ system_prompt = PromptString(
 )
 ```
 
-Use the same `id` for logically identical prompts across providers and versions, and Overmind groups them as one agent. Use one `PromptString` per LLM call — the SDK raises an error if it detects more.
+Use the same `id` for logically identical prompts across providers and versions, and Overmind groups them as one capability. Use one `PromptString` per LLM call — the SDK raises an error if it detects more.
 
 ## Full example
 
@@ -207,4 +207,4 @@ def handle_support_query(user_id: str, question: str) -> str:
         raise
 ```
 
-One trace: `handle_support_query` (entry point) → `gather_context` → `lookup_order` (tool) → the OpenAI `llm_call`, tagged with the user and workflow, attributed to the Support Triage agent.
+One trace: `handle_support_query` (entry point) → `gather_context` → `lookup_order` (tool) → the OpenAI `llm_call`, tagged with the user and workflow, attributed to the Support Triage capability.

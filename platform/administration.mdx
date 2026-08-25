@@ -5,7 +5,7 @@ description: Projects and membership, API keys, the GitHub connection, tracing c
 
 ## Projects
 
-A project is the tenant boundary for everything: agents, traces, datasets, eval sets, runs, deployed models, connectors, and API keys all belong to exactly one project, and switching projects switches the entire console view. Members are added per project (`/api/projects/{id}/memberships/`), so access follows the work.
+A project is the tenant boundary for everything: capabilities, traces, datasets, eval sets, runs, deployed models, connectors, and API keys all belong to exactly one project, and switching projects switches the entire console view. Members are added per project (`/api/projects/{id}/memberships/`), so access follows the work.
 
 Data does not cross project boundaries — an API key is pinned to its project, and a model deployed in one project is not callable from another. That isolation is what makes a project safe to hand to another team or use as a staging sandbox.
 
@@ -47,4 +47,4 @@ Model calls made by *your own* application — including the calls the Optimiser
 
 ## Console conveniences
 
-The command palette (<kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd>) jumps to any agent, dataset, or page by name. Every filtered view in Observability is a shareable URL — and because filters map 1:1 to [API query parameters](/platform/api#conventions), a console URL doubles as an API recipe. The project home is the **Brain** chat: agentic Q&A over your project's agents, traces, and failures, with slash commands and entity @-mentions.
+The command palette (<kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd>) jumps to any capability, dataset, or page by name. Every filtered view in Observability is a shareable URL — and because filters map 1:1 to [API query parameters](/platform/api#conventions), a console URL doubles as an API recipe. The project home is the **Brain** chat: agentic Q&A over your project's capabilities, traces, and failures, with slash commands and entity @-mentions.

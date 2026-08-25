@@ -41,8 +41,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
 | Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove) |
-| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `GET .../merge-preview/`, `POST .../merge/`, `GET .../split-preview/`, `POST .../split/`, `POST .../retire/`, `POST .../reactivate/` |
-| Agent graph | `/api/agent/` | one call: current capabilities, edges, history, last scan |
+| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `GET .../base-model-throughput/`, `DELETE .../` (soft delete) |
+| Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
 | Datasets | `/api/datasets/` | read, rename and delete; `POST .../remove_datapoints/`, `POST .../activate/`, `GET .../cards/`, `GET .../eval-capabilities/`, `POST .../generate-evals/`, `POST .../context/refresh/`, `GET .../datapoints/`, the `/workshop/` family |
@@ -82,7 +82,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 
 A dataset is never POSTed into existence. Rows are staged, measured in full, and
 only then written — so the counts you approve are the counts that land. The same
-sequence backs the console's upload dialog and the agent's dataset tools.
+sequence backs the console's upload dialog and Brain's dataset tools.
 
 <Steps>
   <Step title="Stage a source">
@@ -91,7 +91,7 @@ sequence backs the console's upload dialog and the agent's dataset tools.
 
     `POST /api/ingestions/` opens the build with exactly one source — `upload_id`,
     a trace `selection` or `trace_ids`, or a `source_dataset` to re-read — plus the
-    `intent` (`eval` or `ft`) and, for traces, the `surface` (`agent` or `model`).
+    `intent` (`eval` or `ft`) and, for traces, the `surface` (`capability` or `model`).
     Omit `intent` to let the server infer it from the rows.
   </Step>
   <Step title="Read the measurement">
