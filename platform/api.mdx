@@ -41,8 +41,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
 | Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove) |
-| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `GET .../merge-preview/`, `POST .../merge/`, `GET .../split-preview/`, `POST .../split/`, `POST .../retire/`, `POST .../reactivate/` |
-| Agent graph | `/api/agent/` | one call: current capabilities, edges, history, last scan |
+| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `GET .../base-model-throughput/`, `DELETE .../` (soft delete) |
+| Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
 | Datasets | `/api/datasets/` | read, rename and delete; `POST .../remove_datapoints/`, `POST .../activate/`, `GET .../cards/`, `GET .../eval-capabilities/`, `POST .../generate-evals/`, `POST .../context/refresh/`, `GET .../datapoints/`, the `/workshop/` family |

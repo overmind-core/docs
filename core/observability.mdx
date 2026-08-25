@@ -141,11 +141,11 @@ Traceloop instrumentation is normalised on the way in — scope names under `@tr
 Traces attach to a [capability](/core/capabilities) through the identity stamped on their spans:
 
 - **`overmind.agent.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
-- **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename or a merge never breaks attribution.
+- **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename never breaks attribution.
 
 Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript.
 
-An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan, a merge, or a manual create makes that identity resolvable.
+An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan or a manual create makes that identity resolvable.
 
 <Warning>
 Unbound spans are stored and browsable, but they won't appear on any capability's page, won't be live-scored by its evaluators, and won't join capability-scoped datasets until they bind. Set the identity from day one.
