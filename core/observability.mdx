@@ -3,7 +3,7 @@ title: Observability
 description: How traces get from your agent into Overmind — the OTLP endpoint, the ingestion pipeline, the span data model, and the trace explorer.
 ---
 
-Overmind's observability is built on OpenTelemetry end to end. Your process exports standard OTLP spans; the platform ingests them, maps them onto its data model, ties them to an agent, and scores each arriving trace with your evaluators. This page covers the full path a span travels, with the real endpoints, headers, and attribute names the platform reads.
+Overmind's observability is built on OpenTelemetry end to end. Your process exports standard OTLP spans; the platform ingests them, maps them onto its data model, ties them to a capability, and scores each arriving trace with your evaluators. This page covers the full path a span travels, with the real endpoints, headers, and attribute names the platform reads.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ flow row
 title: The ingestion pipeline, span by span
 A[Your process | OTel SDK / Overmind SDK] -> B[POST /api/v1/traces | OTLP protobuf + API key]
 B -> C[Bulk upsert | Span rows, idempotent on span_id]
-C -> D[Projection | agent, session, job attribution]
+C -> D[Projection | capability, session, job attribution]
 D -> E[Live scoring | evaluator tasks per root span]
 E -> F[Console | trace list, span detail, scores]
 ```
@@ -108,7 +108,7 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
 
 ## How spans map to the data model
 
-A trace is not a separate record: it is the set of span rows sharing a `trace_id`, and the root span (the one with no parent) is what the trace list shows. Each stored span keeps the full OTLP payload — timing, status, resource attributes, span attributes, events, and links — plus platform fields computed at ingest: a span type, an operation name, and foreign keys to the project, agent, session, and job it belongs to.
+A trace is not a separate record: it is the set of span rows sharing a `trace_id`, and the root span (the one with no parent) is what the trace list shows. Each stored span keeps the full OTLP payload — timing, status, resource attributes, span attributes, events, and links — plus platform fields computed at ingest: a span type, an operation name, and foreign keys to the project, capability, session, and job it belongs to.
 
 ### Span classification
 
@@ -163,7 +163,7 @@ This makes the trace list a live quality monitor: filter to low scores over the 
 
 ## Exploring traces in the console
 
-The **Observability** page is a filterable table with three views: **Root traces** (default, one row per end-to-end run), **All spans**, and **Sessions**. Quick filters cover LLM calls, successes, errors, slow (>5s), expensive (>$0.01), and high-token (≥5k) traces; columns include duration, tokens, cost, model, status, scores, and agent. Filters, sort order, and page number all live in the URL, so any slice is a shareable link.
+The **Observability** page is a filterable table with three views: **Root traces** (default, one row per end-to-end run), **All spans**, and **Sessions**. Quick filters cover LLM calls, successes, errors, slow (>5s), expensive (>$0.01), and high-token (≥5k) traces; columns include duration, tokens, cost, model, status, scores, and capability. Filters, sort order, and page number all live in the URL, so any slice is a shareable link.
 
 <Frame caption="Root traces with quick filters. The Scores column carries live evaluator results.">
   <img src="/images/platform/tracing-list.png" alt="Trace list with quick filters and score column" />
@@ -188,7 +188,7 @@ Select rows (or **Select all** across pages) and **Add to dataset**. This is the
 Everything the console shows is available over REST with the same API key:
 
 ```bash
-# List root traces (django-filter query params for time, status, agent, service)
+# List root traces (django-filter query params for time, status, capability, service)
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/traces/"
 
@@ -205,4 +205,4 @@ See the [REST API](/platform/api) page for the full endpoint list.
 
 ## Practical guidance
 
-Initialise tracing once, at startup, before the first model call. Give each agent its own `service_name` so its telemetry stays separate, and set the agent identity from the start. Auto-instrumentation alone produces flat model-call spans; wrap your entry point, workflows, and tools with the [SDK span helpers](/tracing/sdk-python#tracing-your-own-code) so the span tree mirrors your agent's actual structure — that structure is what evaluators and dataset conversion key off. For short-lived processes, flush before exit (`force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).
+Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`agent_name`) from the start. Auto-instrumentation alone produces flat model-call spans; wrap your entry point, workflows, and tools with the [SDK span helpers](/tracing/sdk-python#tracing-your-own-code) so the span tree mirrors your agent's actual structure — that structure is what evaluators and dataset conversion key off. For short-lived processes, flush before exit (`force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).

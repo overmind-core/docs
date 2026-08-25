@@ -9,11 +9,11 @@ Your trained models are served behind an OpenAI-compatible API at `https://api.o
 
 Deployment starts automatically when a training experiment succeeds. A model moves through **Queued → Quantizing → Deploying → Warming → Ready**, and only Ready models accept traffic; failed deployments can be retried without retraining. Deleting a model is irreversible and removes the weights — download them first if in doubt.
 
-<Frame caption="The Inference page: every deployed model with its base model, agent, training run, copyable reference, status, and usage.">
+<Frame caption="The Inference page: every deployed model with its base model, capability, training run, copyable reference, status, and usage.">
   <img src="/images/platform/inference-endpoints.png" alt="Inference page with deployed models table" />
 </Frame>
 
-Opening a model shows its lineage (base model, agent, training run — each linked), live metrics (requests, tokens, throughput in tokens/s, model-inference latency), downloadable weights (a zip of adapter, config, and tokenizer files), and the delete danger zone.
+Opening a model shows its lineage (base model, capability, training run — each linked), live metrics (requests, tokens, throughput in tokens/s, model-inference latency), downloadable weights (a zip of adapter, config, and tokenizer files), and the delete danger zone.
 
 <Frame caption="A served model: 1,018 requests, 551k tokens, activity/throughput/latency charts, weights download, and the Model PR button.">
   <img src="/images/platform/served-endpoint.png" alt="Deployed model detail with metrics and weights download" />

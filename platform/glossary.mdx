@@ -5,7 +5,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 ## Platform structure
 
-**Project** — the tenant boundary. Agents, traces, datasets, runs, models, connectors, and API keys belong to exactly one project. See [Administration](/platform/administration#projects).
+**Project** — the tenant boundary. Capabilities, traces, datasets, runs, models, connectors, and API keys belong to exactly one project. See [Administration](/platform/administration#projects).
 
 **Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/core/capabilities).
 
@@ -15,7 +15,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Job** — the umbrella record for long-running work: eval runs, optimisation runs, training runs, and dataset analyses all surface in the Jobs view.
 
-**Brain** — the console home: agentic chat over your project's agents, traces, and failures.
+**Brain** — the console home: agentic chat over your project's capabilities, traces, and failures.
 
 ## Observability
 
@@ -69,7 +69,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated, replayed over a dataset, scored with a pinned eval set, and the winner ships as a PR. See [Optimisers](/agent-testing/optimisers).
 
-**Iteration** — one loop cycle producing a batch of candidates. Iteration 0 is the **baseline** — the unmodified agent.
+**Iteration** — one loop cycle producing a batch of candidates. Iteration 0 is the **baseline** — the unmodified capability.
 
 **Candidate** — one proposed code diff, scored by its own eval run against the best score so far.
 
@@ -81,10 +81,10 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Training run** — one or more parallel experiments over a training dataset, each producing a candidate model (API resource: `finetuning-jobs`). See [Training](/models/training).
 
-**Baseline (training)** — the agent's production model, scored on the eval dataset at submit time; the reference every trained model's delta is measured against.
+**Baseline (training)** — the capability's production model, scored on the eval dataset at submit time; the reference every trained model's delta is measured against.
 
 **Deployed model** — a served trained model with a copyable reference (`ft-...`) callable via the OpenAI-compatible API. Statuses: queued, quantizing, deploying, warming, ready, failed, deleting, deleted. See [Inference](/models/inference).
 
-**Model PR** — a pull request Overmind opens that switches your agent's configured model to a trained model that beat the baseline.
+**Model PR** — a pull request Overmind opens that switches the capability's configured model to a trained model that beat the baseline.
 
 **Credits** — the billing unit for compute Overmind performs (analyses, eval runs, training, serving). Trace ingest is never credit-gated.
