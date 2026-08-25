@@ -11,7 +11,7 @@ Training turns an agent's accumulated data into a model of your own. You pick a 
 | **Agent** | The agent whose job the model is learning; its production model becomes the benchmark baseline |
 | **Training dataset** | A dataset with the training intent (chat-style messages). See [Datasets](/core/datasets#the-data-model) |
 | **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
-| **Rubric** | The eval set that does the measuring, chosen from the agent's sets |
+| **Rubric** | The eval set that does the measuring, chosen from the capability's sets |
 
 The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). Dataset validation runs before launch with the same checks the [Data Workshop](/core/datasets#the-data-workshop) applies at ingest, so problems surface as fixable findings up front instead of a failed run an hour in.
 
@@ -61,7 +61,7 @@ A run going wrong is visible in the curves long before it ends — validation lo
 
 Each run spawns judge evaluations at two points, both scored on your chosen eval dataset with your chosen rubric:
 
-1. **Baseline** — the agent's production model, snapshotted at submit time.
+1. **Baseline** — the capability's production model, snapshotted at submit time.
 2. **Final** — your newly trained model.
 
 The headline number is the delta per metric. The comparison is deliberately against the model your agent actually runs — not the untouched base model — because that's the comparison a switch decision needs.
@@ -72,7 +72,7 @@ The headline number is the delta per metric. The comparison is deliberately agai
 
 ## After training
 
-A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the agent's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
+A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the capability's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
 
 When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the agent at the new model and opens the pull request — the switch happens through your normal review, never automatically.
 

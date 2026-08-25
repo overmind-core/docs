@@ -8,8 +8,8 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
 ## Prerequisites
 
 <Steps>
-  <Step title="An agent from your code">
-    Candidates are edits to source, so the agent must come from a connected repository with a known entrypoint. See [Agents](/core/agents).
+  <Step title="A capability from your code">
+    Candidates are edits to source, so the capability must come from a connected repository with a known entrypoint. See [Agent & Capabilities](/core/capabilities).
   </Step>
   <Step title="An eval-intent dataset">
     The run replays the agent over the dataset's datapoints; the inputs must be a shape the agent can be invoked with. See [Datasets](/core/datasets).
@@ -55,7 +55,7 @@ A run opens with a **smoke test** — before spending anything, Overmind verifie
 
 Each subsequent iteration generates a batch of candidate diffs, each biased toward a different area of the agent (system prompt, tool descriptions, control flow). Candidates are validated, replayed over every datapoint through the executioner, and scored with the same eval pipeline used everywhere else — every candidate links to a full [eval run](/agent-testing/eval#eval-runs) you can open. A candidate becomes the new starting point only if it beats the best score so far. Runs end by exhausting the budget or early-stopping after consecutive stalls, and can be cancelled at any point. If the executioner disconnects or credits run out, the run parks in a paused state rather than failing.
 
-The agent's evaluation spec bounds what candidates may touch: elements marked **optimisable** are fair game, elements marked **fixed** are off-limits regardless of score gain.
+The capability's evaluation spec bounds what candidates may touch: elements marked **optimisable** are fair game, elements marked **fixed** are off-limits regardless of score gain.
 
 ## Following a run
 

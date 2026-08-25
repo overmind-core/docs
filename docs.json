@@ -63,7 +63,7 @@
       {
         "group": "Core",
         "pages": [
-          "core/agents",
+          "core/capabilities",
           "core/datasets"
         ]
       },
@@ -94,11 +94,11 @@
   "redirects": [
     {
       "source": "/context/agents",
-      "destination": "/core/agents"
+      "destination": "/core/capabilities"
     },
     {
       "source": "/context/repositories",
-      "destination": "/core/agents"
+      "destination": "/core/capabilities"
     },
     {
       "source": "/context/datasets-and-traces",
@@ -139,6 +139,10 @@
     {
       "source": "/inference",
       "destination": "/models/inference"
+    },
+    {
+      "source": "/core/agents",
+      "destination": "/core/capabilities"
     }
   ],
   "contextual": {
