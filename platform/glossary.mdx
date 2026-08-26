@@ -7,6 +7,8 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Project** — the tenant boundary. Capabilities, traces, datasets, runs, models, connectors, and API keys belong to exactly one project. See [Administration](/platform/administration#projects).
 
+**Guest workspace** — a project minted for a guest session from the demo page: one public-repository scan (up to 200 MB), read-only otherwise, deleted after 7 days unless claimed. Creating an account from inside it moves the project to the new account.
+
 **Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/core/capabilities).
 
 **Capability** — one purpose the agent serves, and Overmind's record of it: code structure from a repository scan joined with runtime behaviour from telemetry. A capability the scan no longer finds leaves the agent and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/core/capabilities).
