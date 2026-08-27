@@ -29,7 +29,7 @@ The GitHub connection powers repository scans, observability PRs, Optimiser PRs,
 
 ### Tracing connectors
 
-Managed under **Observability → Integrations**. **Langfuse** is available today (host URL + `pk-lf-...` / `sk-lf-...` keys, per-project import, resumable backfill then incremental sync, manual **Sync now**); LangSmith, Braintrust, Opik, Helicone, and Arize Phoenix are listed as coming soon. Credentials are encrypted at rest and used only to read traces.
+Managed under **Observability → Integrations**. Three connectors are available: **Langfuse** (host URL + `pk-lf-...` / `sk-lf-...` keys, per-project import), **LangSmith** (API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional, EU is `eu.api.smith.langchain.com`), and **Braintrust** (API key or service token `bt-st-...`; API URL). Each runs a resumable backfill then incremental sync, with a manual **Sync now**. Credentials are encrypted at rest and used only to read traces.
 
 ## Jobs
 

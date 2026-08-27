@@ -29,7 +29,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`; JSON and gRPC are not accepted. See [Observability](/core/observability#the-otlp-endpoint).
 
-**Connector** — a pull-based import from another tracing platform. Langfuse is available; LangSmith, Braintrust, Opik, Helicone, and Arize Phoenix are coming soon.
+**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, or Braintrust. Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
 
 **Trace coverage** — the fraction of a capability's discovered components (entrypoints, tools) that emit telemetry, reported on its page.
 
