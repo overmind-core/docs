@@ -52,7 +52,7 @@ A dataset is locked while a training run, eval run, or optimisation run is readi
     Drag a **CSV, TSV, JSON, or JSONL** file anywhere onto the Datasets page. Uploads are the usual path for seed sets and labelled ground truth. For eval data, the expected shape is an array of `{"input": ..., "expected_output": ...}` objects; extra columns are preserved in `extra`.
   </Tab>
   <Tab title="From a connector">
-    Traces synced from [Langfuse](/core/observability#getting-traces-in) land as traces first, then follow the same select-and-convert path as native traces.
+    Traces synced from a [connector](/core/observability#getting-traces-in) (Langfuse, LangSmith, Braintrust) land as traces first, then follow the same select-and-convert path as native traces.
   </Tab>
 </Tabs>
 

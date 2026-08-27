@@ -97,12 +97,16 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
 
     Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.agent.name` as a resource attribute — so your spans are classified and attributed like SDK spans.
   </Tab>
-  <Tab title="Langfuse connector">
-    If your traces already live in Langfuse, connect it under **Observability → Integrations** with your host URL, public key (`pk-lf-...`), and secret key (`sk-lf-...`), then pick the Langfuse project to import. The connector runs a resumable historical backfill, then polls incrementally; **Sync now** triggers a manual pull. Credentials are encrypted at rest.
+  <Tab title="Connectors">
+    If your traces already live in another platform, connect it under **Observability → Integrations**. Three connectors are available:
 
-    <Note>
-    Langfuse is the only connector available today. LangSmith, Braintrust, Opik, Helicone, and Arize Phoenix appear in the console as "coming soon". Imported traces can be browsed and turned into datasets like native ones, but live trace scoring applies only to telemetry arriving through the OTLP endpoint.
-    </Note>
+    | Connector | Credentials | Imports |
+    | --- | --- | --- |
+    | **Langfuse** | Host URL (optional for cloud), public key `pk-lf-...`, secret key `sk-lf-...`; pick the Langfuse project | Traces, evaluations, prompt versions |
+    | **LangSmith** | API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional (EU: `eu.api.smith.langchain.com`) | Traces, runs, threads |
+    | **Braintrust** | API key or service token `bt-st-...`; API URL | Project logs, spans, scores |
+
+    Each connector runs a resumable historical backfill, then polls incrementally; **Sync now** triggers a manual pull. Credentials are encrypted at rest and used only to read. Imported traces can be browsed and turned into datasets like native ones, but live trace scoring applies only to telemetry arriving through the OTLP endpoint.
   </Tab>
 </Tabs>
 
