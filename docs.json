@@ -71,6 +71,7 @@
         "group": "Agent Testing",
         "pages": [
           "agent-testing/eval",
+          "agent-testing/trace-scoring",
           "agent-testing/optimisers"
         ]
       },

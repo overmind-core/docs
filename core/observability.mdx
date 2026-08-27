@@ -15,11 +15,11 @@ title: The ingestion pipeline, span by span
 A[Your process | OTel SDK / Overmind SDK] -> B[POST /api/v1/traces | OTLP protobuf + API key]
 B -> C[Bulk upsert | Span rows, idempotent on span_id]
 C -> D[Projection | capability, session, job attribution]
-D -> E[Live scoring | evaluator tasks per root span]
+D -> E[Trace scoring | units carved, bound to tasks, judged]
 E -> F[Console | trace list, span detail, scores]
 ```
 
-Ingestion is synchronous up to the database write, so a `200` response means your spans are stored. Re-sending the same spans is safe: rows are upserted on the span ID, so retries and duplicate exports never create duplicate data. Live scoring runs asynchronously on a dedicated worker queue, isolated so ingest bursts can't starve evaluation.
+Ingestion is synchronous up to the database write, so a `200` response means your spans are stored. Re-sending the same spans is safe: rows are upserted on the span ID, so retries and duplicate exports never create duplicate data. Trace scoring runs asynchronously on a dedicated worker queue once the trace settles, isolated so ingest bursts can't starve evaluation.
 
 ## The OTLP endpoint
 
@@ -59,12 +59,18 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
     overmind.init(
         service_name="research-agent",
         environment="production",
-        providers=["openai", "anthropic"],  # omit to auto-detect installed providers
+        providers="auto",  # instrument every installed provider SDK
         agent_name="Research Agent",
     )
+
+    @overmind.run(intent=lambda question: question)
+    def answer(question: str) -> str:
+        result = research(question)
+        overmind.deliver(result)
+        return result
     ```
 
-    After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, and Agno client libraries are captured automatically — prompts, completions, tool calls, token usage, latency, and errors. See the [Python SDK reference](/tracing/sdk-python) for decorators that trace your own code.
+    After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, Agno, and LangChain client libraries are captured automatically — prompts, completions, tool calls, token usage, latency, and errors. `run()` brackets one agent run and `deliver()` marks its result, which is what [trace scoring](/agent-testing/trace-scoring) judges. See the [Python SDK reference](/tracing/sdk-python) for the decorators that trace your own code.
   </Tab>
   <Tab title="TypeScript SDK">
     ```ts
@@ -136,6 +142,9 @@ The pipeline understands three attribute dialects — the Overmind SDKs' own key
 | Inputs / outputs | `overmind.input.data` / `overmind.output.data`, `traceloop.entity.input` / `.output`, `gen_ai.input.messages` / `gen_ai.output.messages`, indexed `gen_ai.prompt.{N}.*` / `gen_ai.completion.{N}.*` |
 | Agent identity | `overmind.agent.id`, `overmind.agent.name` |
 | Session grouping | `conversation.id` |
+| Scoring unit | `overmind.unit_kind` (`run` / `turn`), `overmind.delivery` (the terminal deliverable), `overmind.behaviour.key` (a declared task) |
+| Code identity | `code.namespace`, `code.function.name`, `vcs.ref.head.revision` — how a unit binds to a scanned task |
+| Runtime expectations | span events `overmind.eval.intent`, `overmind.eval.expectation`, `overmind.eval.checkpoint`, `overmind.eval.context`, `overmind.eval.conversation_end` |
 | Project (session-auth ingest only) | `overmind.project.id` resource attribute |
 
 Traceloop instrumentation is normalised on the way in — scope names under `@traceloop/*` are rewritten to `@overmind/*` — so OpenLLMetry-instrumented apps work without changes. OpenInference (`openinference.*`) attributes are **not** parsed.
@@ -147,7 +156,7 @@ Traces attach to a [capability](/core/capabilities) through the identity stamped
 - **`overmind.agent.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
 - **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename never breaks attribution.
 
-Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript.
+Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` or a `capability()` scope in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript. A Python agent that serves several capabilities scopes each one with `overmind.capability(name)`; switching capability mid-trace is a handoff that [trace scoring](/agent-testing/trace-scoring#tasks-and-bindings) scores as its own unit.
 
 An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan or a manual create makes that identity resolvable.
 
@@ -157,31 +166,41 @@ Unbound spans are stored and browsable, but they won't appear on any capability'
 
 ### Sessions
 
-Stamp a shared `conversation.id` on the traces of one multi-turn exchange — `set_conversation_id("session-42")` in both SDKs — and Overmind groups them into a **session** with rolled-up trace counts, tokens, cost, and timespan. The **Sessions** view in Observability lists them.
+Stamp a shared `conversation.id` on the traces of one multi-turn exchange — `set_conversation_id("session-42")` in both SDKs, or `run(conversation_id=...)` in Python — and Overmind groups them into a **session** with rolled-up trace counts, tokens, cost, timespan, and a **session score** folded from the asks the user made and which ones were delivered. The **Sessions** view in Observability lists them.
+
+### Trace status
+
+A trace is `live` while spans are still arriving or the root span is missing, `completed` once the root has landed, and `interrupted` when no root arrives inside the settle window (`TRACE_SETTLE_SECONDS`, default 600 s). The trace list, the trace header, and `GET /api/traces/` (`trace_status`) all carry it; a live trace keeps polling in the console.
 
 ## Scores on arrival
 
-Every ingested **root** span enqueues a scoring task. If the owning agent has evaluators marked for trace scoring in its active [eval set](/agent-testing/eval#eval-sets), they run against the fresh trace and write their results onto the span — for example `{"correctness": 0.9, "correctness_reason": "..."}` — which the console renders in the **Scores** column. A periodic sweep catches any trace the immediate pass missed.
+Once a trace settles, the platform carves it into **units**, binds each unit to one of the capability's **tasks** as a **task execution**, and runs the trace-scoring members of the active [eval set](/agent-testing/eval#eval-sets) against each unit. Every verdict is stored as its own row and transcribed onto the root span as `feedback_score.trace_scoring`, whose `_execution.score` is the composite the console shows in the **Score** column. Sessions get a score of their own. A periodic sweep catches any trace the immediate pass missed. The full contract — carve precedence, binding sources, how claims compose, the block shape — is on [Trace scoring](/agent-testing/trace-scoring).
 
-This makes the trace list a live quality monitor: filter to low scores over the last hour and read exactly what failed.
+This makes the executions list a live quality monitor: filter to low scores over the last hour and read exactly which step failed and why.
 
 ## Exploring traces in the console
 
-The **Observability** page is a filterable table with three views: **Root traces** (default, one row per end-to-end run), **All spans**, and **Sessions**. Quick filters cover LLM calls, successes, errors, slow (>5s), expensive (>$0.01), and high-token (≥5k) traces; columns include duration, tokens, cost, model, status, scores, and capability. Filters, sort order, and page number all live in the URL, so any slice is a shareable link.
+The **Observability** page is a filterable table with three views:
 
-<Frame caption="Root traces with quick filters. The Scores column carries live evaluator results.">
+- **Task executions** (default) — one row per scored unit: capability, task, conversation, terminal, status, duration, tokens, cost, model, time, and the execution score. **Group by conversation** folds a page's rows under their `conversation.id`.
+- **Root traces** — one row per end-to-end run; the only view with bulk selection for datasets.
+- **Sessions** — one row per `conversation.id` with rolled-up counts and the session score.
+
+Quick filters cover LLM calls, successes, errors, slow (>5s), expensive (>$0.01), and high-token (≥5k) traces. Filters, sort order, view, and page number all live in the URL, so any slice is a shareable link.
+
+<Frame caption="The Observability table with quick filters. The Score column carries the execution score.">
   <img src="/images/platform/tracing-list.png" alt="Trace list with quick filters and score column" />
 </Frame>
 
-Clicking a trace opens its detail as a panel over the list: a span tree (switchable to a flame-chart waterfall) beside the selected span's detail — inputs, outputs, metadata, and any trace scores with their reasoning. Model-call spans render the full request/response; tool spans show the tool name and arguments.
+Clicking an execution opens it in a sheet: the intent, the steps the unit took with the contract anchor each one matched, and every judge's verdict with its reasoning; a conflict marker names the judges that disagreed. A conversation row opens the whole thread turn by turn. Clicking a trace opens its detail as a panel over the list: a span tree (switchable to a flame-chart waterfall) beside the selected span's detail — inputs, outputs, metadata, and the trace scores with their reasoning. Model-call spans render the full request/response; tool spans show the tool name and arguments.
 
-<Frame caption="Span detail: the span tree with token/cost rollups, plus the selected span's input, output, and trace scores.">
+<Frame caption="Span detail: the span tree with token/cost rollups, plus the selected span's input, output, and verdicts.">
   <img src="/images/platform/span-detail.png" alt="Trace detail with span tree and span details panel" />
 </Frame>
 
 ### From traces to datasets
 
-Select rows (or **Select all** across pages) and **Add to dataset**. This is the highest-leverage workflow in Observability: real production behaviour becomes the test set your agent is measured against, with each resulting datapoint keeping a link to its source trace. [Datasets](/core/datasets) covers what happens next.
+In the **Root traces** view, select rows (or **Select all** across pages) and **Add to dataset**. This is the highest-leverage workflow in Observability: real production behaviour becomes the test set your agent is measured against, with each resulting datapoint keeping a link to its source trace. [Datasets](/core/datasets) covers what happens next.
 
 <Frame caption="Bulk selection: 3,876 traces about to become a dataset.">
   <img src="/images/platform/traces-add-to-dataset.png" alt="Trace selection bar with Add to dataset action" />
@@ -203,10 +222,14 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" \
 # Distinct service names, sessions
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/traces/services/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/sessions/"
+
+# Task executions (the default view's row grain) and the tasks they bind to
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/task-executions/?capability={id}"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
 ```
 
 See the [REST API](/platform/api) page for the full endpoint list.
 
 ## Practical guidance
 
-Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`agent_name`) from the start. Auto-instrumentation alone produces flat model-call spans; wrap your entry point, workflows, and tools with the [SDK span helpers](/tracing/sdk-python#tracing-your-own-code) so the span tree mirrors your agent's actual structure — that structure is what evaluators and dataset conversion key off. For short-lived processes, flush before exit (`force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).
+Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`agent_name`) from the start. Auto-instrumentation alone produces flat model-call spans and no scoring unit: bracket every agent run with [`overmind.run()`](/tracing/sdk-python#run-the-run-boundary), call `deliver()` on the result, and decorate the functions the repository scan anchors on so each unit binds to its task. Spans that start their own trace outside a run boundary are dropped as orphan fragments. For short-lived processes, flush before exit (`run()` flushes on exit; otherwise `force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).

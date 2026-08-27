@@ -40,7 +40,7 @@ No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.a
     See [Observability](/core/observability#the-otlp-endpoint) for the attribute conventions the ingest pipeline reads.
   </Step>
   <Step title="Check the console">
-    Open **Observability**. Each row is a root span; click one for the span tree, timeline, and full model-call transcripts.
+    Open **Observability**. The default **Task executions** view shows one row per scored unit of work; switch to **Root traces** for one row per trace. Click a row for the span tree, timeline, full model-call transcripts, and the verdicts with their reasoning.
 
     <Frame caption="The trace list: duration, tokens, cost, model, status, scores, and capability per root trace.">
       <img src="/images/platform/tracing-list.png" alt="Observability trace list in the Overmind console" />
@@ -54,7 +54,7 @@ No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.a
 
 <CardGroup cols={2}>
   <Card title="Structure your traces" icon="sitemap" href="/tracing/sdk-python">
-    Add `@entry_point`, `@workflow`, and `@tool` spans so traces mirror your agent's real control flow.
+    Bracket each run with `overmind.run()` and add `@tool` and `@observe` spans so traces mirror your agent's real control flow.
   </Card>
   <Card title="Connect your repository" icon="github" href="/core/capabilities">
     A repo scan maps your agent's capabilities, extracts their prompts, and measures trace coverage.

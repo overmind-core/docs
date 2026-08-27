@@ -26,7 +26,9 @@ Connect GitHub from **Agent → Connect a repository** (or during onboarding). Y
 
 The scan first reads your code deterministically — model-call sites, prompts, tools, product entrypoints, and the call graph between them — and uses that evidence to identify capabilities at the purpose level. Roles inside one orchestration (a crew, a graph of workers, a supervisor with specialists) are modes of the one capability that orchestration serves, not separate capabilities.
 
-The scan populates each capability's **evaluation spec** — its input schema, expected output fields, tool configuration, and consistency rules — plus the split between **optimisable elements** and **fixed elements** that later bounds what the [Optimiser](/agent-testing/optimisers) may touch. It also generates a starter set of [evaluators](/agent-testing/eval) grounded in the capability's job and a **policy document** describing correct behaviour; both remain editable afterwards.
+The scan populates each capability's **card** — its task, input schema, expected output fields, tool configuration, and consistency rules — plus the split between **optimisable elements** and **fixed elements** that later bounds what the [Optimiser](/agent-testing/optimisers) may touch. From the card it compiles a starter set of [evaluators](/agent-testing/eval#authoring) and authors judges grounded in the capability's job; both remain editable afterwards.
+
+The scan also mints the capability's **tasks**: each named path through the trajectory map becomes a task with an entry anchor, the anchor segments that follow it, its tool set, and its terminal. Tasks are what [trace scoring](/agent-testing/trace-scoring#tasks-and-bindings) binds production traffic to, and what the Eval Library groups evaluators under. A rescan carries a task's identity through its entry anchor.
 
 A background check compares the scanned commit against your branch head; when the branch moves on, the agent page shows as out of sync and you can re-analyse.
 
@@ -56,12 +58,12 @@ An identity the project does not know leaves the span **unbound** rather than mi
 
 Four sections:
 
-- **Overview** — a facts bar (model, source, built-from component counts, trace coverage), the system prompt lifted from your code, a components explorer with file-level provenance, and the interactive flow graph. This is the fastest way to check that Overmind read your code correctly.
+- **Overview** — a facts bar (model, source, built-from component counts, trace coverage), the system prompt lifted from your code, a components explorer with file-level provenance, and the interactive trajectory map. This is the fastest way to check that Overmind read your code correctly.
 - **Dataset** — datasets attached to this capability, built from its traces or uploaded. See [Datasets](/core/datasets).
 - **Eval metrics** — the capability's evaluators and eval sets, with score history. See [Eval](/agent-testing/eval).
 - **Models** — the production baseline and any models trained on this capability's data, linking into [Training](/models/training) and [Inference](/models/inference).
 
-<Frame caption="The flow graph: inputs, prompt-builder lanes, tool calls, and the output contract, as parsed from the repository.">
+<Frame caption="The trajectory map: the entry point, each task's steps and decision surfaces, and its terminals, as parsed from the repository.">
   <img src="/images/platform/agent-flow.png" alt="Capability flow graph fullscreen view" />
 </Frame>
 
@@ -88,6 +90,10 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilit
 # The machine-readable evaluation spec and prompt versions
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/eval_spec/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/prompts/"
+
+# The capability's tasks and how well the eval set covers each one
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/coverage/?capability={id}"
 ```
 
 `PATCH /api/capabilities/{id}/` updates mutable fields. `DELETE /api/capabilities/{id}/` hides the capability: it leaves lists, scans, and identity lookup, and its data stays. See the [REST API](/platform/api) overview for the full surface.
