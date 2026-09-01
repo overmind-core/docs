@@ -43,10 +43,10 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove) |
 | Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `GET .../base-model-throughput/`, `DELETE .../` (soft delete) |
 | Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
-| Traces | `/api/traces/` | list returns root spans with `trace_status` (`live`, `completed`, `interrupted`) and the `feedback_score.trace_scoring` block; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
+| Traces | `/api/traces/` | list returns root spans with `trace_status` (`live`, `completed`, `interrupted`) and the composed score markers in `feedback_score.trace_scoring`; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with session scores |
-| Task executions | `/api/task-executions/` | one row per scored unit — see [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api) for the filters; `GET /{id}/` adds the observed route, step results and intent |
-| Tasks | `/api/behaviours/` | list (execution counts, mean score); `GET coverage/?capability=` (eval-set coverage per task); `GET /{id}/evaluators/` |
+| Task executions | `/api/task-executions/` | one row per scored unit — see [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api) for the filters; `GET /{id}/` adds the observed route, step results and intent; `GET conversation-turns/?conversation_id=` (one row per turn, with scores, task state, and tool calls) |
+| Tasks | `/api/behaviours/` | list (execution counts, mean score); `GET coverage/?capability=` (eval-set coverage per task); `GET /{id}/evaluators/`; `GET /{id}/authoring-context/` (the task's contract for task-scoped judge authoring) |
 | Datasets | `/api/datasets/` | read, rename and delete; `POST .../remove_datapoints/`, `POST .../activate/`, `GET .../cards/`, `GET .../eval-capabilities/`, `POST .../generate-evals/`, `POST .../context/refresh/`, `GET .../datapoints/`, the `/workshop/` family |
 | Dataset builds | `/api/uploads/`, `/api/ingestions/` | the only door that creates a dataset — see [Building a dataset](#building-a-dataset) |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
@@ -58,6 +58,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Evaluators | `/api/evaluators/` | `GET catalog/`, `GET score-history/`, `POST author/`, `POST compile-rubric/`, `POST .../preview/`, `POST bulk-create/` |
 | Eval sets | `/api/eval-sets/` | `.../members/`, `POST .../activate/`, `POST .../generate-evals/` |
 | Eval runs | `/api/eval-runs/` | `POST .../run/`, `POST .../cancel/`, `GET .../comparison/`, `GET .../compare/`, `GET .../trend/` |
+| Verdicts | `/api/verdicts/` | read surface for score detail — one row per evaluator per trace unit; filter by `trace_id`, `target_id`, `evaluator_name`, `outcome` |
 | Samples / scores / annotations | `/api/eval-samples/`, `/api/eval-scores/`, `/api/eval-annotations/` | |
 
 ### Optimisation, training, serving

@@ -50,6 +50,8 @@ The **grain** is the slice a claim is judged on: `unit` (one turn or step), `tra
 
 An evaluator can be bound to one of the capability's [tasks](/core/capabilities#repository-scan) with a role: an **outcome** evaluator judges the task's deliverable, a **step** evaluator judges one anchor segment of its route. The Eval Library groups evaluators by task, shows each task's coverage (outcome plus every step), and lists the rest under **Unassigned**. `GET /api/behaviours/coverage/?capability={id}` returns the same rollup.
 
+Judges are authored task-scoped from the task's group in the Eval Library or through Brain: `POST /api/evaluators/author/` takes `behaviour`, `behaviour_role` (`outcome` or `step`), and — for a step judge — the `anchor_segment`, validated against the task's contract. `GET /api/behaviours/{id}/authoring-context/` grounds the authoring with the task's latest contract: anchor sequence, steps, tool set, and terminal. A judge with the `trace_scoring` role must be bound to a task, and `eval_set` plus `eval_set_role` attach the new judge to an eval set in the same call.
+
 ### Authoring
 
 Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.

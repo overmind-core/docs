@@ -60,7 +60,8 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
         service_name="research-agent",
         environment="production",
         providers="auto",  # instrument every installed provider SDK
-        agent_name="Research Agent",
+        capability_id="<capability-uuid>",  # from the capability page in the Console
+        capability="Research Agent",  # display label; optional
     )
 
     @overmind.run(intent=lambda question: question)
@@ -101,7 +102,7 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
     )
     ```
 
-    Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.agent.name` as a resource attribute — so your spans are classified and attributed like SDK spans.
+    Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.capability.id` as a resource attribute — so your spans are classified and attributed like SDK spans.
   </Tab>
   <Tab title="Connectors">
     If your traces already live in another platform, connect it under **Observability → Integrations**. Three connectors are available:
@@ -140,7 +141,7 @@ The pipeline understands three attribute dialects — the Overmind SDKs' own key
 | Model | `genai.model`, `genai.response.model`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.model` |
 | Cost | `genai.cost` if the client stamped it, otherwise derived from token counts and model pricing |
 | Inputs / outputs | `overmind.input.data` / `overmind.output.data`, `traceloop.entity.input` / `.output`, `gen_ai.input.messages` / `gen_ai.output.messages`, indexed `gen_ai.prompt.{N}.*` / `gen_ai.completion.{N}.*` |
-| Agent identity | `overmind.agent.id`, `overmind.agent.name` |
+| Capability identity | `overmind.capability.id` (the mapping key), `overmind.capability.name` (display label) |
 | Session grouping | `conversation.id` |
 | Scoring unit | `overmind.unit_kind` (`run` / `turn`), `overmind.delivery` (the terminal deliverable), `overmind.behaviour.key` (a declared task) |
 | Code identity | `code.namespace`, `code.function.name`, `vcs.ref.head.revision` — how a unit binds to a scanned task |
@@ -151,17 +152,17 @@ Traceloop instrumentation is normalised on the way in — scope names under `@tr
 
 ### Capability attribution
 
-Traces attach to a [capability](/core/capabilities) through the identity stamped on their spans:
+Traces attach to a [capability](/core/capabilities) through one attribute:
 
-- **`overmind.agent.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
-- **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename never breaks attribution.
+- **`overmind.capability.id`** — the capability's UUID, copied from its page in the console. The only key ingest binds by; stable through renames.
+- **`overmind.capability.name`** — a display label shown beside raw span attributes. It never resolves a capability.
 
-Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` or a `capability()` scope in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript. A Python agent that serves several capabilities scopes each one with `overmind.capability(name)`; switching capability mid-trace is a handoff that [trace scoring](/agent-testing/trace-scoring#tasks-and-bindings) scores as its own unit.
+The Python SDK stamps both from one setting: `overmind.init(capability_id=...)`, or a `capability(..., id=...)` scope per request in a multi-capability process; switching capability mid-trace is a handoff that [trace scoring](/agent-testing/trace-scoring#tasks-and-bindings) scores as its own unit.
 
-An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan or a manual create makes that identity resolvable.
+An id the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once the id resolves (a deleted capability restored, or a backlog rebind after a scan). Run the scan (or create the capability) first, then copy its id into the SDK.
 
 <Warning>
-Unbound spans are stored and browsable, but they won't appear on any capability's page, won't be live-scored by its evaluators, and won't join capability-scoped datasets until they bind. Set the identity from day one.
+Unbound spans are stored and browsable, but they won't appear on any capability's page, won't be live-scored by its evaluators, and won't join capability-scoped datasets until they bind. A name is never enough — set `capability_id` from day one.
 </Warning>
 
 ### Sessions
@@ -174,7 +175,7 @@ A trace is `live` while spans are still arriving or the root span is missing, `c
 
 ## Scores on arrival
 
-Once a trace settles, the platform carves it into **units**, binds each unit to one of the capability's **tasks** as a **task execution**, and runs the trace-scoring members of the active [eval set](/agent-testing/eval#eval-sets) against each unit. Every verdict is stored as its own row and transcribed onto the root span as `feedback_score.trace_scoring`, whose `_execution.score` is the composite the console shows in the **Score** column. Sessions get a score of their own. A periodic sweep catches any trace the immediate pass missed. The full contract — carve precedence, binding sources, how claims compose, the block shape — is on [Trace scoring](/agent-testing/trace-scoring).
+Once a trace settles, the platform carves it into **units**, binds each unit to one of the capability's **tasks** as a **task execution**, and runs the trace-scoring members of the active [eval set](/agent-testing/eval#eval-sets) against each unit. Every verdict is stored as its own row, read over `GET /api/verdicts/`; the unit's span keeps the composed markers in `feedback_score.trace_scoring`, whose `_execution.score` is the composite the console shows in the **Score** column. Sessions get a score of their own. A periodic sweep catches any trace the immediate pass missed. The full contract — carve precedence, binding sources, how claims compose, the marker shape — is on [Trace scoring](/agent-testing/trace-scoring).
 
 This makes the executions list a live quality monitor: filter to low scores over the last hour and read exactly which step failed and why.
 

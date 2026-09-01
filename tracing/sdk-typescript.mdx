@@ -3,6 +3,10 @@ title: TypeScript SDK
 description: Reference for @overmind-lab/trace-sdk — OvermindClient, initTracing(), manual span helpers, and shutdown patterns for Node.js.
 ---
 
+<Warning>
+The TypeScript SDK still stamps the retired `overmind.agent.*` identity attributes. The platform now binds spans by `overmind.capability.id` only, so traces from this package stay **unbound** until a release adopts the new attribute. Until then, prefer the [Python SDK](/tracing/sdk-python) or raw OTel with `overmind.capability.id`.
+</Warning>
+
 `@overmind-lab/trace-sdk` instruments the LLM clients you already use in Node.js and exports OpenTelemetry spans to Overmind.
 
 ```bash

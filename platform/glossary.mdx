@@ -73,7 +73,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Score** — one evaluator's result on one sample, with a typed outcome: `scored`, `abstained`, `not_applicable`, `skipped`, or `error`. Only `scored` results feed averages.
 
-**Verdict** — one evaluator's result on one trace unit, stored as its own row and transcribed into the root span's `feedback_score.trace_scoring` block.
+**Verdict** — one evaluator's result on one trace unit, stored as its own row — the source of truth the console reads over `GET /api/verdicts/`. The unit span's `feedback_score.trace_scoring` block keeps only the composed markers.
 
 **Execution score** — the composite of a unit's verdicts (0–1): safety claims cap it, gates flip their own verdict, the rest are weighted. Shown as the Score column.
 

@@ -28,7 +28,8 @@ overmind.init(
     service_name="my-service",
     environment="production",
     providers="auto",
-    agent_name="Support Triage",
+    capability_id="<capability-uuid>",  # from the capability page in the Console
+    capability="Support Triage",  # display label; optional
 )
 ```
 
@@ -39,14 +40,14 @@ overmind.init(
 | `environment` | `str \| None` | e.g. `"production"`, `"staging"` |
 | `providers` | `list[str] \| str \| None` | `"auto"` instruments every installed provider whose instrumentor is present; a list pins the set (`"openai"`, `"anthropic"`, `"google"`, `"agno"`, `"langchain"`); `[]` enables all known; omit to enable none |
 | `overmind_base_url` | `str \| None` | Falls back to `OVERMIND_API_URL`, then `https://api.overmindlab.ai` |
-| `agent_id` | `str \| None` | Capability UUID; stamped as `overmind.agent.id` on every span |
-| `agent_name` | `str \| None` | Stable capability name; stamped as `overmind.agent.name` |
+| `capability_id` | `str \| None` | The capability's UUID, stamped as `overmind.capability.id` — the only key ingest binds by |
+| `capability` | `str \| None` | Display label, stamped as `overmind.capability.name`; never resolves a capability |
 | `project_id` | `str \| None` | Project UUID (`overmind.project.id`) |
 | `redact_keys` | `Iterable[str] \| None` | Extra argument or payload keys to redact on capture, beyond the secret-named defaults |
 | `debug` | `bool` | Prints the endpoint, resolved identity, enabled instrumentors, and export mode |
 | `export_orphan_spans` | `bool` | Export spans that start a trace outside any run boundary (dropped by default) |
 
-Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_AGENT_NAME`, `OVERMIND_AGENT_ID`, `OVERMIND_STRICT_MODE`.
+Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_CAPABILITY_ID`, `OVERMIND_CAPABILITY_NAME`, `OVERMIND_STRICT_MODE`.
 
 After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, Agno, and LangChain client libraries produce `llm_call` spans automatically, capturing messages and tool calls, model and request parameters, token usage, latency, and errors. Spans export via a batching OTLP/HTTP exporter to `POST {base_url}/api/v1/traces`.
 
@@ -72,7 +73,7 @@ class Agent:
 | Parameter | Description |
 | --- | --- |
 | `name` | Span name; defaults to the function's qualified name when used as a decorator |
-| `capability` / `capability_id` | The capability this run belongs to; falls back to `init()` / `OVERMIND_AGENT_NAME` / `OVERMIND_AGENT_ID` |
+| `capability` / `capability_id` | The capability this run belongs to; falls back to `init()` / `OVERMIND_CAPABILITY_ID` / `OVERMIND_CAPABILITY_NAME` |
 | `intent` | What the user asked for; judges ground in it |
 | `conversation_id` | Groups this run into a [session](/core/observability#sessions) |
 | `tags` | Attributes stamped on the run span |
@@ -133,10 +134,11 @@ def research(topic: str) -> str:
 | `format_input` / `format_output` | `fn(bound_args)` / `fn(result, bound_args)` hooks that replace the captured payload |
 | `provenance` | Evidence class for judges: `user`, `agent`, `environment`, `harness`. Tool and retrieval spans get `environment` and LLM spans `agent` automatically |
 | `unit` | `"turn"` marks the span as an independently scored unit; `"run"` is set by `entry_point` |
-| `capability` | Scope this span and its children to a named capability (see below) |
+| `capability` | Display label for the scope (see below); never resolves a capability |
+| `capability_id` | The capability's UUID — the only key ingest binds the span and its children by |
 | `type` | A `SpanType` or its name (`"tool"`, `"llm"`, `"entry_point"`) |
 
-Captured payloads are scrubbed automatically: secret-named keys are redacted and base64 or data-URL blobs replaced; text is kept in full. `observe_safe` is `observe(capture="none")` for code that handles credentials — prefer masking values before they reach traced functions.
+Captured payloads are scrubbed automatically: secret-named keys are redacted, base64 or data-URL blobs replaced, and attribute values coerced to OTLP-safe primitives; text is kept in full. For code that handles credentials, use `capture="none"` — and prefer masking values before they reach traced functions.
 
 The span name may be a callable receiving the call's arguments — for a polymorphic dispatcher, each invocation then emits its own tool span and `tool.name` follows the resolved action:
 
@@ -163,10 +165,10 @@ Rules that matter: call `deliver()` inside the unit that produced the deliverabl
 
 ### `capability()` — multi-capability agents
 
-`capability(name, id=None)` declares that all work inside belongs to the named capability: every span created inside carries `overmind.agent.name` / `.id`, and the outer identity is restored on exit. Entering a different capability mid-trace is a **handoff** — the first span of the new scope is stamped as a turn, so the platform scores it as a new unit against that capability's eval set. Only declared identities are stamped; nothing is created.
+`capability(name=None, id=None)` declares that all work inside belongs to one capability: every span created inside carries `overmind.capability.id` / `.name`, and the outer identity is restored on exit. `id` — the capability's UUID from the console — is the binding; a name-only scope labels the spans and leaves them unbound. Entering a different capability (by id) mid-trace is a **handoff** — the first span of the new scope is stamped as a turn, so the platform scores it as a new unit against that capability's eval set. Only declared identities are stamped; nothing is created.
 
 ```python
-with overmind.capability("DOM Element Locator", id="..."):  # id optional
+with overmind.capability("dom-element-locator", id="..."):
     locate(prompt)
 ```
 
@@ -277,7 +279,8 @@ overmind.init(
     service_name="customer-support",
     environment="production",
     providers="auto",
-    agent_name="Support Triage",
+    capability_id="<capability-uuid>",
+    capability="Support Triage",
 )
 
 client = OpenAI()

@@ -56,24 +56,21 @@ The eval set's **trace scoring** members run per unit. Every evaluator carries a
 - **Progress** and **quality** claims are weighted scoring leaves.
 - The **grounding** claim is the terminal node; the session fold closes the graph.
 
-Each verdict is stored as a row (`Verdict`: evaluator, target, outcome, score, rationale, sub-scores) and transcribed onto the root span as `feedback_score.trace_scoring`:
+Each verdict is stored as its own `Verdict` row: evaluator, target span, typed outcome, score, rationale, and a flat `metadata` block (`passed`, `scope`, `grain`, `gate`, `surface_area`, `sub_scores`). Verdict rows are the source of truth — every detail surface reads them over `GET /api/verdicts/`. The unit's span keeps only the composed markers, written to `feedback_score.trace_scoring` as a derived cache the list views read:
 
 ```json
 {
   "trace_scoring": {
-    "answer-grounded": {
-      "score": 0.85, "passed": true, "outcome": "scored",
-      "rationale": "...", "grain": "terminal", "gate": false,
-      "evaluator_id": "...", "evaluator_version": 3, "scored_at": "..."
-    },
-    "_execution": {"score": 0.85, "phases": {...}, "evaluations": 4, "not_applicable": 0}
+    "_execution": {"score": 0.85, "phases": {...}, "evaluations": 4, "not_applicable": 0, "any_failed": false},
+    "_skipped_members": ["tool-hygiene"],
+    "_scored_at": "..."
   }
 }
 ```
 
-`_execution.score` (0–1) is the composite the console shows as the **Score** column. When a safety cap lowered it, the block names `cap_evaluator` and `failure_mode_cap`; when two outcome judges land more than 0.5 apart, it carries a `conflict` with both members' values and the console marks the row instead of averaging silently. A trace with several entry-point invocations gets one `_execution` per unit plus an `invocations` summary entry (`"2/2 invocations passed"`) on the root.
+`_execution.score` (0–1) is the composite the console shows as the **Score** column. When a safety cap lowered it, the marker names `cap_evaluator` and `failure_mode_cap`; when two outcome judges land more than 0.5 apart, it carries a `conflict` with both members' values and the console marks the row instead of averaging silently. A trace with several entry-point invocations scores each unit onto its own span; the root span gets only an `invocations` summary entry (`"2/2 invocations passed"`) and an `_execution` that averages the unit scores.
 
-Outcomes are typed — `scored`, `abstained`, `not_applicable`, `skipped`, `error` — and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing.
+Outcomes are typed — `scored`, `abstained`, `not_applicable`, `error` — and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing; a member skipped for its grain, a behaviour filter, or an interrupted run persists a retryable `not_applicable` row whose `unmet` list carries a `skip:` clause.
 
 ## Session scores
 
@@ -100,6 +97,11 @@ See the [Python SDK](/tracing/sdk-python#runtime-expectations) for the calls.
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/task-executions/?capability={id}&binding_source=declared"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/task-executions/{id}/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/task-executions/conversation-turns/?conversation_id={id}"
+
+# Verdicts — the read surface for score detail
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/verdicts/?trace_id={trace_id}"
 
 # Tasks, per-task coverage of the eval set, and the evaluators bound to one task
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
@@ -107,4 +109,10 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviour
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/{id}/evaluators/"
 ```
 
-List filters on `/api/task-executions/`: `project`, `capability`, `behaviour`, `binding_source`, `trace_id`, `status`, `started_at__gte/lte`, `received_at__gte/lte`, `min_duration_ms`, `max_duration_ms`, `has_error`, `service_name`, `operation`, `span_type`, `status_code`, `model`, `has_model`, `total_tokens__gte/lte`, `total_cost__gte/lte`. The detail adds `observed_route` (the anchors the unit hit), `step_results` (per-step verdicts), and `user_intent`.
+List filters on `/api/task-executions/`: `project`, `capability`, `behaviour`, `binding_source`, `trace_id`, `status`, `started_at__gte/lte`, `received_at__gte/lte`, `min_duration_ms`, `max_duration_ms`, `has_error`, `service_name`, `operation`, `span_type`, `status_code`, `model`, `has_model`, `total_tokens__gte/lte`, `total_cost__gte/lte`. The detail adds `observed_route` (the anchors the unit hit), `step_results` (per-step verdicts), `user_intent`, and the unit's composed markers: `execution_score`, `conflict`, `skipped_members`, and the `flow` (each contract anchor with its match and verdict).
+
+`GET /api/verdicts/` lists `Verdict` rows newest-first. Filters: `target_id`, `target_id__in`, `target_kind`, `evaluator_name`, `outcome`, and `trace_id` — every span-target verdict of one trace in a single call. Each row carries the score, `passed`, the typed outcome, the rationale (`explanation`), `scope` / `grain` / `gate` / `sub_scores` lifted out of the metadata, the `unmet` warrant clauses, the judge `identifier`, and cost and latency.
+
+`GET /api/task-executions/conversation-turns/?conversation_id={id}` returns one row per turn of a conversation, assembled server-side from the executions and their traces' spans: the turn's intent, input and output text, output kind, execution and session scores with the session rationale, the task state (outstanding asks, delivered-wrong flag), per-step results, and the tool calls with their inputs and outputs.
+
+`GET /api/behaviours/coverage/?capability={id}` returns, per task, the outcome evaluators and whether the outcome is covered, plus each anchor segment with the step evaluators bound to it.
