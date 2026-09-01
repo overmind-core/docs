@@ -1,25 +1,25 @@
 ---
 title: Python SDK
-description: Reference for the overmind package — init(), provider auto-instrumentation, span decorators, and context helpers.
+description: Reference for the overmind package — init(), provider auto-instrumentation, the run boundary, span decorators, tasks and capabilities, and runtime expectations.
 ---
 
-The `overmind` package instruments your LLM stack over OpenTelemetry and exports spans to Overmind. One `init()` call captures every supported provider call automatically; decorators and span helpers trace the code around those calls.
+The `overmind` package instruments your LLM stack over OpenTelemetry and exports spans to Overmind. One `init()` call captures every supported provider call automatically; `run()` brackets one agent run; decorators trace the code around the model calls; a few one-line calls declare what the run was asked to do and what it delivered, which is what [trace scoring](/agent-testing/trace-scoring) judges.
 
 ```bash
 pip install overmind
 
-# alongside the providers you use
-pip install overmind openai
-pip install overmind anthropic
-pip install overmind google-genai
-pip install overmind agno
+# extras
+pip install 'overmind[langchain]'     # LangChain / LangGraph span coverage
+pip install 'overmind[cli]'           # the `overmind` command (optimisation loop, skills)
+pip install 'overmind[inference]'     # genai.cost enrichment for served models
+pip install 'overmind[tracing-full]'  # requests / httpx / logging spans
 ```
 
-The package also ships the `overmind` CLI used by [optimisation runs](/agent-testing/optimisers#prerequisites) and an OpenAI-compatible [inference client](/models/inference#calling-your-model).
+The core package is tracing-only. The `overmind` CLI used by [optimisation runs](/agent-testing/optimisers#prerequisites) and the OpenAI-compatible [inference client](/models/inference#calling-your-model) come with the `cli` and `inference` extras.
 
 ## `init()`
 
-Call once at process startup, before any LLM call. Idempotent and re-entrant — calling again with more `providers` enables them without tearing down the tracer.
+Call once at process startup, before any LLM call. Idempotent and re-entrant — calling again with more `providers` enables them without tearing down the tracer. Without an API key it logs once, returns `False`, and every decorator and helper below becomes a no-op, so the integration is safe to ship in apps where Overmind is optional; set `OVERMIND_STRICT_MODE=true` to make a missing key raise.
 
 ```python
 import overmind
@@ -27,8 +27,9 @@ import overmind
 overmind.init(
     service_name="my-service",
     environment="production",
-    providers=["openai", "anthropic"],
-    agent_name="Support Triage",
+    providers="auto",
+    capability_id="<capability-uuid>",  # from the capability page in the Console
+    capability="Support Triage",  # display label; optional
 )
 ```
 
@@ -37,19 +38,61 @@ overmind.init(
 | `overmind_api_key` | `str \| None` | Falls back to `OVERMIND_API_KEY` |
 | `service_name` | `str \| None` | Shown in the console; falls back to `OVERMIND_SERVICE_NAME` |
 | `environment` | `str \| None` | e.g. `"production"`, `"staging"` |
-| `providers` | `list[str] \| None` | Any of `"openai"`, `"anthropic"`, `"google"`, `"agno"`. Omit to auto-detect installed providers |
+| `providers` | `list[str] \| str \| None` | `"auto"` instruments every installed provider whose instrumentor is present; a list pins the set (`"openai"`, `"anthropic"`, `"google"`, `"agno"`, `"langchain"`); `[]` enables all known; omit to enable none |
 | `overmind_base_url` | `str \| None` | Falls back to `OVERMIND_API_URL`, then `https://api.overmindlab.ai` |
-| `agent_id` | `str \| None` | Agent UUID; stamped as `overmind.agent.id` on every span |
-| `agent_name` | `str \| None` | Stable agent name; stamped as `overmind.agent.name` |
+| `capability_id` | `str \| None` | The capability's UUID, stamped as `overmind.capability.id` — the only key ingest binds by |
+| `capability` | `str \| None` | Display label, stamped as `overmind.capability.name`; never resolves a capability |
 | `project_id` | `str \| None` | Project UUID (`overmind.project.id`) |
+| `redact_keys` | `Iterable[str] \| None` | Extra argument or payload keys to redact on capture, beyond the secret-named defaults |
+| `debug` | `bool` | Prints the endpoint, resolved identity, enabled instrumentors, and export mode |
+| `export_orphan_spans` | `bool` | Export spans that start a trace outside any run boundary (dropped by default) |
 
-Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_STRICT_MODE`.
+Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_CAPABILITY_ID`, `OVERMIND_CAPABILITY_NAME`, `OVERMIND_STRICT_MODE`.
 
-After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, and Agno client libraries produce `llm_call` spans automatically, capturing messages and tool calls, model and request parameters, token usage, latency, and errors. Spans export via a batching OTLP/HTTP exporter to `POST {base_url}/api/v1/traces`.
+After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, Agno, and LangChain client libraries produce `llm_call` spans automatically, capturing messages and tool calls, model and request parameters, token usage, latency, and errors. Spans export via a batching OTLP/HTTP exporter to `POST {base_url}/api/v1/traces`.
+
+## `run()` — the run boundary
+
+Every agent execution needs exactly one run boundary. `run()` is the one scope that covers it: capability identity, the entry-point span (`overmind.unit_kind = "run"`), the intent, the conversation id, tags, error status, and a flush on exit. Use it as a context manager or as a decorator on the entry point:
+
+```python
+with overmind.run("triage-run", intent=request["question"], conversation_id=ticket_id) as run:
+    answer = agent.invoke(request)
+    run.deliver(answer)  # the terminal deliverable
+```
+
+```python
+class Agent:
+    @overmind.run(
+        intent=lambda self, *a, **k: self.task,
+        conversation_id=lambda self, *a, **k: self.task_id,
+    )
+    async def run(self): ...
+```
+
+| Parameter | Description |
+| --- | --- |
+| `name` | Span name; defaults to the function's qualified name when used as a decorator |
+| `capability` / `capability_id` | The capability this run belongs to; falls back to `init()` / `OVERMIND_CAPABILITY_ID` / `OVERMIND_CAPABILITY_NAME` |
+| `intent` | What the user asked for; judges ground in it |
+| `conversation_id` | Groups this run into a [session](/core/observability#sessions) |
+| `tags` | Attributes stamped on the run span |
+
+As a decorator, every parameter except `name` also accepts a callable receiving the wrapped call's arguments, resolved per invocation. The run span carries the function's `code.namespace` / `code.function.name`, so one decoration also satisfies the entry-point anchor a repository scan expects. The return value is not delivered automatically: call `deliver()` (or the handle's `run.deliver()`) inside the unit that produced it.
+
+Spans that would start their own trace **outside** a run boundary are suppressed as orphan fragments (the SDK warns once). If a trace is missing, add the bracket — do not reach for `export_orphan_spans`.
+
+## `deliver()` — the terminal deliverable
+
+```python
+overmind.deliver(payload, *, grounded_by=None, name="deliver", provenance="agent")
+```
+
+Captures the run's result on its own child span, stamped `overmind.delivery = true`. Trace scoring judges this span as the unit's terminal. `grounded_by` names the evidence spans the deliverable rests on; when omitted, the environment-provenance spans (tools, retrieval) collected in the current trace are used, so call it inside the run. A `KeyboardInterrupt` or cancellation flushes the run span before re-raising, so interrupted runs still land.
 
 ## Tracing your own code
 
-Auto-instrumentation only sees model calls. Wrapping the code around them — the entry point, tools, retrieval steps — turns flat spans into a tree that mirrors your agent's structure.
+Auto-instrumentation only sees model calls. Wrapping the code around them — tools, retrieval steps, the phases of a run — turns flat spans into a tree that mirrors your agent's structure, and gives trace scoring the anchors it binds to.
 
 ### Span types
 
@@ -59,7 +102,7 @@ from overmind import SpanType
 
 | `SpanType` | Attribute value | Meaning |
 | --- | --- | --- |
-| `SpanType.ENTRY_POINT` | `entry_point` | The outermost traced function of a request |
+| `SpanType.ENTRY_POINT` | `entry_point` | The run root (`overmind.unit_kind = "run"`); one per trace |
 | `SpanType.WORKFLOW` | `workflow` | A multi-step process or pipeline |
 | `SpanType.TOOL` | `tool_call` | A tool or function the agent invokes |
 | `SpanType.RETRIEVAL` | `retrieval` | A RAG / vector-search step |
@@ -68,36 +111,70 @@ from overmind import SpanType
 
 ### Decorators
 
-`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, `@retrieval`, and `@function` are typed shortcuts. All of them capture arguments as `inputs` and the return value as `outputs` (JSON-serialised, best effort). They record duration and status, re-raise exceptions after recording them, and work on both sync and async functions.
+`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, and `@retrieval` are typed shortcuts. All work on sync and async functions, record duration and status, and re-raise exceptions after recording them.
 
 ```python
 import overmind
 
-overmind.init(service_name="research-agent", providers=["openai"])
+@overmind.tool(ignore=("session",))  # tool evidence; `session` is never captured
+def search(query: str, session) -> list[dict]: ...
 
-@overmind.tool()
-def web_search(query: str) -> list[str]: ...
+@overmind.observe(type="llm", capture="messages")  # full chat evidence
+def call_model(messages: list[dict]) -> dict: ...
 
 @overmind.workflow()
 def research(topic: str) -> str:
-    return summarize(web_search(topic))
-
-@overmind.entry_point()
-def handle_request(topic: str) -> str:
-    return research(topic)
+    return summarise(search(topic, session))
 ```
 
-Because each function calls the next, spans nest into one tree: `handle_request` → `research` → `web_search` → the auto-captured `llm_call` spans underneath.
+| Option | Meaning |
+| --- | --- |
+| `capture` | `"auto"` (scrubbed args and result — the default), `"none"`, or `"messages"` (normalise the `messages` argument and a list result into role/content chat evidence) |
+| `ignore` | Argument names never captured (sessions, clients, model handles) |
+| `format_input` / `format_output` | `fn(bound_args)` / `fn(result, bound_args)` hooks that replace the captured payload |
+| `provenance` | Evidence class for judges: `user`, `agent`, `environment`, `harness`. Tool and retrieval spans get `environment` and LLM spans `agent` automatically |
+| `unit` | `"turn"` marks the span as an independently scored unit; `"run"` is set by `entry_point` |
+| `capability` | Display label for the scope (see below); never resolves a capability |
+| `capability_id` | The capability's UUID — the only key ingest binds the span and its children by |
+| `type` | A `SpanType` or its name (`"tool"`, `"llm"`, `"entry_point"`) |
+
+Captured payloads are scrubbed automatically: secret-named keys are redacted, base64 or data-URL blobs replaced, and attribute values coerced to OTLP-safe primitives; text is kept in full. For code that handles credentials, use `capture="none"` — and prefer masking values before they reach traced functions.
+
+The span name may be a callable receiving the call's arguments — for a polymorphic dispatcher, each invocation then emits its own tool span and `tool.name` follows the resolved action:
+
+```python
+class Tools:
+    @overmind.tool(name=lambda self, action, **params: action.name)
+    def act(self, action, **params): ...
+```
 
 <Tip>
-Always add an `@entry_point()`. It marks the unit that trace scoring and dataset conversion treat as one run — without it, model calls arrive as disconnected spans. Tools are the next most valuable layer; most teams stop there.
+Decorate every function the repository scan anchors on. An undecorated anchor emits no `code.namespace` / `code.function.name`, so the task it belongs to never binds and its step judges skip it.
 </Tip>
 
-For functions that handle secrets or oversized payloads, `observe_safe` traces without capturing inputs or outputs.
+### `task()` — carve a run into units
+
+`task(key, unit="turn")` makes a phase an independently scored unit bound to a declared task; `key` is the task's slug from the capability's trajectory map. Re-entering the same key re-uses the still-open turn span, so a re-entrant phase (a tool loop, debate rounds) lands in one unit. Without `unit`, `task()` only pins the spans inside to that task.
+
+```python
+with overmind.task("investment-debate", unit="turn"):
+    ...  # spans here nest under the debate's turn unit
+```
+
+Rules that matter: call `deliver()` inside the unit that produced the deliverable; internal fan-out, retries, and loop bodies must not declare `unit`.
+
+### `capability()` — multi-capability agents
+
+`capability(name=None, id=None)` declares that all work inside belongs to one capability: every span created inside carries `overmind.capability.id` / `.name`, and the outer identity is restored on exit. `id` — the capability's UUID from the console — is the binding; a name-only scope labels the spans and leaves them unbound. Entering a different capability (by id) mid-trace is a **handoff** — the first span of the new scope is stamped as a turn, so the platform scores it as a new unit against that capability's eval set. Only declared identities are stamped; nothing is created.
+
+```python
+with overmind.capability("dom-element-locator", id="..."):
+    locate(prompt)
+```
 
 ### `start_span()` — blocks and loops
 
-A context manager for regions that aren't whole functions. It opens a child span under whatever span is active. Unlike the decorators, it captures nothing automatically — attach metadata via `attributes` or `set_tag()`.
+A context manager for regions that aren't whole functions. It opens a child span under whatever span is active and captures nothing automatically — attach metadata via `attributes` or `set_tag()`.
 
 ```python
 from overmind import start_span, set_tag, SpanType
@@ -108,32 +185,59 @@ for i, doc in enumerate(documents):
         set_tag("doc.tokens", result.tokens)
 ```
 
-### `get_tracer()` — raw OpenTelemetry
+### LangChain / LangGraph
 
-For span lifetimes that don't fit a single block, drop down to the OTel tracer. Raises `RuntimeError` before `init()`.
+`pip install 'overmind[langchain]'`, then `providers=["langchain"]` (or `"auto"`) mounts the LangChain instrumentor, which covers LangGraph: every chain, model, and tool invocation gets a span with model, token, and cost evidence. For the scoring semantics no instrumentor can know, `overmind.integrations.langgraph.bind` maps graph nodes to task units — call it on the `StateGraph` after `add_node()`, before `compile()`:
 
 ```python
-from overmind import get_tracer
+from overmind.integrations import langgraph as overmind_langgraph
 
-tracer = get_tracer()
-with tracer.start_as_current_span("manual_step") as span:
-    span.set_attribute("step", "load")
+overmind_langgraph.bind(
+    workflow,
+    # Default key per node: the slugified node name. Override where the trajectory
+    # map groups nodes differently; None opts a node out.
+    behaviours={"Bull Researcher": "investment-debate", "Bear Researcher": "investment-debate"},
+    deliver="Portfolio Manager",  # this node's return value is the deliverable
+)
+app = workflow.compile()
 ```
+
+## Runtime expectations
+
+These declare evidence the platform evaluates server-side; each is a span event on the current run and a no-op before `init()`.
+
+| Call | Effect |
+| --- | --- |
+| `intent(text, source="declared")` | What the user asked for in this run. Undeclared runs fall back to the first user message |
+| `expect(kind, spec, *, id=None, scope="trace", gate=False)` | A runtime expectation — `"contains"` or `"regex"` over the output, `"schema"` with required keys, `"constraint"` with a plain-language rule — checked when the trace is scored; `gate=True` makes a miss flip the verdict |
+| `checkpoint(name)` | A named trajectory milestone the run must reach |
+| `eval_context(**facts)` | Facts the judge may use; values are coerced like `set_tag` |
+| `end_conversation()` | Signals the conversation is complete and closes its ledger |
+
+```python
+with overmind.run("triage", intent=question) as run:
+    overmind.expect("schema", {"required_keys": ["category", "summary"]}, id="triage-shape", gate=True)
+    overmind.expect("constraint", "Never promise a refund amount.", id="no-refund-promise")
+    result = triage(question)
+    overmind.checkpoint("classified")
+    run.deliver(result)
+```
+
+How the platform uses them is on [Trace scoring](/agent-testing/trace-scoring#runtime-expectations-from-the-sdk).
 
 ## Context helpers
 
-All operate on the current span/trace — call them inside a traced function or request handler.
+All operate on the current span or trace — call them inside a traced function or request handler.
 
 | Helper | Effect |
 | --- | --- |
-| `set_agent_id(id)` / `set_agent_name(name)` | Bind downstream spans to a [capability](/core/capabilities) |
-| `set_project_id(id)` | Set the project explicitly |
-| `set_conversation_id(id)` | Group traces into a [session](/core/observability#sessions) (`conversation` is the decorator form) |
+| `set_conversation_id(id)` | Group traces into a [session](/core/observability#sessions) |
 | `set_workflow_name(name)` | Label every downstream span with a workflow name |
 | `set_user(user_id, email=None, username=None)` | Tag the trace with a user identity |
 | `set_tag(key, value)` | Attach arbitrary filterable metadata to the current span |
 | `capture_exception(exc)` | Record a handled exception and mark the span as an error |
-| `force_flush_traces()` | Flush buffered spans — call before scripts and serverless handlers exit |
+| `force_flush_traces()` | Flush buffered spans — `run()` does this on exit; call it yourself before scripts and serverless handlers exit otherwise |
+| `get_tracer()` | The raw OpenTelemetry tracer for span lifetimes that don't fit one block |
 
 ```python
 from fastapi import FastAPI, Request
@@ -169,14 +273,14 @@ Use the same `id` for logically identical prompts across providers and versions,
 
 ```python
 import overmind
-from overmind import start_span, set_user, set_tag, capture_exception, SpanType
 from openai import OpenAI
 
 overmind.init(
     service_name="customer-support",
     environment="production",
-    providers=["openai"],
-    agent_name="Support Triage",
+    providers="auto",
+    capability_id="<capability-uuid>",
+    capability="Support Triage",
 )
 
 client = OpenAI()
@@ -185,26 +289,23 @@ client = OpenAI()
 def lookup_order(order_id: str) -> dict:
     return {"id": order_id, "status": "shipped"}
 
-@overmind.entry_point()
+@overmind.run(
+    intent=lambda user_id, question: question,
+    conversation_id=lambda user_id, question: user_id,
+)
 def handle_support_query(user_id: str, question: str) -> str:
-    set_user(user_id=user_id)
-    set_tag("workflow", "support")
-
-    with start_span("gather_context", span_type=SpanType.FUNCTION):
-        order = lookup_order("A-1001")
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful customer support agent."},
-                {"role": "user", "content": f"{question}\n\nOrder: {order}"},
-            ],
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        capture_exception(e)
-        raise
+    overmind.set_user(user_id=user_id)
+    order = lookup_order("A-1001")
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a helpful customer support agent."},
+            {"role": "user", "content": f"{question}\n\nOrder: {order}"},
+        ],
+    )
+    answer = response.choices[0].message.content
+    overmind.deliver(answer)
+    return answer
 ```
 
-One trace: `handle_support_query` (entry point) → `gather_context` → `lookup_order` (tool) → the OpenAI `llm_call`, tagged with the user and workflow, attributed to the Support Triage capability.
+One trace: the `handle_support_query` run → `lookup_order` (tool, environment evidence) → the OpenAI `llm_call` → the `deliver` span, attributed to the Support Triage capability, grouped into the user's session, with the question as its intent. Trace scoring binds it to the capability's triage task and judges the delivered answer against the eval set.

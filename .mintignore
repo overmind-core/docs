@@ -5,6 +5,3 @@
 # Draft content
 drafts/
 *.draft.mdx
-
-# Scraped source content (not documentation pages)
-sources/

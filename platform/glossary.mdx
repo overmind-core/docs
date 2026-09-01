@@ -25,13 +25,21 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`.
 
-**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` in either SDK.
+**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` (or `run(conversation_id=...)`) in either SDK. Carries a **session score** folded from the conversation ledger. See [Trace scoring](/agent-testing/trace-scoring#session-scores).
+
+**Trace status** — `live` while spans are arriving or the root is missing, `completed` once the root has landed, `interrupted` when no root arrives inside the settle window.
 
 **OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`; JSON and gRPC are not accepted. See [Observability](/core/observability#the-otlp-endpoint).
 
 **Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, or Braintrust. Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
 
 **Trace coverage** — the fraction of a capability's discovered components (entrypoints, tools) that emit telemetry, reported on its page.
+
+**Task** — one behaviour a capability performs, minted by the repository scan from its trajectory map: an entry anchor, the anchor segments after it, its tool set, and its terminal. API resource: `behaviours`. See [Trace scoring](/agent-testing/trace-scoring#tasks-and-bindings).
+
+**Unit** — the slice of a trace that gets its own verdicts: a turn span, an entry-point invocation, a key segment, or the whole trace, in that order of precedence.
+
+**Task execution** — one unit bound to a task, with its verdicts, execution score, route flags, and session score. The default row of Observability.
 
 **Observability PR** — a pull request Overmind opens against your repository adding SDK initialisation and span instrumentation.
 
@@ -49,7 +57,9 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 ## Evaluation
 
-**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`, `dag`. See [Eval](/agent-testing/eval#evaluators).
+**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`. See [Eval](/agent-testing/eval#evaluators).
+
+**Claim** — what an evaluator asserts: a **type** (`grounding`, `verification`, `quality`, `conformance`, `progress`, `safety`) and a **grain** (`unit`, `trajectory`, `terminal`, `session`). The claim decides how the verdict composes into the execution score. See [Eval](/agent-testing/eval#claims).
 
 **Rubric / checklist** — an LLM judge's plain-language criteria, compiled into weighted atomic checklist items; items can be hard **gates**.
 
@@ -63,7 +73,13 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Score** — one evaluator's result on one sample, with a typed outcome: `scored`, `abstained`, `not_applicable`, `skipped`, or `error`. Only `scored` results feed averages.
 
-**Trace scoring** — evaluators running automatically on production traces as they're ingested, writing scores onto the trace. See [Observability](/core/observability#scores-on-arrival).
+**Verdict** — one evaluator's result on one trace unit, stored as its own row — the source of truth the console reads over `GET /api/verdicts/`. The unit span's `feedback_score.trace_scoring` block keeps only the composed markers.
+
+**Execution score** — the composite of a unit's verdicts (0–1): safety claims cap it, gates flip their own verdict, the rest are weighted. Shown as the Score column.
+
+**Trace scoring** — carving each settled trace into units, binding them to tasks, and judging them with the eval set's trace-scoring members. See [Trace scoring](/agent-testing/trace-scoring).
+
+**Runtime expectation** — evidence the SDK declares during a run (`intent`, `expect`, `checkpoint`, `eval_context`) and the platform evaluates server-side.
 
 **Annotation** — a human label on a sample, used as ground truth for calibrating judges.
 

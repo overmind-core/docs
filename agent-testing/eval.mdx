@@ -9,14 +9,14 @@ The **Evaluations** area of the console has three surfaces: **Runs**, **Eval Set
 
 ## Evaluators
 
-An evaluator is one reusable, versioned scorer — editing one creates a new version, so past runs keep meaning what they meant. Six kinds exist:
+An evaluator is one reusable, versioned scorer — editing one creates a new version, so past runs keep meaning what they meant. Five kinds exist:
 
 <AccordionGroup>
   <Accordion title="LLM judge (llm_judge)">
     A model grades the response against a rubric you write in plain language. The rubric is compiled into a checklist of atomic, weighted questions; items can be **gates** that force a fail regardless of the rest of the score. Judges return reasoning and per-item sub-scores. For higher-stakes metrics, configure a **panel of judges** instead of a single model. Long traces are handled by a summarising cascade, and judge responses are cached content-addressed, so re-scoring identical inputs is free.
   </Accordion>
   <Accordion title="Deterministic (deterministic)">
-    A fixed rule, no model involved. Available checks: `exact_match`, `contains`, `regex`, `json_schema_valid`, `tool_selection` (precision/recall/F1 over called tools), `tool_args_match`, `no_redundant_calls`, `subgoal_progress`, `goal_state_match`, `latency`, `cost`, `turn_count`, and `card_constraints`. Fast, free, unambiguous — use these wherever the question has a mechanical answer.
+    A fixed rule, no model involved. Available checks: `exact_match`, `contains`, `regex`, `json_schema_valid`, `schema_field_conformance`, `field_present`, `reference_field_compare`, `tool_selection` (precision/recall/F1 over called tools), `tool_args_match`, `no_redundant_calls`, `subgoal_progress`, `goal_state_match`, `card_constraints`, `latency`, `cost`, and `turn_count`. Fast, free, unambiguous — use these wherever the question has a mechanical answer.
   </Accordion>
   <Accordion title="Trajectory (trajectory)">
     Judges the path the agent took, not just the output. Two modes: **match** compares the tool-call sequence against a reference with `strict`, `unordered`, `subset`, `superset`, or `subsequence` semantics (with per-tool argument-match overrides), or **judge** hands the trajectory to an LLM.
@@ -27,16 +27,36 @@ An evaluator is one reusable, versioned scorer — editing one creates a new ver
   <Accordion title="Statistical (statistical)">
     Scores a whole dataset at once rather than one example at a time: `accuracy`, `precision`, `recall`, `f1` (macro/micro/weighted), `exact_match`, `bleu`, `rouge_l`, `embedding_cosine`, `chrf`, and `duplicate_rate`, with configurable prediction normalisation (`strip`, `first_word`, `last_word`, `first_line`, `last_line`, or a custom `regex:` extractor).
   </Accordion>
-  <Accordion title="Decision graph (dag)">
-    Evaluates structured decision logic — whether the agent's choices followed the expected branching — composing the other evaluator families as nodes.
-  </Accordion>
 </AccordionGroup>
 
 Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajectory`, `sample`, or `dataset`), a **score type** (numeric, categorical, or boolean) with a **pass threshold**, and an **evidence requirement** (model output, trajectory, or a reference answer). If a run can't supply the required evidence, the evaluator abstains or is marked not-applicable instead of producing a meaningless number.
 
+### Claims
+
+Every evaluator also carries a **claim**: what it asserts and at which grain. The claim is what [trace scoring](/agent-testing/trace-scoring#verdicts-and-the-execution-score) uses to compose one execution score out of many verdicts.
+
+| Claim type | Asserts | Composes as |
+| --- | --- | --- |
+| `conformance` | The output has the required shape (a schema, a field, a format) | A gate inside its own verdict |
+| `verification` | A fact in the output checks out against evidence | A gate inside its own verdict |
+| `progress` | A step of the task was taken | A weighted leaf |
+| `quality` | The delivered result is good | A weighted leaf |
+| `safety` | Nothing harmful or forbidden happened | A cap on the score |
+| `grounding` | The deliverable rests on the evidence gathered | The terminal node |
+
+The **grain** is the slice a claim is judged on: `unit` (one turn or step), `trajectory` (the path through the task), `terminal` (the deliverable), or `session` (the whole conversation). A failed gate flips its own verdict's `passed` — no single evaluator vetoes the composite.
+
+### Task bindings
+
+An evaluator can be bound to one of the capability's [tasks](/core/capabilities#repository-scan) with a role: an **outcome** evaluator judges the task's deliverable, a **step** evaluator judges one anchor segment of its route. The Eval Library groups evaluators by task, shows each task's coverage (outcome plus every step), and lists the rest under **Unassigned**. `GET /api/behaviours/coverage/?capability={id}` returns the same rollup.
+
+Judges are authored task-scoped from the task's group in the Eval Library or through Brain: `POST /api/evaluators/author/` takes `behaviour`, `behaviour_role` (`outcome` or `step`), and — for a step judge — the `anchor_segment`, validated against the task's contract. `GET /api/behaviours/{id}/authoring-context/` grounds the authoring with the task's latest contract: anchor sequence, steps, tool set, and terminal. A judge with the `trace_scoring` role must be bound to a task, and `eval_set` plus `eval_set_role` attach the new judge to an eval set in the same call.
+
 ### Authoring
 
-Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Repository scans also author a starter set per capability automatically.
+Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
+
+Repository scans author a starter set per capability in two tiers: rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call), then AI-authored judges grounded in the card, the prompt, and the task map. `POST /api/eval-sets/{id}/generate-evals/` runs the same authoring on demand and returns the generated specs with a coverage rollup and which grounding artefacts resolved. Authoring reads the capability's **evidence profile** — what its telemetry actually carries (declared tasks, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
 
 <Frame caption="The evaluator editor: write the rubric yourself or generate it from a description; the compiled evaluation prompt uses {{output.*}} and {{reference.*}} variables.">
   <img src="/images/platform/generated-rubrics.png" alt="Edit evaluator dialog in the Eval Library" />
@@ -49,7 +69,7 @@ Evaluators are platform-managed templates, project-wide, or scoped to a single a
 An eval set is a named group of a capability's evaluators — the working definition of "good" for that capability. Each member carries a **role**:
 
 - **Generative** members score outputs produced during eval runs and experiments.
-- **Trace scoring** members run on live production traces as they arrive (with a configurable sampling rate), writing scores into [Observability](/core/observability#scores-on-arrival).
+- **Trace scoring** members run on every settled production trace, per task execution, writing verdicts and the execution score into [Observability](/core/observability#scores-on-arrival). The mechanics are on [Trace scoring](/agent-testing/trace-scoring).
 
 The same evaluator can hold both roles. One set per capability is **active** — it's what optimisation runs and benchmarks default to.
 
@@ -65,7 +85,6 @@ An eval run is a controlled experiment: **one data source × N variants × M eva
 # Create, launch, follow, and compare a run
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
   -d '{
-    "agent": "<agent-uuid>",
     "data_source": "dataset",
     "dataset": "<dataset-uuid>",
     "variants": [

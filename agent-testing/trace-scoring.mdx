@@ -1,0 +1,118 @@
+---
+title: Trace scoring
+description: How a production trace becomes scored task executions — units, tasks, verdicts, the execution score, and session scores.
+---
+
+Every trace that reaches Overmind is scored against the owning capability's active [eval set](/agent-testing/eval#eval-sets). Scoring does not grade the trace as one blob: it carves the trace into **units**, binds each unit to one of the capability's **tasks**, judges each unit on its own, and rolls the results up into an **execution score** per unit and a **session score** per conversation. This page is the contract behind the **Task executions** view in [Observability](/core/observability#exploring-traces-in-the-console).
+
+```flow
+flow row
+title: From a settled trace to scored executions
+A[Trace settles | root span present, quiet for TRACE_SETTLE_SECONDS] -> B[Carve | units from turn spans, entry points, or the root]
+B -> C[Bind | each unit to a task of its capability]
+C -> D[Judge | trace-scoring members run per unit]
+D -> E[Verdicts | one row per evaluator per unit]
+E -> F[Execution score | composed per unit, written on the root span]
+F -> G[Session score | folded over the conversation ledger]
+```
+
+## When a trace is scored
+
+A trace is **live** while spans are still arriving or while it has no root span yet, **completed** once the root span has landed, and **interrupted** when no root arrives within the settle window (`TRACE_SETTLE_SECONDS`, default 600 s — a killed run never exports its root, because the root ends last). Scoring runs once per settled trace; a periodic sweep re-checks the last two hours for traces the immediate pass missed. The trace list and the trace header show the status.
+
+## Units
+
+A unit is the slice of a trace that gets its own verdicts. The carve is a precedence lattice; the first tier that applies wins:
+
+| Tier | Source | What marks it |
+| --- | --- | --- |
+| 1 | **Turn spans** | Spans stamped `overmind.unit_kind = "turn"` — `task(..., unit="turn")`, a capability handoff, or an SDK-bound graph node |
+| 2 | **Entry-point invocations** | Each `entry_point` span (`overmind.unit_kind = "run"`); several in one trace are scored separately |
+| 3 | **Key segments** | Repeated anchor heads in a flat trace, grouped by the anchor's span |
+| 4 | **Root** | The whole trace as one unit |
+
+Tiers 1–3 exclude the root. Interior turn units fold into the enclosing execution as **step coverage** rather than scoring twice. A single function span that starts its own trace outside any run boundary is an orphan fragment and is skipped.
+
+The span carrying `overmind.delivery = true` — `deliver()` in the SDK — is the unit's terminal deliverable; without it the platform picks the terminal span heuristically.
+
+## Tasks and bindings
+
+A **task** is one behaviour a capability performs, minted by the repository scan from the trajectory map: an entry anchor, the ordered anchor segments that follow it, its tool set, and its terminal. Tasks keep their identity across rescans through the entry anchor.
+
+Each unit binds to one task, recorded as a **task execution** with a `binding_source`:
+
+- `declared` — the span carried `overmind.behaviour.key` (`overmind.task("<key>")`).
+- `anchor_join` — the unit's `code.namespace` / `code.function.name` stamps matched the task's anchors; the binder tolerates dotted-suffix differences and prefers the version analysed at the trace's `vcs.ref.head.revision`.
+- `unbound` — nothing matched. Unbound executions still score against the capability's suite; they rebind on their own after the next scan.
+
+A trace whose units resolve to different capabilities (a handoff) scores each unit under its own capability's eval set — never smeared from the root's capability.
+
+## Verdicts and the execution score
+
+The eval set's **trace scoring** members run per unit. Every evaluator carries a [claim](/agent-testing/eval#claims) — a type and a grain — and the claim decides how its verdict composes:
+
+- **Safety** claims cap the score.
+- **Conformance** and **verification** claims are gates inside their own verdict: a failed gate flips that verdict's `passed`, it does not veto the rest.
+- **Progress** and **quality** claims are weighted scoring leaves.
+- The **grounding** claim is the terminal node; the session fold closes the graph.
+
+Each verdict is stored as its own `Verdict` row: evaluator, target span, typed outcome, score, rationale, and a flat `metadata` block (`passed`, `scope`, `grain`, `gate`, `surface_area`, `sub_scores`). Verdict rows are the source of truth — every detail surface reads them over `GET /api/verdicts/`. The unit's span keeps only the composed markers, written to `feedback_score.trace_scoring` as a derived cache the list views read:
+
+```json
+{
+  "trace_scoring": {
+    "_execution": {"score": 0.85, "phases": {...}, "evaluations": 4, "not_applicable": 0, "any_failed": false},
+    "_skipped_members": ["tool-hygiene"],
+    "_scored_at": "..."
+  }
+}
+```
+
+`_execution.score` (0–1) is the composite the console shows as the **Score** column. When a safety cap lowered it, the marker names `cap_evaluator` and `failure_mode_cap`; when two outcome judges land more than 0.5 apart, it carries a `conflict` with both members' values and the console marks the row instead of averaging silently. A trace with several entry-point invocations scores each unit onto its own span; the root span gets only an `invocations` summary entry (`"2/2 invocations passed"`) and an `_execution` that averages the unit scores.
+
+Outcomes are typed — `scored`, `abstained`, `not_applicable`, `error` — and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing; a member skipped for its grain, a behaviour filter, or an interrupted run persists a retryable `not_applicable` row whose `unmet` list carries a `skip:` clause.
+
+## Session scores
+
+Traces sharing a `conversation.id` form a session. Each scored turn appends **conversation events** to a ledger: the asks the user made, which ones were delivered, refused, or superseded, and any park (a turn that ended waiting on input, confirmation, or a job). The **session score** is a fold over that ledger: an open ask, or a wrong-kind delivery never followed by the right one, zeroes the session; a later pass never clears an earlier failure. The execution carries `session_score` and `session_rationale`, and the **Sessions** view rolls them up.
+
+## Runtime expectations from the SDK
+
+The SDK can declare evidence at run time; the platform reads it from span events and evaluates it server-side:
+
+| Call | Effect |
+| --- | --- |
+| `overmind.intent(text)` | The user's ask for this run; judges ground in it instead of the first user message |
+| `overmind.expect(kind, spec, id=, scope=, gate=)` | A declared expectation (`contains`, `regex`, `schema`, `constraint`) checked as a predicate; `gate=True` makes it a gate |
+| `overmind.checkpoint(name)` | A named milestone the trajectory must reach |
+| `overmind.eval_context(**facts)` | Facts the judge may use |
+| `overmind.end_conversation()` | Closes the session ledger |
+
+See the [Python SDK](/tracing/sdk-python#runtime-expectations) for the calls.
+
+## Reading executions over the API
+
+```bash
+# Task executions (the row grain of the Observability default view)
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/task-executions/?capability={id}&binding_source=declared"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/task-executions/{id}/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/task-executions/conversation-turns/?conversation_id={id}"
+
+# Verdicts — the read surface for score detail
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/verdicts/?trace_id={trace_id}"
+
+# Tasks, per-task coverage of the eval set, and the evaluators bound to one task
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/coverage/?capability={id}"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/{id}/evaluators/"
+```
+
+List filters on `/api/task-executions/`: `project`, `capability`, `behaviour`, `binding_source`, `trace_id`, `status`, `started_at__gte/lte`, `received_at__gte/lte`, `min_duration_ms`, `max_duration_ms`, `has_error`, `service_name`, `operation`, `span_type`, `status_code`, `model`, `has_model`, `total_tokens__gte/lte`, `total_cost__gte/lte`. The detail adds `observed_route` (the anchors the unit hit), `step_results` (per-step verdicts), `user_intent`, and the unit's composed markers: `execution_score`, `conflict`, `skipped_members`, and the `flow` (each contract anchor with its match and verdict).
+
+`GET /api/verdicts/` lists `Verdict` rows newest-first. Filters: `target_id`, `target_id__in`, `target_kind`, `evaluator_name`, `outcome`, and `trace_id` — every span-target verdict of one trace in a single call. Each row carries the score, `passed`, the typed outcome, the rationale (`explanation`), `scope` / `grain` / `gate` / `sub_scores` lifted out of the metadata, the `unmet` warrant clauses, the judge `identifier`, and cost and latency.
+
+`GET /api/task-executions/conversation-turns/?conversation_id={id}` returns one row per turn of a conversation, assembled server-side from the executions and their traces' spans: the turn's intent, input and output text, output kind, execution and session scores with the session rationale, the task state (outstanding asks, delivered-wrong flag), per-step results, and the tool calls with their inputs and outputs.
+
+`GET /api/behaviours/coverage/?capability={id}` returns, per task, the outcome evaluators and whether the outcome is covered, plus each anchor segment with the step evaluators bound to it.

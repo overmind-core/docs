@@ -8,7 +8,7 @@ Overmind improves production AI agents with their own data. It ingests OpenTelem
 flow row
 title: From your agent's process to a model you own
 A[Your agent | SDK or any OTel exporter] -> B[OTLP ingest | POST /api/v1/traces]
-B -> C[Spans in Postgres | scored on arrival]
+B -> C[Spans in Postgres | scored per task execution]
 C -> D[Datasets | curated from traces]
 D -> E[Eval runs | variants vs baseline]
 E -> OP[Optimiser | code diffs, replayed + scored]
@@ -29,7 +29,7 @@ Authenticate with a project-scoped `ovr_` key as `X-Api-Key: <key>` or `Authoriz
 
 Overmind gives you:
 
-- **Live scoring** — evaluators run on root spans as they land
+- **Live scoring** — every settled trace is carved into task executions and judged against the capability's eval set
 - **Datasets from traffic** — convert traces into eval and training data
 - **Eval runs** — variants measured against a baseline with typed scores
 - **Optimiser** — local execution, scored candidates, a PR with the winning diff
@@ -49,7 +49,7 @@ Overmind gives you:
     `init()`, auto-instrumentation, decorators, context.
   </Card>
   <Card title="TypeScript SDK" href="/tracing/sdk-typescript" icon="node-js">
-    `OvermindClient`, `initTracing()`, manual spans.
+    In development — reworked for capability-id identity.
   </Card>
   <Card title="Agent & Capabilities" href="/core/capabilities" icon="robot">
     Repo scans, telemetry attribution, eval specs.
@@ -58,7 +58,10 @@ Overmind gives you:
     Schema, intents, Workshop, trace-to-dataset.
   </Card>
   <Card title="Eval" href="/agent-testing/eval" icon="clipboard-check">
-    Evaluator kinds, eval sets, run reports.
+    Evaluator kinds, claims, eval sets, run reports.
+  </Card>
+  <Card title="Trace scoring" href="/agent-testing/trace-scoring" icon="gauge-high">
+    Units, tasks, verdicts, execution and session scores.
   </Card>
   <Card title="Optimisers" href="/agent-testing/optimisers" icon="wand-magic-sparkles">
     Loop, local executioner, resulting PR.
