@@ -1,137 +1,18 @@
 ---
 title: TypeScript SDK
-description: Reference for @overmind-lab/trace-sdk — OvermindClient, initTracing(), manual span helpers, and shutdown patterns for Node.js.
+description: The TypeScript tracing SDK is being reworked for the capability-id identity model.
 ---
 
 <Warning>
-The TypeScript SDK still stamps the retired `overmind.agent.*` identity attributes. The platform now binds spans by `overmind.capability.id` only, so traces from this package stay **unbound** until a release adopts the new attribute. Until then, prefer the [Python SDK](/tracing/sdk-python) or raw OTel with `overmind.capability.id`.
+This page is **in development**. The TypeScript SDK (`@overmind-lab/trace-sdk`)
+is being reworked to the capability-id identity model — its current release
+still stamps the retired `overmind.agent.*` attributes, so its traces arrive
+**unbound**. The documentation returns here with the updated release.
 </Warning>
 
-`@overmind-lab/trace-sdk` instruments the LLM clients you already use in Node.js and exports OpenTelemetry spans to Overmind.
+Until then:
 
-```bash
-npm install @overmind-lab/trace-sdk openai            # OpenAI
-npm install @overmind-lab/trace-sdk @anthropic-ai/sdk  # Anthropic
-npm install @overmind-lab/trace-sdk @google/genai      # Google Gemini
-```
-
-## Quick start
-
-```ts
-import { OpenAI } from "openai";
-import { OvermindClient } from "@overmind-lab/trace-sdk";
-
-const overmind = new OvermindClient({
-  apiKey: process.env.OVERMIND_API_KEY!,
-  appName: "my-app",
-  agentName: "Support Triage",
-});
-
-// Must run before any provider calls
-overmind.initTracing({ enabledProviders: { openai: OpenAI } });
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const response = await openai.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Hello" }],
-});
-
-await overmind.shutdown(); // flush before exit
-```
-
-## `OvermindClient(config)`
-
-| Option | Type | Description |
-| --- | --- | --- |
-| `apiKey` | `string` | Required. Falls back to `OVERMIND_API_KEY` |
-| `baseUrl` | `string?` | Falls back to `OVERMIND_API_URL` / `OVERMIND_TRACES_URL`, then `https://api.overmindlab.ai` |
-| `appName` | `string?` | The `service.name` shown in the console. Defaults to `"overmind-js"` |
-| `agentId` | `string?` | Agent UUID, stamped as `overmind.agent.id` on every span. Falls back to `OVERMIND_AGENT_ID`. Prefer over `agentName` when known |
-| `agentName` | `string?` | Human-readable agent name (`overmind.agent.name`); the server slugifies it into a stable identity, so keep it constant. Falls back to `OVERMIND_AGENT_NAME` |
-| `projectId` | `string?` | Project UUID (`overmind.project.id`). Falls back to `OVERMIND_PROJECT_ID` |
-
-## `initTracing(options)`
-
-Builds an OpenTelemetry `NodeSDK` with an OTLP/HTTP exporter posting to `{baseUrl}/api/v1/traces`.
-
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `enabledProviders` | `object` | `{}` | Imported provider modules to instrument (see below) |
-| `enableBatching` | `boolean` | `true` | Batch spans before export. Set `false` in development to see spans immediately |
-| `instrumentations` | `Instrumentation[]` | `[]` | Extra OpenTelemetry instrumentations |
-| `spanProcessors` | `SpanProcessor[]` | `[]` | Extra span processors (e.g. a secondary exporter) |
-
-| `enabledProviders` key | Import | Provider |
-| --- | --- | --- |
-| `openai` | `import { OpenAI } from "openai"` | OpenAI |
-| `anthropic` | `import * as Anthropic from "@anthropic-ai/sdk"` | Anthropic |
-| `googleGenAI` | `import * as GoogleGenAI from "@google/genai"` | Google Gemini |
-| `bedrock` | AWS Bedrock runtime client | AWS Bedrock |
-
-Each instrumented call becomes an `llm_call` span carrying messages and tool calls, model and request parameters, token usage, latency, and errors.
-
-## Tracing your own code
-
-The SDK exports typed span helpers mirroring the Python decorators — `entryPoint`, `workflow`, `tool`, `retrieval`, `observe`, and the block-scoped `withSpan`:
-
-```ts
-import { entryPoint, tool, retrieval, withSpan, setRetrievalStats, setTag } from "@overmind-lab/trace-sdk";
-
-const lookupOrder = tool("lookup_order", async ({ orderId }: { orderId: string }) => {
-  return await db.orders.find(orderId); // emits tool.name / tool.arg_keys, tool.error on failure
-});
-
-const search = retrieval("vector_search", async (query: string) => {
-  const docs = await index.query(query);
-  setRetrievalStats({ queryChars: query.length, resultCount: docs.length });
-  return docs;
-});
-
-const handleTicket = entryPoint("handle_ticket", async (ticketId: string) => {
-  await withSpan("gather_context", async () => {
-    /* spans created inside nest under this one */
-  }, { attributes: { "ticket.id": ticketId } });
-  // ...
-});
-```
-
-Context and identity helpers, all operating on the active span/trace:
-
-| Helper | Effect |
-| --- | --- |
-| `setAgentId(id)` / `setAgentName(name)` | Bind downstream spans to a [capability](/core/capabilities) |
-| `setProjectId(id)` | Set the project explicitly |
-| `setConversationId(id)` | Group traces into a [session](/core/observability#sessions) |
-| `setTag(key, value)` | Attach filterable metadata to the current span |
-| `captureException(err)` | Record a handled error on the current span |
-| `setRetrievalStats(stats)` | Stamp retrieval metrics on a retrieval span |
-| `getTracer()` | The raw OpenTelemetry tracer for manual spans |
-
-## Shutdown
-
-`shutdown()` flushes buffered spans and stops the SDK. With batching enabled (the default), calling it is essential in scripts and serverless handlers:
-
-```ts
-try {
-  // ... your LLM calls
-} finally {
-  await overmind.shutdown();
-}
-```
-
-For long-running servers, hook the exit signal:
-
-```ts
-process.on("SIGTERM", async () => {
-  await overmind.shutdown();
-  process.exit(0);
-});
-```
-
-## Environment variables
-
-| Variable | Description |
-| --- | --- |
-| `OVERMIND_API_KEY` | Your Overmind API key |
-| `OVERMIND_API_URL` / `OVERMIND_TRACES_URL` | Override the ingest base URL |
-| `OVERMIND_AGENT_ID` / `OVERMIND_AGENT_NAME` / `OVERMIND_PROJECT_ID` | Identity fallbacks for the client options |
+- Instrument Python services with the [Python SDK](/tracing/sdk-python).
+- Instrument Node.js services with any OpenTelemetry SDK and the
+  [OTLP endpoint](/core/observability#the-otlp-endpoint), stamping
+  `overmind.capability.id` as a resource attribute.

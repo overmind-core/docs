@@ -74,23 +74,7 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
     After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, Agno, and LangChain client libraries are captured automatically — prompts, completions, tool calls, token usage, latency, and errors. `run()` brackets one agent run and `deliver()` marks its result, which is what [trace scoring](/agent-testing/trace-scoring) judges. See the [Python SDK reference](/tracing/sdk-python) for the decorators that trace your own code.
   </Tab>
   <Tab title="TypeScript SDK">
-    ```ts
-    import { OpenAI } from "openai";
-    import { OvermindClient } from "@overmind-lab/trace-sdk";
-
-    const overmind = new OvermindClient({
-      apiKey: process.env.OVERMIND_API_KEY!,
-      appName: "research-agent",
-      agentName: "Research Agent",
-    });
-
-    overmind.initTracing({
-      enableBatching: true, // the default; use false in dev to see spans immediately
-      enabledProviders: { openai: OpenAI },
-    });
-    ```
-
-    Supported providers: OpenAI, Anthropic, Google GenAI, and AWS Bedrock. See the [TypeScript SDK reference](/tracing/sdk-typescript).
+    The TypeScript SDK is being reworked for the capability-id identity model — the [reference page](/tracing/sdk-typescript) is in development. Until then, instrument Node.js with any OpenTelemetry SDK against the OTLP endpoint and stamp `overmind.capability.id` as a resource attribute.
   </Tab>
   <Tab title="Any language (raw OTel)">
     Configure any OpenTelemetry SDK (Go, Java, Rust, .NET, ...) with the three environment variables above, or in code:

@@ -85,7 +85,6 @@ An eval run is a controlled experiment: **one data source × N variants × M eva
 # Create, launch, follow, and compare a run
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
   -d '{
-    "agent": "<agent-uuid>",
     "data_source": "dataset",
     "dataset": "<dataset-uuid>",
     "variants": [
