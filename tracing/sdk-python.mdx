@@ -28,7 +28,8 @@ overmind.init(
     service_name="my-service",
     environment="production",
     providers=["openai", "anthropic"],
-    agent_name="Support Triage",
+    capability_id="<capability-uuid>",
+    capability="Support Triage",
 )
 ```
 
@@ -39,11 +40,11 @@ overmind.init(
 | `environment` | `str \| None` | e.g. `"production"`, `"staging"` |
 | `providers` | `list[str] \| None` | Any of `"openai"`, `"anthropic"`, `"google"`, `"agno"`. Omit to auto-detect installed providers |
 | `overmind_base_url` | `str \| None` | Falls back to `OVERMIND_API_URL`, then `https://api.overmindlab.ai` |
-| `agent_id` | `str \| None` | Agent UUID; stamped as `overmind.agent.id` on every span |
-| `agent_name` | `str \| None` | Stable agent name; stamped as `overmind.agent.name` |
+| `capability_id` | `str \| None` | Capability UUID; stamped as `overmind.capability.id` on every span |
+| `capability` | `str \| None` | Display name; stamped as `overmind.capability.name` |
 | `project_id` | `str \| None` | Project UUID (`overmind.project.id`) |
 
-Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_STRICT_MODE`.
+Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_CAPABILITY_ID`, `OVERMIND_CAPABILITY_NAME`, `OVERMIND_STRICT_MODE`.
 
 After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, and Agno client libraries produce `llm_call` spans automatically, capturing messages and tool calls, model and request parameters, token usage, latency, and errors. Spans export via a batching OTLP/HTTP exporter to `POST {base_url}/api/v1/traces`.
 
@@ -68,7 +69,7 @@ from overmind import SpanType
 
 ### Decorators
 
-`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, `@retrieval`, and `@function` are typed shortcuts. All of them capture arguments as `inputs` and the return value as `outputs` (JSON-serialised, best effort). They record duration and status, re-raise exceptions after recording them, and work on both sync and async functions.
+`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, and `@retrieval` are typed shortcuts. Use `@observe` for a plain traced function. All of them capture arguments as `inputs` and the return value as `outputs` (JSON-serialised, best effort). They record duration and status, re-raise exceptions after recording them, and work on both sync and async functions.
 
 ```python
 import overmind
@@ -92,6 +93,12 @@ Because each function calls the next, spans nest into one tree: `handle_request`
 <Tip>
 Always add an `@entry_point()`. It marks the unit that trace scoring and dataset conversion treat as one run — without it, model calls arrive as disconnected spans. Tools are the next most valuable layer; most teams stop there.
 </Tip>
+
+## Instrumenting a scanned repository
+
+When a repository scan finds missing telemetry, the setup flow can retrieve exact instrumentation tickets from the capability's behaviour registry. Each ticket names the capability, behaviour, source file and line, required scope, and decorator. Apply those placements verbatim so the resulting spans bind to the scanned contracts.
+
+For multiple tickets, the coding agent can dispatch one subagent per ticket in a single batch. Verification is a bounded, read-only MCP smoke: flush the spans, list the new trace, retrieve its detail, and check capability attribution, nesting, inputs and outputs, usage, and timing. It does not execute a real application task.
 
 For functions that handle secrets or oversized payloads, `observe_safe` traces without capturing inputs or outputs.
 
@@ -126,8 +133,7 @@ All operate on the current span/trace — call them inside a traced function or 
 
 | Helper | Effect |
 | --- | --- |
-| `set_agent_id(id)` / `set_agent_name(name)` | Bind downstream spans to a [capability](/core/capabilities) |
-| `set_project_id(id)` | Set the project explicitly |
+| `capability(name, id=...)` | Scope downstream spans to a [capability](/core/capabilities); prefer the capability UUID for binding |
 | `set_conversation_id(id)` | Group traces into a [session](/core/observability#sessions) (`conversation` is the decorator form) |
 | `set_workflow_name(name)` | Label every downstream span with a workflow name |
 | `set_user(user_id, email=None, username=None)` | Tag the trace with a user identity |
@@ -176,7 +182,8 @@ overmind.init(
     service_name="customer-support",
     environment="production",
     providers=["openai"],
-    agent_name="Support Triage",
+    capability_id="<capability-uuid>",
+    capability="Support Triage",
 )
 
 client = OpenAI()
