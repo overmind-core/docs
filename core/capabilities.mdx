@@ -11,7 +11,7 @@ Your **agent** in Overmind is the product itself: one per project, mapped as a g
 flow row
 title: Three paths into the same capability record
 A[GitHub repository] -> C[Capability] : repo scan
-B[Production telemetry] -> C : overmind.agent.* attributes
+B[Production telemetry] -> C : overmind.capability.* attributes
 D[overmind CLI] -> C : optimisation runs
 C -> E[Traces]
 C -> F[Datasets]
@@ -38,7 +38,7 @@ To remove a capability yourself, use **Delete capability** at the bottom of its 
 
 ### Telemetry
 
-When spans arrive carrying an identity — `overmind.agent.id` or `overmind.agent.name`, set via the [SDK](/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching capability. Every id, name, and slug a capability has ever had keeps resolving, so a rename never strands your telemetry.
+When spans arrive carrying an identity — `overmind.capability.id` or `overmind.capability.name`, set via the [SDK](/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching capability. Use the UUID for stable binding; the display name is only a label.
 
 An identity the project does not know leaves the span **unbound** rather than minting a phantom capability. Unbound traces are stored and browsable under Observability's Unbound filter, and they bind retroactively: when a scan or a manual create later makes that identity resolvable, the backlog re-attaches on its own.
 

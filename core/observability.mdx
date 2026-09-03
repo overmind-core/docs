@@ -60,7 +60,8 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
         service_name="research-agent",
         environment="production",
         providers=["openai", "anthropic"],  # omit to auto-detect installed providers
-        agent_name="Research Agent",
+        capability_id="<capability-uuid>",
+        capability="Research Agent",
     )
     ```
 
@@ -95,7 +96,7 @@ Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough,
     )
     ```
 
-    Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.agent.name` as a resource attribute — so your spans are classified and attributed like SDK spans.
+    Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.capability.id` as a resource attribute — so your spans are classified and attributed like SDK spans.
   </Tab>
   <Tab title="Connectors">
     If your traces already live in another platform, connect it under **Observability → Integrations**. Three connectors are available:
@@ -134,7 +135,7 @@ The pipeline understands three attribute dialects — the Overmind SDKs' own key
 | Model | `genai.model`, `genai.response.model`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.model` |
 | Cost | `genai.cost` if the client stamped it, otherwise derived from token counts and model pricing |
 | Inputs / outputs | `overmind.input.data` / `overmind.output.data`, `traceloop.entity.input` / `.output`, `gen_ai.input.messages` / `gen_ai.output.messages`, indexed `gen_ai.prompt.{N}.*` / `gen_ai.completion.{N}.*` |
-| Agent identity | `overmind.agent.id`, `overmind.agent.name` |
+| Capability identity | `overmind.capability.id`, `overmind.capability.name` |
 | Session grouping | `conversation.id` |
 | Project (session-auth ingest only) | `overmind.project.id` resource attribute |
 
@@ -144,10 +145,10 @@ Traceloop instrumentation is normalised on the way in — scope names under `@tr
 
 Traces attach to a [capability](/core/capabilities) through the identity stamped on their spans:
 
-- **`overmind.agent.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
-- **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename never breaks attribution.
+- **`overmind.capability.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
+- **`overmind.capability.name`** — a human-readable display label; it does not resolve identity by itself.
 
-Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript.
+The Python SDK stamps these from `overmind.init(capability_id=..., capability=...)` or a `capability(..., id=...)` scope. Use the capability UUID for stable binding.
 
 An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan or a manual create makes that identity resolvable.
 
@@ -209,4 +210,4 @@ See the [REST API](/platform/api) page for the full endpoint list.
 
 ## Practical guidance
 
-Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`agent_name`) from the start. Auto-instrumentation alone produces flat model-call spans; wrap your entry point, workflows, and tools with the [SDK span helpers](/tracing/sdk-python#tracing-your-own-code) so the span tree mirrors your agent's actual structure — that structure is what evaluators and dataset conversion key off. For short-lived processes, flush before exit (`force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).
+Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`capability_id`) from the start. Auto-instrumentation alone produces flat model-call spans; wrap your entry point, workflows, tools, and retrieval steps with the [SDK span helpers](/tracing/sdk-python#tracing-your-own-code) so the span tree mirrors your agent's actual structure — that structure is what evaluators and dataset conversion key off. For short-lived processes, flush before exit (`force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).
