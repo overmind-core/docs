@@ -37,15 +37,13 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 ## Data
 
-**Dataset** — a curated collection of datapoints with a **source** (`custom`, `traces`, `external`), an **intent** (`eval` or `ft`), and for trace-built data a **surface** (`capability` or `model`). See [Datasets](/core/datasets).
+**Dataset** — a source table (a file, pasted rows, or trace units, landed as-is), a notebook recipe, and the frozen **versions** the recipe produced. See [Datasets](/core/datasets).
 
-**Datapoint** — one example: `input`, `expected_output`, optional tags/persona, an `extra` bag for non-canonical columns, and a `source_trace_id` when built from a trace.
+**Version** — one run of the recipe: a frozen product table with its **contract** (`train`, `eval`, or `raw`), column manifest, alignment report and hash. Runs pin the version they read.
 
-**Data Workshop** — the dataset console: quality analysis (score out of 100 with a verdict), insights with staged fixes, commit history with restore, and export.
+**Data Workshop** — the dataset page: source, Python/SQL cells with per-cell deltas, the product with its contract and alignment, versions with diffs, and Overmind beside it to diagnose and write cells.
 
-**Insight** — one analysis finding with severity, evidence, and usually a proposed, dry-run-validated fix.
-
-**Commit** — one recorded change to a dataset. Eval runs pin the exact commit they scored, making results reproducible.
+**Contract** — what a frozen version can feed: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs.
 
 ## Evaluation
 
@@ -57,9 +55,9 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Eval run** — a controlled experiment: one data source × N variants × M evaluators, with evaluator snapshots frozen at creation. See [Eval](/agent-testing/eval#eval-runs).
 
-**Variant** — one column of an eval run: either **generate** (re-run a model over the datapoints) or **existing** (grade traces as-is). One variant is the **baseline**.
+**Variant** — one column of an eval run: either **generate** (re-run a model over the rows) or **existing** (grade traces as-is). One variant is the **baseline**.
 
-**Sample** — one datapoint's normalised transcript inside a run; can be marked **degraded** if it couldn't be faithfully reconstructed, excluding it from aggregates.
+**Sample** — one row's normalised transcript inside a run; can be marked **degraded** if it couldn't be faithfully reconstructed, excluding it from aggregates.
 
 **Score** — one evaluator's result on one sample, with a typed outcome: `scored`, `abstained`, `not_applicable`, `skipped`, or `error`. Only `scored` results feed averages.
 

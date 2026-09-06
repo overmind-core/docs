@@ -9,11 +9,11 @@ Training turns an agent's accumulated data into a model of your own. You pick a 
 | Choice | Requirement |
 | --- | --- |
 | **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A dataset with the training intent (chat-style messages). See [Datasets](/core/datasets#the-data-model) |
-| **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
+| **Training dataset** | A dataset whose frozen version satisfies the **train** contract (chat transcripts with an assistant turn). See [Datasets](/core/datasets#contracts) |
+| **Eval dataset** | A separate dataset whose frozen version satisfies the **eval** contract; the finished model is measured on it |
 | **Rubric** | The eval set that does the measuring, chosen from the capability's sets |
 
-The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). Dataset validation runs before launch with the same checks the [Data Workshop](/core/datasets#the-data-workshop) applies at ingest, so problems surface as fixable findings up front instead of a failed run an hour in.
+The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). The job pins the exact frozen version it trains on, and validation runs before launch with the same rules the [contract](/core/datasets#contracts) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
 
 ## Configuring experiments
 
@@ -78,6 +78,6 @@ When the benchmark says the trained model wins, **Model PR** (`POST /api/finetun
 
 ## Good to know
 
-- Model quality comes almost entirely from the data. Get the Workshop verdict to **Ready** before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
-- The training dataset is [locked](/core/datasets#the-data-model) while the run is in flight. Finish curation first, or duplicate the dataset.
+- Model quality comes almost entirely from the data. Get the product to the **train** contract and a clean alignment report before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
+- The run pins a [frozen version](/core/datasets#versions-and-pins); keep curating in the notebook and the next run picks up the next version.
 - Each experiment reports its final credit cost; estimates are shown before you commit.
