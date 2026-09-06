@@ -98,10 +98,11 @@ curl -X PUT -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json
   -d '{"cells": [{"kind": "sql", "title": "Keep", "script": "SELECT * FROM source WHERE tag = '"'"'keep'"'"'"}], "run": true}' \
   "https://api.overmindlab.ai/api/datasets/{id}/cells/"
 
-# Versions, diff, restore, usage; export a frozen product
+# Versions, diff, restore, usage; export a frozen product (the response names the
+# version and its product hash in X-Overmind-Dataset-Version / X-Overmind-Product-Hash)
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/versions/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/versions/{v1}/diff/{v2}/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl&version={v2}"
 ```
 
 The full surface is in the [API reference](/platform/api#datasets).

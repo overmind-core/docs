@@ -111,6 +111,12 @@ A dataset lands its rows as-is and shapes them in a notebook; a run reads a froz
     `dataset_version`; without it the newest frozen version whose contract fits is pinned.
     A draft, a raw product, or a version of another dataset is refused with the reason.
   </Step>
+  <Step title="Pull it">
+    A local loop reads the pinned version, never the dataset: `GET .../export/?fmt=jsonl&version={id}`.
+    The response carries `X-Overmind-Dataset-Version` and `X-Overmind-Product-Hash`; the SDK
+    caches the file as `.overmind/datasets/{version}.jsonl` with the hash beside it and fetches
+    again when the hash no longer matches the pin.
+  </Step>
 </Steps>
 
 ## Conventions
