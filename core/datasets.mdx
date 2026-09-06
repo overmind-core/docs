@@ -66,7 +66,7 @@ A frozen version is measured against two contracts, and the product bar says whi
 
 A table that satisfies neither is **raw**: usable as a source for the notebook, refused by every run. A table that satisfies both is reported as **train**; drop the `messages` column in a cell to publish it as eval.
 
-When the dataset is bound to a capability the run also reports **alignment**: which of the capability's behaviours the rows cover and which have none, rows from another capability, the input keys the capability expects that are missing, the terminal shape, how many rows carry verdicts, and any rows shared with sibling datasets of the same capability (a split-hygiene warning before you train on what you evaluate with).
+When the dataset is bound to a capability the run also reports **alignment**: which of the capability's behaviours the rows cover and which have none, rows from another capability, the input keys the capability expects that are missing, the terminal shape, how many rows carry verdicts, and any rows shared with sibling datasets of the same capability. A trace landing binds the capability on its own when every unit belongs to one; a mixed selection stays unbound until you pick. The diagnosis reads the binding: it shapes `input` to the capability's schema, keeps the identity columns, drops rows from another capability, and names the behaviours covered and missing. Two alignment facts are gates, not warnings: a train product with rows from another capability is refused by the training wizard, and a training job whose eval dataset shares rows with the train version (by `trace_id`) is refused until they are split.
 
 ## Versions and pins
 
