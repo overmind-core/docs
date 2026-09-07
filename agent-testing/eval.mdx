@@ -57,7 +57,7 @@ The same evaluator can hold both roles. One set per capability is **active** —
 
 An eval run is a controlled experiment: **one data source × N variants × M evaluators.**
 
-- **Data source** — a dataset (the exact frozen version is pinned, so the run stays reproducible as the dataset evolves) or a trace filter drawing directly from captured traffic. `max_items` caps how many rows are drawn.
+- **Data source** — a dataset (the exact product checkpoint is pinned, so the run stays reproducible as the dataset evolves) or a trace filter drawing directly from captured traffic. `max_items` caps how many rows are drawn.
 - **Variants** — the columns of the experiment. A variant either **generates** fresh outputs by re-running a model over each row, or grades **existing** traces as-is. Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt version; one variant is the **baseline** that every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits can't change what a completed run measured.
 

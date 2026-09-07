@@ -12,7 +12,7 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
     Candidates are edits to source, so the capability must come from a connected repository with a known entrypoint. See [Agent & Capabilities](/core/capabilities).
   </Step>
   <Step title="An eval dataset">
-    The run replays the agent over the rows of a frozen version that satisfies the **eval** contract; the inputs must be a shape the agent can be invoked with. See [Datasets](/core/datasets#contracts).
+    The run replays the agent over the rows of a product checkpoint that satisfies the **eval** contract; the inputs must be a shape the agent can be invoked with. See [Datasets](/core/datasets#contracts).
   </Step>
   <Step title="An eval set">
     Candidates are graded by the eval set you pick, pinned at creation so later edits can't change an in-flight run's scoring. See [Eval](/agent-testing/eval#eval-sets).

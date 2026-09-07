@@ -45,7 +45,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
-| Datasets | `/api/datasets/` | create (`source` = `upload_id`, `rows`, `text`, `traces`, or `dataset_version_id`), read, rename, delete; `GET .../rows/` (paged, `?source=`, `?version=&cell=`, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../query/` (read-only SQL), `PUT .../cells/` (save, `run: true` to execute), `POST .../run/`, `GET .../versions/`, `GET .../versions/{id}/` (cells, deltas, contract, alignment), `.../diff/{other}/`, `.../usage/`, `.../restore/`, `.../delete/`, `POST .../append/`, `POST .../refresh/`, `GET .../export/?fmt=jsonl|csv|training`, `GET .../events/` (SSE), `POST .../generate-evals/`, `POST .../context/refresh/` — see [Building a dataset](#building-a-dataset) |
+| Datasets | `/api/datasets/` | create (`target` = `train` or `eval`; `source` = `upload_id`, `rows`, `text`, `traces`, or `checkpoint_id`), read, patch (`name`, `capability`, `target`, `active_cell_id`), delete; `GET .../rows/` (paged, `?source=`, `?cell=`, `?checkpoint=`, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../query/` (read-only SQL), `PUT .../cells/` (save, `run: true` to execute), `POST .../run/`, `POST .../activate/`, `POST .../fork/`, `GET .../checkpoints/`, `GET .../checkpoints/{id}/` (cell, delta, contract, alignment, columns, stats), `.../diff/{other}/`, `.../usage/`, `.../delete/`, `POST .../append/`, `POST .../refresh/`, `GET .../export/?fmt=jsonl|csv|training`, `GET .../events/` (SSE), `POST .../generate-evals/`, `POST .../context/refresh/` — see [Building a dataset](#building-a-dataset) |
 | Uploads | `/api/uploads/` | chunked file upload that a dataset `source.upload_id` refers to |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
 
@@ -80,15 +80,15 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 
 ## Building a dataset
 
-A dataset lands its rows as-is and shapes them in a notebook; a run reads a frozen version. The same sequence backs the console and Brain's dataset tools.
+A dataset lands its rows as-is with a target and shapes them in a notebook; a run reads the product checkpoint. The same sequence backs the console and Brain's dataset tools.
 
 <Steps>
   <Step title="Land a source">
     A file goes up in chunks (`POST /api/uploads/`, then `PUT /api/uploads/{id}/chunk/?offset=`).
-    `POST /api/datasets/` with `project`, `name`, an optional `capability`, and exactly one
-    `source`: `upload_id` (+ `filename`), `rows` or `text` for pasted data, `traces` (a
-    trace-list selection or `trace_ids`, plus `grain`: `task` or `trace`), or
-    `dataset_version_id` to copy another dataset's product. The response is the dataset;
+    `POST /api/datasets/` with `project`, `name`, `target` (`train` or `eval`), an optional
+    `capability`, and exactly one `source`: `upload_id` (+ `filename`), `rows` or `text` for
+    pasted data, `traces` (a trace-list selection or `trace_ids`, plus `grain`: `task` or
+    `trace`), or `checkpoint_id` to start from another dataset's checkpoint. The response is the dataset;
     landing runs in the background and `source_spec.landing` clears when the rows are in.
     `POST .../append/` adds rows with the same columns; `POST .../refresh/` re-lands a
     trace selection and picks up only new units.
@@ -96,25 +96,28 @@ A dataset lands its rows as-is and shapes them in a notebook; a run reads a froz
   <Step title="Shape it">
     `PUT /api/datasets/{id}/cells/` saves the ordered cells (`kind`: `python`, `sql`, `note`;
     `title`; `script`; `output_name`). With `"run": true` it executes them at once; otherwise
-    `POST .../run/` runs the draft. A frozen head is never edited: saving cells on one mints
-    the next draft. `GET .../events/` streams `cell_started`, `cell_repairing`, `cell_done`, `cell_failed`,
-    `run_done` and `run_failed` as server-sent events.
+    `POST .../run/` runs them later. Every run writes a checkpoint per cell (an unchanged
+    prefix reuses its checkpoints) and points `product` at the active cell's;
+    `POST .../activate/` with `cell_id` moves that pointer. `GET .../events/` streams
+    `cell_started`, `cell_repairing`, `cell_done`, `cell_failed`, `run_done` and `run_failed`
+    as server-sent events, each with its `checkpoint_id`.
   </Step>
-  <Step title="Read the version">
-    `GET .../versions/{id}/` returns the cells with their deltas, `contract`
-    (`train`, `eval` or `raw`) with the `contract_report` behind it, the `alignment`
-    report when a capability is bound, the column manifest and `stats`. `.../diff/{other}/`
-    compares two versions; `.../usage/` lists the runs that pinned one.
+  <Step title="Read a checkpoint">
+    `GET .../checkpoints/{id}/` returns the cell snapshot with its delta, `contract`
+    (`train`, `eval` or `raw`) with the `contract_report` behind it, `meets_target`, the
+    `alignment` report when a capability is bound, the column manifest and `stats`.
+    `.../diff/{other}/` compares two checkpoints; `.../usage/` lists the runs that pinned one;
+    `POST .../fork/` starts a new dataset from one.
   </Step>
   <Step title="Pin it">
     Eval runs, optimiser experiments and finetuning jobs take `dataset` and, optionally,
-    `dataset_version`; without it the newest frozen version whose contract fits is pinned.
-    A draft, a raw product, or a version of another dataset is refused with the reason.
+    `checkpoint`; without it the product is pinned. A product whose contract does not fit,
+    or a checkpoint of another dataset, is refused with the reason.
   </Step>
   <Step title="Pull it">
-    A local loop reads the pinned version, never the dataset: `GET .../export/?fmt=jsonl&version={id}`.
-    The response carries `X-Overmind-Dataset-Version` and `X-Overmind-Product-Hash`; the SDK
-    caches the file as `.overmind/datasets/{version}.jsonl` with the hash beside it and fetches
+    A local loop reads the pinned checkpoint, never the dataset: `GET .../export/?fmt=jsonl&checkpoint={id}`.
+    The response carries `X-Overmind-Checkpoint` and `X-Overmind-Product-Hash`; the SDK
+    caches the file as `.overmind/datasets/{checkpoint}.jsonl` with the hash beside it and fetches
     again when the hash no longer matches the pin.
   </Step>
 </Steps>

@@ -37,13 +37,13 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 ## Data
 
-**Dataset** — a source table (a file, pasted rows, or trace units, landed as-is), a notebook recipe, and the frozen **versions** the recipe produced. See [Datasets](/core/datasets).
+**Dataset** — a source table (a file, pasted rows, or trace units, landed as-is), a **target** (train or eval) picked at creation, a linear notebook of cells, and the **checkpoints** the cells produced. See [Datasets](/core/datasets).
 
-**Version** — one run of the recipe: a frozen product table with its **contract** (`train`, `eval`, or `raw`), column manifest, alignment report and hash. Runs pin the version they read.
+**Checkpoint** — one cell's result from a run: an immutable table with its **contract** (`train`, `eval`, or `raw`), column manifest, alignment report and hash. The active cell's checkpoint is the **product**; runs pin the checkpoint they read.
 
 **Data Workshop** — the dataset page: source, Python/SQL cells with per-cell deltas, the product with its contract and alignment, versions with diffs, and Overmind beside it to diagnose and write cells.
 
-**Contract** — what a frozen version can feed: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs.
+**Contract** — what a checkpoint can feed, measured on every run: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The dataset's **target** is the contract the user intends.
 
 ## Evaluation
 
