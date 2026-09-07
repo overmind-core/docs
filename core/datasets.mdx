@@ -1,122 +1,105 @@
 ---
 title: Datasets
-description: Source, notebook, product — how a dataset lands with a target, how the cells shape it into checkpoints, how the product is pinned by every run that reads it.
+description: Source, cells, versions — how a dataset lands, how its agent shapes it cell by cell, how every cell is a version and how a run uses one.
 ---
 
-A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Overmind treats it in three layers:
+A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Overmind treats it as one chain:
 
-| Layer | What it is | Who writes it |
+| Thing | What it is | Who writes it |
 | --- | --- | --- |
-| **Source** | The rows exactly as they arrived — a file, pasted rows, a trace selection, or another dataset's checkpoint | Landing. Never edited |
-| **Notebook** | A linear list of Python and SQL cells that reshape the source | You, or Overmind on your behalf |
-| **Product** | The table a run reads: the **checkpoint** of the active cell | The run |
+| **Source** | The rows exactly as they arrived — a file, pasted rows, or a trace selection. Version 1.0 | Landing. Never edited |
+| **Cell** | One Python transformation over the previous frame. Each cell that ran is the next version: 1.1, 1.2, … | You, or the dataset's agent |
+| **Active version** | The cell a run reads: the last one that ran unless you set another | You |
 
-Every dataset fixes two things when it is created, and neither can change afterwards: the **target** (an eval set or a train set) and the **capability** the rows belong to. Both are contracts. The diagnosis shapes toward them, every checkpoint is measured against them, and the product bar reports whether the product meets both.
+Two things describe what the table is for: the **intent** (`train` or `eval`) and the **capability** it belongs to. Landing proposes both from the rows, you can change either on the page, and both freeze the moment a version is used. Every version carries two measured contracts against them.
 
-Nothing is reshaped on the way in and nothing is edited in place. Every run writes a checkpoint per cell; to change the product you change a cell and run again, which writes new checkpoints downstream of the change. The checkpoints a run has already read stay exactly as they were.
+Nothing is reshaped on the way in and nothing is edited in place. To change the table you change a cell and run again; the cells after it run again in place and keep their version numbers. A version a run has read is frozen: its script is read-only, its frame cannot change, and so is every cell before it.
 
 ## Landing a source
 
 <Tabs>
   <Tab title="From traces">
-    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or land every trace matching the current filters. Trace rows are the richest source Overmind can produce: **one row per task execution** (the unit [trace scoring](/agent-testing/trace-scoring) judges) with the reconstructed `messages`, `tools`, `input`, `output`, the bound `behaviour_key`, every judge's `verdicts`, `success_score`, the user's `asks`, cost and token counts, and the `trace_id`/`unit_span_id` lineage. Third-party traces without behaviour attribution land the same way with those columns empty. Pick **Whole trace** instead to get one row per trace.
-
-    A trace dataset remembers its selection: **Refresh from traces** lands only the units that arrived since the last landing, and **Append rows** adds another selection.
+    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or land every trace matching the current filters. Choose what one row is: a **task** (the unit [trace scoring](/agent-testing/trace-scoring) judges, with the reconstructed `messages`, `tools`, `input`, `output`, the bound `behaviour_key`, every judge's `verdicts`, `success_score`, cost and token counts, and the `trace_id`/`unit_span_id` lineage), a whole **trace**, or one **assistant turn** (the transcript up to that turn). The dialog shows the row count each grain gives before you land.
   </Tab>
   <Tab title="Upload or paste">
     Drop a **CSV, TSV, JSON, JSONL, or Parquet** file anywhere on the Datasets page, or paste rows straight into the dialog. Columns and types are read from the file; numbers stay numbers, nested JSON stays JSON.
   </Tab>
-  <Tab title="From a connector">
-    Traces synced from a [connector](/core/observability#getting-traces-in) land as traces first, then follow the same select-and-land path.
-  </Tab>
 </Tabs>
 
-Landing writes the source as Parquet, stamps every row with a `source_row` index so later checkpoints can be diffed row by row, and records the source as the first checkpoint. With no cells, the product is the source as-is.
+Landing writes the source as Parquet, stamps every row with a `source_row` index so later versions can be diffed value by value, scores every capability of the project against the rows (bound ids, the system turn, tool names, input keys) to propose one, and proposes the intent from the shape: transcripts with assistant turns are train, an input with a reference is eval, anything else is **pending** until the agent decides.
 
 <Warning>
 A cell value larger than about 200 KB (a tool call carrying a serialised agent state, say) is cut to a preview marker on the way in. The row and every other column land intact.
 </Warning>
 
-## The notebook
+## The workshop
 
-Opening a dataset lands you in the Data Workshop: the source as the first cell, the cells below it, the product bar on the active cell, an outline down the left edge, the target beside the run controls, and Overmind on the right.
+Opening a dataset lands you in the Data Workshop: one header line (name, intent, capability, active version, rows, **Run**), a version strip down the left edge, the cells stacked in the middle, and the dataset's agent on the right.
 
-<Frame caption="A source of pasted FAQ rows, two cells that keep the good rows and rename them into an eval shape, and the eval product.">
-  <img src="/images/platform/dataws.png" alt="Data Workshop notebook with cells and the product bar" />
-</Frame>
+- A cell is a title, a Python body and the frame it left. The body reads the previous frame as `df` (pandas, with `pd` and `np` bound) and leaves the next one in `df`. It runs in an isolated interpreter with a CPU and memory cap, no file or network access, and imports from the workshop's library list: the standard library, pandas, numpy, pyarrow, DuckDB, scipy, scikit-learn, rapidfuzz, tiktoken and a few more, plus a short list the agent can install on request.
+- Under the script, every cell shows what it did: rows added and removed, values changed, columns added and removed. Its table marks new rows and changed values, with the old value on hover, and lists the rows it removed.
+- The active version's cell carries the actions: **Train** or **Evaluate** and **Optimise** (by intent), **Export**. Any other version offers **Set active**.
 
-- A **Python** cell is a body, not a program: the previous frame arrives as `source` (pandas, with `pd` and `np` already bound) and the cell must leave the next one in `df`. It runs in an isolated interpreter with a CPU and memory cap, no file or network access, and only the standard library to import.
-- A **SQL** cell runs in DuckDB over `source` and every earlier cell's output by its name.
-- A **note** is Markdown.
+**Run** executes every cell whose script or input changed. A failing cell shows its traceback, the cells after it stay queued, and the last good version stays active; fix the cell and run again.
 
-Every executed cell reports its delta: rows in → rows out, rows removed or added (traced through `source_row`), columns added, dropped or retyped, and how long it took.
+### The agent
 
-**Run** saves the cells and executes them. Each cell's result is a **checkpoint**: an immutable frame with its measured contract and hash. A cell whose script and upstream did not change reuses its checkpoint, so editing the last cell does not re-run the first. On success the product becomes the active cell's checkpoint. On failure the failing cell's traceback sits beside it, later cells are marked skipped, and the previous product stands; fix the cell and run again.
+The chat on the right is the dataset's own agent, a Cursor session with eight tools over the chain and a workspace that holds the capability card, the library list, one file per cell, and every version's frame. It writes a script, tests it against a version, and only then lands a cell, so a cell that lands has already run once.
 
-The product is the last cell's checkpoint unless you point it elsewhere: any cell that ran offers **Set as product**, so an earlier stage can feed a run while you keep working below it.
+The first landing starts two passes. The first decides a pending intent, then lands the fewest cells that make the active version meet both contracts, each run as it lands, and ends with one line on what the table now is. The second runs the quality checks an engineer would run for that intent — refusals and truncated turns, duplicates, length outliers, tool calls that do not parse, leakage of the reference into the input, behaviour coverage — and lands one **proposal** per finding that has rows behind it, with the count in its note. A proposal has no version until you run it; dismiss it and it is gone.
 
-### Diagnosis and asking
-
-The chat on a dataset is an ML engineer, not the general assistant: one request is one new cell, it reads the data before it writes, and it does not ask what to do next. The first landing starts a diagnosis in two passes: first the fewest cells that make the product meet both contracts, with a plain stop when the rows cannot; then the quality checks an engineer would run for that target — duplicates, empty or truncated targets, length outliers, leakage against the sibling set — loaded as cells that are **off** until you turn one on and run. Nothing is confirmed on this first pass; later requests in the same conversation show what they are about to change and wait for you. Every cell has an **Ask Overmind** action for a conversation about one step, a failed run offers **Ask Overmind to fix it**, and a product that misses the target offers **Ask Overmind to shape it**. The conversation on the right belongs to the dataset, and it is a normal Overmind session with every dataset tool: it can carve a held-out eval set out of a train set (no shared traces), fork a checkpoint into a new dataset, move the product pointer, or start the eval or training run once the product is ready.
+After that the conversation is open. A request that changes the data is one new cell, run at once. A request to change an existing cell edits it in place and re-runs from there. A question is answered from the status, a query, or a diff between two versions.
 
 ## Contracts
 
-Every checkpoint is measured against two contracts, and the product bar says which the product satisfies and whether that meets the target:
+Every version is measured against two contracts, and the page reports whether the active version fits the intent:
 
-| Contract | Needs | Feeds |
-| --- | --- | --- |
-| **Train** | A `messages` column whose every row is a chat transcript with an assistant turn (`tools` optional) | [Training](/models/training) |
-| **Eval** | An `input` on every row and an `expected_output` column with at least one reference | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
+| Intent | Shape | Capability, row by row | Feeds |
+| --- | --- | --- | --- |
+| **Train** | A `messages` column whose every row is a chat transcript with an assistant turn (`tools` optional) | The system turn is the capability's synced system prompt; every tool call names a declared tool | [Training](/models/training) |
+| **Eval** | An `input` on every row and an `expected_output` column with at least one reference | Every `input` carries the capability's required input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
 
-A table that satisfies neither is **raw**: usable as a source for the notebook, refused by every run. A table that satisfies both is reported as **train**; drop the `messages` column in a cell to publish it as eval.
+The capability contract is vacuous when the capability declares nothing. Rows that fail are counted with the reason; a row that cannot meet a contract is a finding for the agent, never a default value. A training job whose eval dataset shares `trace_id`s with the train version is refused until they are separated.
 
-The second contract is the **capability contract**, measured row by row. For an eval set every `input` carries the capability's required input keys. For a train set every transcript is the capability's own: its system turn is the capability's synced system prompt, and every tool call names a declared tool. Rows that fail are counted, and a row that cannot meet the contract is a finding, never a default value. Beside it the run reports **alignment**: behaviour coverage when the rows carry behaviour keys, rows from another capability, the terminal shape, how many rows carry verdicts, and rows shared with sibling datasets of the same capability. Two alignment facts are gates, not warnings: a train product with rows from another capability is refused by the training wizard, and a training job whose eval dataset shares rows with the train checkpoint (by `trace_id`) is refused until they are split.
+## Versions and uses
 
-## Checkpoints and pins
-
-Every run — eval, optimiser, training — pins the **exact checkpoint** it read and links back to it from its own page. A pinned checkpoint cannot be deleted, and neither can its dataset; **Used by** under the product bar's **Details** lists the runs. The worker re-hashes the frame before it starts, so a run never silently reads a file that changed underneath it.
-
-From the page menu, **History** lists every checkpoint with its contract against the target, row count and pins. Any checkpoint can be **forked** into a new dataset, an unpinned one can be deleted, and **What changed** compares a checkpoint with its upstream: cells added, removed, reordered or edited (as a patch), columns added, dropped or retyped, and rows removed, added or changed by `source_row`.
+Every run — eval, optimiser, training, and an export — **uses** the version it read and links back to it. A use freezes that version and every cell before it, starts a new major number (1.3 becomes 2.0, the cells after it become 2.1, 2.2, …), and protects the frame: it cannot be deleted, and neither can its dataset. The worker re-hashes the frame before it starts, so a run never silently reads a file that changed underneath it.
 
 ## API
 
 ```bash
 # List, read, rename, delete
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/?project=<project-uuid>&contract=eval"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/?project=<project-uuid>&intent=eval"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/"
 
 # Create from pasted rows (a file goes through /api/uploads/ first; traces take a selection)
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"project": "<project-uuid>", "name": "triage-eval", "target": "eval", "capability": "<capability-uuid>",
+  -d '{"project": "<project-uuid>", "name": "triage-eval", "intent": "eval",
        "source": {"rows": [{"input": "...", "expected_output": "..."}]}}' \
   "https://api.overmindlab.ai/api/datasets/"
 
-# Rows of the product (or ?source=true, ?cell=, ?checkpoint=), column stats, read-only SQL
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/rows/?limit=50&sort=input&dir=asc"
+# Rows of a version with diff marks, column stats, read-only SQL over table t
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/rows/?cell=<cell-id>&diff=1&limit=50"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/columns/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"sql": "SELECT count(*) FROM product"}' "https://api.overmindlab.ai/api/datasets/{id}/query/"
+  -d '{"sql": "SELECT count(*) FROM t"}' "https://api.overmindlab.ai/api/datasets/{id}/query/"
 
-# Save cells and run; the response is the dataset, and /events/ streams cell progress
-curl -X PUT -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"cells": [{"kind": "sql", "title": "Keep", "script": "SELECT * FROM source WHERE tag = '"'"'keep'"'"'"}], "run": true}' \
-  "https://api.overmindlab.ai/api/datasets/{id}/cells/"
-
-# Point the product at a cell; fork a checkpoint into a new dataset
+# Add a cell, run the chain, talk to the agent; /events/ streams cells, runs and chat
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"cell_id": "<cell-id>"}' "https://api.overmindlab.ai/api/datasets/{id}/activate/"
+  -d '{"title": "Keep", "script": "df = df[df[\"tag\"] == \"keep\"]"}' "https://api.overmindlab.ai/api/datasets/{id}/cells/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/run/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"name": "triage-eval-held-out", "checkpoint_id": "<checkpoint-uuid>"}' "https://api.overmindlab.ai/api/datasets/{id}/fork/"
+  -d '{"message": "Drop rows whose answer is under ten tokens"}' "https://api.overmindlab.ai/api/datasets/{id}/chat/"
 
-# Checkpoints, diff, usage; export a checkpoint (the response names it and its
-# product hash in X-Overmind-Checkpoint / X-Overmind-Product-Hash)
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/checkpoints/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/checkpoints/{c1}/diff/{c2}/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl&checkpoint={c2}"
+# What changed into a version, who used it; export a version (a use — the response
+# names it in X-Overmind-Cell / X-Overmind-Version / X-Overmind-Fingerprint)
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/diff/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/usage/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl&cell={cell}"
 ```
 
 The full surface is in the [API reference](/platform/api#datasets).
 
 ## Getting the most out of it
 
-Start small and real: 10–50 representative trace-sourced rows beat a thousand synthetic ones for almost every purpose. Let the contract tell you the first fix, then read the diagnosis for the rest. When the same defect keeps appearing in fresh trace batches, that is usually a signal about the agent, not the data.
+Start small and real: 10–50 representative trace-sourced rows beat a thousand synthetic ones for almost every purpose. Let the first pass tell you the shape, read the proposals for the rest. When the same defect keeps appearing in fresh trace batches, that is usually a signal about the agent, not the data.

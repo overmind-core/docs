@@ -37,13 +37,13 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 ## Data
 
-**Dataset** — a source table (a file, pasted rows, or trace units, landed as-is), a **target** (train or eval) picked at creation, a linear notebook of cells, and the **checkpoints** the cells produced. See [Datasets](/core/datasets).
+**Dataset** — a source table (a file, pasted rows, or trace units, landed as-is) and a linear chain of Python cells; every cell that ran is a **version**. It carries an **intent** (train or eval) and a **capability**, both proposed at landing and frozen by the first use. See [Datasets](/core/datasets).
 
-**Checkpoint** — one cell's result from a run: an immutable table with its **contract** (`train`, `eval`, or `raw`), column manifest, alignment report and hash. The active cell's checkpoint is the **product**; runs pin the checkpoint they read.
+**Version** — one cell that ran: its frame, column manifest, both contract reports and fingerprint. The source is 1.0, each cell adds a minor (1.1, 1.2), a use starts a new major (2.0) and freezes the version with every cell before it. Runs use the version they read.
 
-**Data Workshop** — the dataset page: source, Python/SQL cells with per-cell deltas, the product with its contract and alignment, versions with diffs, and Overmind beside it to diagnose and write cells.
+**Data Workshop** — the dataset page: the source, Python cells with a value-level diff against the cell before, the active version with its actions, and the dataset's own agent beside it, which shapes the chain in two passes and then on request.
 
-**Contract** — measured on every checkpoint, two-fold. The intent contract is the shape the **target** asks for: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The capability contract is row by row: an eval input carries the capability's required keys, a train transcript is the capability's own system prompt and tools. Both are fixed at creation.
+**Contract** — measured on every version, two-fold. The intent contract is the shape the **intent** asks for: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The capability contract is row by row: an eval input carries the capability's required keys, a train transcript is the capability's own system prompt and tools.
 
 ## Evaluation
 

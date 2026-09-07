@@ -9,11 +9,11 @@ Training turns an agent's accumulated data into a model of your own. You pick a 
 | Choice | Requirement |
 | --- | --- |
 | **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A dataset whose product satisfies the **train** contract (chat transcripts with an assistant turn). See [Datasets](/core/datasets#contracts) |
-| **Eval dataset** | A separate dataset whose product satisfies the **eval** contract; the finished model is measured on it. Overmind's chat can carve one out of the train set with no shared traces |
+| **Training dataset** | A **train** dataset whose active version fits (chat transcripts with an assistant turn, the capability's own). See [Datasets](/core/datasets#contracts) |
+| **Eval dataset** | A separate **eval** dataset whose active version fits; the finished model is measured on it. Land it from other traces so the two never share a `trace_id` |
 | **Rubric** | The eval set that does the measuring, chosen from the capability's sets |
 
-The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). The job pins the exact checkpoint it trains on, and validation runs before launch with the same rules the [contract](/core/datasets#contracts) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
+The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). The job uses and freezes the exact version it trains on, and validation runs before launch with the same rules the [contract](/core/datasets#contracts) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
 
 ## Configuring experiments
 
@@ -79,5 +79,5 @@ When the benchmark says the trained model wins, **Model PR** (`POST /api/finetun
 ## Good to know
 
 - Model quality comes almost entirely from the data. Get the product to the **train** contract and a clean alignment report before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
-- The run pins a [checkpoint](/core/datasets#checkpoints-and-pins); keep curating in the notebook and the next run picks up the new product.
+- The run uses a [version](/core/datasets#versions-and-uses); keep curating in the workshop and the next run picks up the new active version.
 - Each experiment reports its final credit cost; estimates are shown before you commit.
