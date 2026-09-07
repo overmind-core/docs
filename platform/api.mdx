@@ -45,7 +45,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
-| Datasets | `/api/datasets/` | create (`target` = `train` or `eval`; `source` = `upload_id`, `rows`, `text`, `traces`, or `checkpoint_id`), read, patch (`name`, `capability`, `target`, `active_cell_id`), delete; `GET .../rows/` (paged, `?source=`, `?cell=`, `?checkpoint=`, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../query/` (read-only SQL), `PUT .../cells/` (save, `run: true` to execute), `POST .../run/`, `POST .../activate/`, `POST .../fork/`, `GET .../checkpoints/`, `GET .../checkpoints/{id}/` (cell, delta, contract, alignment, columns, stats), `.../diff/{other}/`, `.../usage/`, `.../delete/`, `POST .../append/`, `POST .../refresh/`, `GET .../export/?fmt=jsonl|csv|training`, `GET .../events/` (SSE), `POST .../generate-evals/`, `POST .../context/refresh/` — see [Building a dataset](#building-a-dataset) |
+| Datasets | `/api/datasets/` | create (`target` = `train` or `eval`; `source` = `upload_id`, `rows`, `text`, `traces`, or `checkpoint_id`), read, patch (`name`, `capability`, `target`, `active_cell_id`), delete; `GET .../rows/` (paged, `?source=`, `?cell=`, `?checkpoint=`, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../query/` (read-only SQL), `PUT .../cells/` (save, `run: true` to execute), `POST .../run/`, `POST .../activate/`, `POST .../pending/` (`action`: `confirm`, `undo`, `accept`, `reject` + `cell_id`), `POST .../fork/`, `GET .../checkpoints/`, `GET .../checkpoints/{id}/` (cell, delta, contract, alignment, columns, stats), `.../diff/{other}/`, `.../usage/`, `.../delete/`, `POST .../append/`, `POST .../refresh/`, `GET .../export/?fmt=jsonl|csv|training`, `GET .../events/` (SSE), `POST .../generate-evals/`, `POST .../context/refresh/` — see [Building a dataset](#building-a-dataset) |
 | Uploads | `/api/uploads/` | chunked file upload that a dataset `source.upload_id` refers to |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
 
@@ -98,7 +98,9 @@ A dataset lands its rows as-is with a target and shapes them in a notebook; a ru
     `title`; `script`; `output_name`). With `"run": true` it executes them at once; otherwise
     `POST .../run/` runs them later. Every run writes a checkpoint per cell (an unchanged
     prefix reuses its checkpoints) and points `product` at the active cell's;
-    `POST .../activate/` with `cell_id` moves that pointer. `GET .../events/` streams
+    `POST .../activate/` with `cell_id` moves that pointer. A write made by a chat turn is
+    staged: the dataset's `pending` block lists the changed cells, and `POST .../pending/`
+    settles it (`confirm`, `undo`, or `accept` / `reject` one `cell_id`). `GET .../events/` streams
     `cell_started`, `cell_repairing`, `cell_done`, `cell_failed`, `run_done` and `run_failed`
     as server-sent events, each with its `checkpoint_id`.
   </Step>
