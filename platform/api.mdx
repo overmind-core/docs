@@ -45,7 +45,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
-| Datasets | `/api/datasets/` | create (`target` = `train` or `eval`; `source` = `upload_id`, `rows`, `text`, `traces`, or `checkpoint_id`), read, patch (`name`, `capability`, `target`, `active_cell_id`), delete; `GET .../rows/` (paged, `?source=`, `?cell=`, `?checkpoint=`, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../query/` (read-only SQL), `PUT .../cells/` (save, `run: true` to execute), `POST .../run/`, `POST .../activate/`, `POST .../fork/`, `GET .../checkpoints/`, `GET .../checkpoints/{id}/` (cell, delta, contract, alignment, columns, stats), `.../diff/{other}/`, `.../usage/`, `.../delete/`, `POST .../append/`, `POST .../refresh/`, `GET .../export/?fmt=jsonl|csv|training`, `GET .../events/` (SSE), `POST .../generate-evals/`, `POST .../context/refresh/` — see [Building a dataset](#building-a-dataset) |
+| Datasets | `/api/datasets/` | create (`target` = `train` or `eval`; `source` = `upload_id`, `rows`, `text`, `traces`, or `checkpoint_id`), read, patch (`name`, `active_cell_id`; target and capability are fixed), delete; `GET .../rows/` (paged, `?source=`, `?cell=`, `?checkpoint=`, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../query/` (read-only SQL), `PUT .../cells/` (save, `run: true` to execute), `POST .../run/`, `POST .../activate/`, `POST .../fork/`, `GET .../checkpoints/`, `GET .../checkpoints/{id}/` (cell, delta, contract, alignment, columns, stats), `.../diff/{other}/`, `.../usage/`, `.../delete/`, `POST .../append/`, `POST .../refresh/`, `GET .../export/?fmt=jsonl|csv|training`, `GET .../events/` (SSE), `POST .../generate-evals/`, `POST .../context/refresh/` — see [Building a dataset](#building-a-dataset) |
 | Uploads | `/api/uploads/` | chunked file upload that a dataset `source.upload_id` refers to |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
 
@@ -85,7 +85,7 @@ A dataset lands its rows as-is with a target and shapes them in a notebook; a ru
 <Steps>
   <Step title="Land a source">
     A file goes up in chunks (`POST /api/uploads/`, then `PUT /api/uploads/{id}/chunk/?offset=`).
-    `POST /api/datasets/` with `project`, `name`, `target` (`train` or `eval`), an optional
+    `POST /api/datasets/` with `project`, `name`, `target` (`train` or `eval`), the
     `capability`, and exactly one `source`: `upload_id` (+ `filename`), `rows` or `text` for
     pasted data, `traces` (a trace-list selection or `trace_ids`, plus `grain`: `task` or
     `trace`), or `checkpoint_id` to start from another dataset's checkpoint. The response is the dataset;

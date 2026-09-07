@@ -43,7 +43,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Data Workshop** — the dataset page: source, Python/SQL cells with per-cell deltas, the product with its contract and alignment, versions with diffs, and Overmind beside it to diagnose and write cells.
 
-**Contract** — what a checkpoint can feed, measured on every run: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The dataset's **target** is the contract the user intends.
+**Contract** — measured on every checkpoint, two-fold. The intent contract is the shape the **target** asks for: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The capability contract is row by row: an eval input carries the capability's required keys, a train transcript is the capability's own system prompt and tools. Both are fixed at creation.
 
 ## Evaluation
 
