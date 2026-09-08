@@ -90,7 +90,7 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     pasted data, or `traces` (a trace-list selection or `trace_ids`, plus `grain`: `task`,
     `trace` or `turn`; `POST .../trace-count/` gives the row count per grain). The response is
     the dataset; landing runs in the background, `state` moves from `landing` to `diagnosing`
-    while the agent runs its two passes, then `idle`. Landing proposes `capability_rank` and
+    while the agent runs its preparation turn, then `idle`. Landing proposes `capability_rank` and
     the `intent` when they were left out.
   </Step>
   <Step title="Shape it">
