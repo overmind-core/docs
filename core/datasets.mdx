@@ -44,7 +44,7 @@ Opening a dataset lands you in the Data Workshop: one header line (name, intent,
 
 ### The agent
 
-The chat on the right is the dataset's own agent, a Cursor session with eight tools over the chain and a workspace that holds the capability card, the library list, one file per cell, and every version's frame. It writes a script, tests it against a version, and only then lands a cell, so a cell that lands has already run once.
+The chat on the right is the dataset's own agent, a Cursor session with ten tools over the chain and a workspace that holds the capability card, the library list, one file per cell, and every version's frame. It writes a script, tests it against a version, and only then lands a cell, so a cell that lands has already run once.
 
 The first landing starts one turn. It decides a pending intent, lands the fewest cells that make the active version meet both contracts, each run as it lands, then runs the quality checks an engineer would run for that intent — refusals and truncated turns, duplicates, length outliers, tool calls that do not parse, leakage of the reference into the input, behaviour coverage — and lands one cell per finding that has rows behind it, run at once, with the count in its note. A fix that would drop more than half the rows lands as a **proposal** instead: it has no version until you run it, and dismissing it removes it. Changing the intent or the capability later re-measures every version; the contract chip's **Ask Overmind to fix it** sends the agent a turn that re-aligns the chain with new cells.
 
@@ -63,7 +63,7 @@ The capability contract is vacuous when the capability declares nothing. Rows th
 
 ## Versions and uses
 
-Every run — eval, optimiser, training, and an export — **uses** the version it read and links back to it. A use freezes that version and every cell before it, starts a new major number (1.3 becomes 2.0, the cells after it become 2.1, 2.2, …), and protects the frame: it cannot be deleted, and neither can its dataset. The worker re-hashes the frame before it starts, so a run never silently reads a file that changed underneath it.
+Every run — eval, optimiser, training — **uses** the version it read and links back to it. A use freezes that version and every cell before it, starts a new major number (1.3 becomes 2.0, the cells after it become 2.1, 2.2, …), and protects the frame: it cannot be deleted, and neither can its dataset. The worker re-hashes the frame before it starts, so a run never silently reads a file that changed underneath it.
 
 ## API
 
