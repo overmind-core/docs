@@ -152,6 +152,70 @@
     {
       "source": "/core/agents",
       "destination": "/core/capabilities"
+    },
+    {
+      "source": "/guides/sdk-python",
+      "destination": "/tracing/sdk-python"
+    },
+    {
+      "source": "/guides/sdk-js",
+      "destination": "/tracing/sdk-typescript"
+    },
+    {
+      "source": "/guides/sdk-reference",
+      "destination": "/platform/api"
+    },
+    {
+      "source": "/guides/getting-started",
+      "destination": "/quickstart"
+    },
+    {
+      "source": "/guides/how-to-use-overmind",
+      "destination": "/quickstart"
+    },
+    {
+      "source": "/guides/how-to-use-tracing",
+      "destination": "/core/observability"
+    },
+    {
+      "source": "/guides/integrations",
+      "destination": "/core/observability"
+    },
+    {
+      "source": "/guides/platform-overview",
+      "destination": "/core/capabilities"
+    },
+    {
+      "source": "/guides/how-it-works",
+      "destination": "/core/capabilities"
+    },
+    {
+      "source": "/guides/skills",
+      "destination": "/core/capabilities"
+    },
+    {
+      "source": "/guides/overmind_optimizer",
+      "destination": "/agent-testing/optimisers"
+    },
+    {
+      "source": "/guides/fine-tuning-beta",
+      "destination": "/models/training"
+    },
+    {
+      "source": "/guides/overmind_doc",
+      "destination": "/"
+    },
+    {
+      "source": "/guides/:slug*",
+      "destination": "/quickstart"
+    },
+    {
+      "source": "/api/:slug*",
+      "destination": "/platform/api"
+    },
+    {
+      "source": "/evaluation/:slug*",
+      "destination": "/agent-testing/eval"
     }
   ],
   "contextual": {
