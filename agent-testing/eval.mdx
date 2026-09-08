@@ -61,6 +61,8 @@ An eval run is a controlled experiment: **one data source × N variants × M eva
 - **Variants** — the columns of the experiment. A variant either **generates** fresh outputs by re-running a model over each row, or grades **existing** traces as-is. Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt version; one variant is the **baseline** that every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits can't change what a completed run measured.
 
+In the console, **Evaluations → Run evaluation** starts one from a dataset, its capability's eval set and one catalogue model; the **Evaluate** action on a dataset version opens the same dialog with that version chosen.
+
 ```bash
 # Create, launch, follow, and compare a run
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
