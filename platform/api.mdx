@@ -99,7 +99,7 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     executes the queued cells in order (an unchanged cell keeps its frame). `POST .../chat/`
     sends a message to the dataset's agent, which lands cells itself. `GET .../events/` streams
     `cell_started`, `cell_done`, `cell_failed`, `run_done`, `run_failed`, `chat_turn`,
-    `chat_delta` and `chat_cell` as server-sent events.
+    `chat_step`, `chat_delta` and `chat_cell` as server-sent events.
   </Step>
   <Step title="Read a version">
     The dataset's `cells` carry every version: `version`, `state`, `rows`, `columns`,
