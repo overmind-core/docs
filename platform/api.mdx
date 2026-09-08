@@ -88,7 +88,7 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     `POST /api/datasets/` with `project`, `name`, optional `intent` (`train` or `eval`) and
     `capability`, and exactly one `source`: `upload_id` (+ `filename`), `rows` or `text` for
     pasted data, or `traces` (a trace-list selection or `trace_ids`, plus `grain`: `task`,
-    `trace` or `turn`; `POST .../trace-count/` gives the row count per grain). The response is
+    `trace` or `turn`; `POST .../trace-count/` gives the row count per grain; an interrupted trace with no root span counts and lands like any other). The response is
     the dataset; landing runs in the background, `state` moves from `landing` to `diagnosing`
     while the agent runs its preparation turn, then `idle`. Landing proposes `capability_rank` and
     the `intent` when they were left out.
