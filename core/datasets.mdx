@@ -37,7 +37,7 @@ A cell value larger than about 200 KB (a tool call carrying a serialised agent s
 Opening a dataset lands you in the Data Workshop: one header line (name, intent, capability, active version, rows, **Run**), a version strip down the left edge, the cells stacked in the middle, and the dataset's agent on the right.
 
 - A cell is a title, a Python body and the frame it left. The body reads the previous frame as `df` (pandas, with `pd` and `np` bound) and leaves the next one in `df`. It runs in an isolated interpreter with a CPU and memory cap, no file or network access, and imports from the workshop's library list: the standard library, pandas, numpy, pyarrow, DuckDB, scipy, scikit-learn, rapidfuzz, tiktoken and a few more, plus a short list the agent can install on request.
-- Under the script, every cell shows what it did: rows added and removed, values changed, columns added and removed. Its table marks new rows and changed values, with the old value on hover, and lists the rows it removed.
+- Under the script, the table marks new rows and changed values against the cell before, with the old value on hover.
 - The active version's cell carries the actions: **Train** or **Evaluate** and **Optimise** (by intent), **Export**. Any other version offers **Set active**.
 
 **Run** executes every cell whose script or input changed. A failing cell shows its traceback, the cells after it stay queued, and the last good version stays active; fix the cell and run again.
@@ -91,9 +91,8 @@ curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/d
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
   -d '{"message": "Drop rows whose answer is under ten tokens"}' "https://api.overmindlab.ai/api/datasets/{id}/chat/"
 
-# What changed into a version, who used it; export a version (a use — the response
-# names it in X-Overmind-Cell / X-Overmind-Version / X-Overmind-Fingerprint)
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/diff/"
+# Who used a version; export a version (a use — the response names it in
+# X-Overmind-Cell / X-Overmind-Version / X-Overmind-Fingerprint)
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/usage/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl&cell={cell}"
 ```
