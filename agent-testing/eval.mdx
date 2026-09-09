@@ -82,6 +82,10 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs
 
 Execution fans out server-side: sample preparation (generation), then one scoring task per sample × evaluator, then aggregation into the run summary. Runs move through pending → running → completed (or failed/cancelled) and can be cancelled mid-flight.
 
+For recorded conversations, a generated variant can set `params.generation_strategy` to `per_assistant_turn`. The model produces one decision for each recorded assistant turn, using the conversation recorded before that turn as context. Tool calls are evaluated as decisions without executing their tools. Each subsequent turn uses the recorded history, keeping its context independent of the candidate's previous decisions. This also applies to conversations containing a single recorded assistant turn; a tool-only decision does not require a final answer.
+
+Generation activity keeps the run's activity timestamp current. A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
+
 ### Reading the report
 
 <Frame caption="A finished run: per-evaluator pass/fail and mean scores per model, cost and latency per variant, and the per-datapoint breakdown below.">
