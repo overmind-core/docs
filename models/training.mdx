@@ -74,7 +74,7 @@ The headline number is the delta per metric. The comparison is deliberately agai
 
 A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the capability's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
 
-When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the capability at the new model and opens the pull request — the switch happens through your normal review, never automatically.
+When the benchmark says the trained model wins, **Use in code** (`GET /api/finetuning-jobs/{id}/model-swap-prompt/`) gives you a prompt to run in your own coding agent. It names what your code calls today and what to call instead. Overmind never edits your repository, so the change goes through your normal review.
 
 ## Good to know
 
