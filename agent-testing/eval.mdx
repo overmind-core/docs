@@ -36,7 +36,7 @@ Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajector
 
 ### Authoring
 
-Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Repository scans also author a starter set per capability automatically.
+Author from the Eval Library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. A local `overmind sync` also authors a starter set per capability automatically.
 
 <Frame caption="The evaluator editor: write the rubric yourself or generate it from a description; the compiled evaluation prompt uses {{output.*}} and {{reference.*}} variables.">
   <img src="/images/platform/generated-rubrics.png" alt="Edit evaluator dialog in the Eval Library" />

@@ -15,7 +15,7 @@ Deployment starts automatically when a training experiment succeeds. A model mov
 
 Opening a model shows its lineage (base model, capability, training run — each linked), live metrics (requests, tokens, throughput in tokens/s, model-inference latency), downloadable weights (a zip of adapter, config, and tokenizer files), and the delete danger zone.
 
-<Frame caption="A served model: 1,018 requests, 551k tokens, activity/throughput/latency charts, weights download, and the Model PR button.">
+<Frame caption="A served model: 1,018 requests, 551k tokens, activity/throughput/latency charts, and weights download.">
   <img src="/images/platform/served-endpoint.png" alt="Deployed model detail with metrics and weights download" />
 </Frame>
 
@@ -111,4 +111,4 @@ The gateway routes by model ID: your `ft-...` references go to Overmind's servin
 
 ## Closing the loop
 
-Point your traced application at a deployed model and its calls flow back into [Observability](/core/observability) like any other provider's — tokens, latency, and live eval scores included. A model switch is therefore measurable in production with the same evaluators that justified it offline. For the switch itself, the **Model PR** from the [training run](/models/training#after-training) edits your repository and opens the pull request.
+Point your traced application at a deployed model and its calls flow back into [Observability](/core/observability) like any other provider's — tokens, latency, and live eval scores included. A model switch is therefore measurable in production with the same evaluators that justified it offline. For the switch itself, copy the model swap prompt from the [training run](/models/training#after-training) into your coding agent.

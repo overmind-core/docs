@@ -1,15 +1,15 @@
 ---
 title: Optimisers
-description: The optimisation loop — candidate code diffs, the local executioner, scoring with your eval set, and the resulting pull request.
+description: The optimisation loop — candidate code diffs, the local executioner, scoring with your eval set, and the winning diff to apply locally.
 ---
 
-The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your evaluators. Only a change that beats the best score so far survives, and the winner ships as a pull request you review like any other.
+The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your evaluators. Only a change that beats the best score so far survives; the winning diff stays on the candidate for you to apply in your repo.
 
 ## Prerequisites
 
 <Steps>
   <Step title="A capability from your code">
-    Candidates are edits to source, so the capability must come from a connected repository with a known entrypoint. See [Agent & Capabilities](/core/capabilities).
+    Candidates are edits to source, so the capability must be synced from your repo with a known entrypoint in `overmind.toml`. See [Agent & Capabilities](/core/capabilities).
   </Step>
   <Step title="An eval-intent dataset">
     The run replays the agent over the dataset's datapoints; the inputs must be a shape the agent can be invoked with. See [Datasets](/core/datasets).
@@ -48,7 +48,7 @@ K -> P{Budget left and still improving?}
 X -> P
 P ~> G : Yes
 P -> W[Winner] : No
-W -> PR[Open PR on GitHub]
+W -> L[Apply winning diff locally]
 ```
 
 A run opens with a **smoke test** — before spending anything, Overmind verifies the executioner can actually invoke your agent's entrypoint. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
@@ -69,9 +69,9 @@ The header carries baseline score, best score, iterations and candidates complet
   <img src="/images/platform/optimiser-iterations.png" alt="Optimiser iterations with expanded candidate patch" />
 </Frame>
 
-## The result is a pull request
+## The result is a scored diff
 
-**Apply changes on GitHub** opens a pull request in your connected repository containing the winning diff. From there it's your normal review process — Overmind never pushes changes on its own. Because candidates were scored with the same evaluators you use everywhere else, the number on the PR is directly comparable to your eval runs and live trace scores.
+The winning candidate keeps the diff on its record (`code_path` when the executioner wrote one, otherwise the patch on the run page). Apply it in your repository with your normal git workflow. Because candidates were scored with the same evaluators you use everywhere else, the headline score is directly comparable to your eval runs and live trace scores.
 
 ## API
 
@@ -82,10 +82,9 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/iterations/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/commands/"
 
-# Executioner connection status, cancel, ship the winner
+# Executioner connection status, cancel
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/connection/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/cancel/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/create-pr/"
 ```
 
 ## Good to know

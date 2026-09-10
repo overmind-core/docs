@@ -2,7 +2,7 @@
 title: Introduction
 ---
 
-Overmind improves production AI agents with their own data. It ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval experiments, optimisation runs that open pull requests, and training runs that produce models benchmarked against the one you ship today.
+Overmind improves production AI agents with their own data. It ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval experiments, optimisation runs that score code diffs locally, and training runs that produce models benchmarked against the one you ship today.
 
 ```flow
 flow row
@@ -14,7 +14,7 @@ D -> E[Eval runs | variants vs baseline]
 E -> OP[Optimiser | code diffs, replayed + scored]
 D -> T[Training | trained models vs baseline]
 T -> I[Inference | OpenAI-compatible API]
-OP ~> A : winning diff lands as a PR
+OP ~> A : winning diff applied locally
 I ~> B : served model's calls are traced
 ```
 
@@ -32,7 +32,7 @@ Overmind gives you:
 - **Live scoring** — evaluators run on root spans as they land
 - **Datasets from traffic** — convert traces into eval and training data
 - **Eval runs** — variants measured against a baseline with typed scores
-- **Optimiser** — local execution, scored candidates, a PR with the winning diff
+- **Optimiser** — local execution, scored candidates, a winning diff to apply in your repo
 - **Training** — managed GPU runs, loss curves, benchmark vs your production model
 - **Inference** — OpenAI-compatible API for your trained models and frontier models
 
@@ -52,7 +52,7 @@ Overmind gives you:
     `OvermindClient`, `initTracing()`, manual spans.
   </Card>
   <Card title="Agent & Capabilities" href="/core/capabilities" icon="robot">
-    Repo scans, telemetry attribution, eval specs.
+    Local sync, telemetry attribution, eval specs.
   </Card>
   <Card title="Datasets" href="/core/datasets" icon="database">
     Schema, intents, Workshop, trace-to-dataset.
@@ -61,7 +61,7 @@ Overmind gives you:
     Evaluator kinds, eval sets, run reports.
   </Card>
   <Card title="Optimisers" href="/agent-testing/optimisers" icon="wand-magic-sparkles">
-    Loop, local executioner, resulting PR.
+    Loop, local executioner, winning diff.
   </Card>
 </CardGroup>
 

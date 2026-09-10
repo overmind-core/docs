@@ -7,11 +7,11 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Project** — the tenant boundary. Capabilities, traces, datasets, runs, models, connectors, and API keys belong to exactly one project. See [Administration](/platform/administration#projects).
 
-**Guest workspace** — a project minted for a guest session from the demo page: one public-repository scan (up to 200 MB), read-only otherwise, deleted after 7 days unless claimed. Creating an account from inside it moves the project to the new account.
+**Guest workspace** — a project minted for a guest session from the demo page, sized for local setup (`overmind init` → `/overmind setup` → `overmind sync`). Read-only otherwise, deleted after 7 days unless claimed. Creating an account from inside it moves the project to the new account.
 
 **Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/core/capabilities).
 
-**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from a repository scan joined with runtime behaviour from telemetry. A capability the scan no longer finds leaves the agent and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/core/capabilities).
+**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from local sync joined with runtime behaviour from telemetry. A capability the snapshot no longer includes leaves the agent and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/core/capabilities).
 
 **API key** — a project-scoped credential (`ovr_...`, stored hashed, shown once at creation) that authenticates the SDKs, OTLP ingest, the REST API, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`.
 
@@ -33,7 +33,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Trace coverage** — the fraction of a capability's discovered components (entrypoints, tools) that emit telemetry, reported on its page.
 
-**Observability PR** — a pull request Overmind opens against your repository adding SDK initialisation and span instrumentation.
+**Instrumentation prompt** — copyable text on a capability's trace-coverage panel listing untraced entrypoints and tools for your coding agent.
 
 ## Data
 
@@ -69,7 +69,7 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 ## Optimisation
 
-**Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated, replayed over a dataset, scored with a pinned eval set, and the winner ships as a PR. See [Optimisers](/agent-testing/optimisers).
+**Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated, replayed over a dataset, scored with a pinned eval set, and the winning diff is applied locally. See [Optimisers](/agent-testing/optimisers).
 
 **Iteration** — one loop cycle producing a batch of candidates. Iteration 0 is the **baseline** — the unmodified capability.
 
@@ -87,6 +87,6 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Deployed model** — a served trained model with a copyable reference (`ft-...`) callable via the OpenAI-compatible API. Statuses: queued, quantizing, deploying, warming, ready, failed, deleting, deleted. See [Inference](/models/inference).
 
-**Model PR** — a pull request Overmind opens that switches the capability's configured model to a trained model that beat the baseline.
+**Model swap prompt** — text returned by `GET /api/finetuning-jobs/{id}/model-swap-prompt/` after a benchmark win; paste into a coding agent to retarget the capability in your repo.
 
 **Credits** — the billing unit for compute Overmind performs (analyses, eval runs, training, serving). Trace ingest is never credit-gated.

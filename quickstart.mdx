@@ -4,7 +4,7 @@ description: From zero to traces in the console — create an API key, paste the
 ---
 
 <Tip>
-No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.ai/demo) to scan a public GitHub repository as a guest; `?repo=https://github.com/owner/repo` prefills the form. The guest session starts with the scan. A guest workspace holds one scan of a repository up to 200 MB, is read-only otherwise, and is deleted after 7 days. Creating an account from inside the workspace moves it to that account.
+No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.ai/demo) for a guest workspace sized for local setup. Create an account, then run `overmind init`, `/overmind setup`, and `overmind sync` in your repo. The workspace is read-only otherwise and is deleted after 7 days unless you claim it by creating an account from inside it.
 </Tip>
 
 <Steps>
@@ -46,7 +46,7 @@ No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.a
       <img src="/images/platform/tracing-list.png" alt="Observability trace list in the Overmind console" />
     </Frame>
 
-    The **Get started** page in the console tracks the same setup as a live checklist: project → repository scan → API key → tracing → dataset.
+    The **Get started** page in the console tracks the same setup as a live checklist: project → local capability sync → API key → tracing → dataset.
   </Step>
 </Steps>
 
@@ -56,8 +56,8 @@ No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.a
   <Card title="Structure your traces" icon="sitemap" href="/tracing/sdk-python">
     Add `@entry_point`, `@workflow`, and `@tool` spans so traces mirror your agent's real control flow.
   </Card>
-  <Card title="Connect your repository" icon="github" href="/core/capabilities">
-    A repo scan maps your agent's capabilities, extracts their prompts, and measures trace coverage.
+  <Card title="Map capabilities locally" icon="robot" href="/core/capabilities">
+    `overmind setup` and `overmind sync` push your agent graph, prompts, and eval specs from your repo.
   </Card>
   <Card title="Build a dataset from traces" icon="database" href="/core/datasets">
     Select traces and convert them into an eval or training dataset with provenance intact.
