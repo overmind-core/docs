@@ -99,7 +99,7 @@ Two details in the scoring model are worth understanding:
 - **Outcomes are typed.** Every score is `scored`, `abstained`, `not_applicable`, `skipped`, or `error` — and only `scored` results feed averages and pass rates.
 - **Samples can be degraded.** Each trace is normalised into a canonical transcript before scoring; if it can't be faithfully reconstructed, the sample is marked degraded and excluded from aggregates rather than silently polluting them. Failure scores also carry a role — root cause vs. propagated — so one upstream failure doesn't read as five independent ones.
 
-Completed runs can be shared read-only via tokenised share links, and scores accumulate into a per-capability history that powers the trend charts on the capability page.
+Scores accumulate into a per-capability history that powers the trend charts on the capability page.
 
 ## Calibrating judges
 

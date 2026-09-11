@@ -41,11 +41,11 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
 | Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove) |
-| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `GET .../base-model-throughput/`, `DELETE .../` (soft delete) |
+| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `DELETE .../` (soft delete) |
 | Agent graph | `/api/agent/` | one call: current capabilities, edges, last scan |
 | Traces | `/api/traces/` | list returns root spans; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id` |
-| Datasets | `/api/datasets/` | read, rename and delete; `POST .../remove_datapoints/`, `POST .../activate/`, `GET .../cards/`, `GET .../eval-capabilities/`, `POST .../generate-evals/`, `POST .../context/refresh/`, `GET .../datapoints/`, the `/workshop/` family |
+| Datasets | `/api/datasets/` | read, rename and delete; `POST .../remove_datapoints/`, `POST .../activate/`, `GET .../cards/`, `GET .../eval-capabilities/`, `GET .../datapoints/`, the `/workshop/` family |
 | Dataset builds | `/api/uploads/`, `/api/ingestions/` | the only door that creates a dataset — see [Building a dataset](#building-a-dataset) |
 | Jobs | `/api/jobs/`, `/api/job-iterations/` | unified long-running-work records |
 
@@ -53,10 +53,10 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
-| Evaluators | `/api/evaluators/` | `GET catalog/`, `GET score-history/`, `POST author/`, `POST compile-rubric/`, `POST .../preview/`, `POST bulk-create/` |
-| Eval sets | `/api/eval-sets/` | `.../members/`, `POST .../activate/`, `POST .../generate-evals/` |
-| Eval runs | `/api/eval-runs/` | `POST .../run/`, `POST .../cancel/`, `GET .../comparison/`, `GET .../compare/`, `GET .../trend/` |
-| Samples / scores / annotations | `/api/eval-samples/`, `/api/eval-scores/`, `/api/eval-annotations/` | |
+| Evaluators | `/api/evaluators/` | `GET catalog/`, `GET score-history/`, `POST author/` |
+| Eval sets | `/api/eval-sets/` | `.../members/`, `POST .../activate/` |
+| Eval runs | `/api/eval-runs/` | `POST .../run/`, `POST .../cancel/`, `GET .../comparison/` |
+| Samples / scores | `/api/eval-samples/`, `/api/eval-scores/` | |
 
 ### Optimisation, training, serving
 
@@ -64,7 +64,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | --- | --- | --- |
 | Optimiser runs | `/api/optimizer-experiments/` | `GET .../iterations/`, `GET .../commands/`, `POST .../cancel/`, `POST .../create-pr/`, `GET connection/` |
 | Training runs | `/api/finetuning-jobs/` | `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `GET models/`, `GET dataset-overlap/`, `GET .../loss-curves/`, `GET .../events/`, `POST .../cancel/`, `POST .../retry/`, `POST .../create-model-pr/` |
-| Deployed models | `/api/deployed-models/` | `POST .../deploy/`, `POST .../undeploy/`, `POST .../retry/`, `GET .../metrics/`, `GET .../activity/`, `GET .../checkpoints/` (+ `download/`) |
+| Deployed models | `/api/deployed-models/` | `POST .../deploy/`, `POST .../undeploy/`, `POST .../retry/`, `GET .../metrics/`, `GET .../activity/`, `GET .../checkpoints/` |
 
 ### Special endpoints
 
