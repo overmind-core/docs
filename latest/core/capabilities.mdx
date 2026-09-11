@@ -1,6 +1,6 @@
 ---
 title: Agent & Capabilities
-description: How Overmind models your agent — one product graph per project, made of capabilities mapped from your repo and confirmed by telemetry.
+description: How Overmind models your agent — one product graph per project, made of capabilities synced from your repo and confirmed by telemetry.
 ---
 
 Your **agent** in Overmind is the product itself: one per project, mapped as a graph of **capabilities**. A capability is one purpose the product serves — triage tickets, answer from the knowledge base, summarise a call — the smallest unit you would name, ship, or fail. Each capability record joins two sides: static structure read from your repository (prompt, tools, control flow, entrypoint) and runtime behaviour from telemetry (traces, token usage, live scores). Everything else on the platform hangs off capabilities — traces are attributed to one, datasets can be bound to one, evaluators are scoped per capability, optimisation runs edit a capability's code, and trained models are benchmarked against the model a capability runs in production.
@@ -10,8 +10,8 @@ Your **agent** in Overmind is the product itself: one per project, mapped as a g
 ```flow
 flow row
 title: Three paths into the same capability record
-A[GitHub repository] -> C[Capability] : repo scan
-B[Production telemetry] -> C : overmind.agent.* attributes
+A[Local repo | overmind.toml] -> C[Capability] : overmind sync
+B[Production telemetry] -> C : overmind.capability.id
 D[overmind CLI] -> C : optimisation runs
 C -> E[Traces]
 C -> F[Datasets]
@@ -20,27 +20,29 @@ C -> H[Optimisation runs]
 C -> I[Trained models]
 ```
 
-### Repository scan
+### Local discovery
 
-Connect GitHub from **Agent → Connect a repository** (or during onboarding). You install the Overmind GitHub App on the specific repositories you choose; for a public repository, paste its URL instead — no account connection needed. Pick a branch and Overmind clones and analyses it, mapping each capability's prompt, tools, and control flow.
+Capability structure is discovered in your repository, not on the server. Run `overmind init` in the repo, paste **`/overmind setup`** into your coding agent to map capabilities into `overmind_capabilities.json`, convert that to `overmind.toml`, then push the snapshot with **`overmind sync`**. Each sync POSTs the local graph to your project and writes reconciled capability ids back into the toml.
 
-The scan first reads your code deterministically — model-call sites, prompts, tools, product entrypoints, and the call graph between them — and uses that evidence to identify capabilities at the purpose level. Roles inside one orchestration (a crew, a graph of workers, a supervisor with specialists) are modes of the one capability that orchestration serves, not separate capabilities.
+Discovery reads your code deterministically — model-call sites, prompts, tools, product entrypoints, and the call graph between them — and uses that evidence to identify capabilities at the purpose level. Roles inside one orchestration (a crew, a graph of workers, a supervisor with specialists) are modes of the one capability that orchestration serves, not separate capabilities.
 
-The scan populates each capability's **evaluation spec** — its input schema, expected output fields, tool configuration, and consistency rules — plus the split between **optimisable elements** and **fixed elements** that later bounds what the [Optimiser](/latest/agent-testing/optimisers) may touch. It also generates a starter set of [evaluators](/latest/agent-testing/eval) grounded in the capability's job and a **policy document** describing correct behaviour; both remain editable afterwards.
+The snapshot populates each capability's **card** — its task, input schema, expected output fields, tool configuration, and consistency rules — plus the split between **optimisable elements** and **fixed elements** that later bounds what the [Optimiser](/latest/agent-testing/optimisers) may touch. From the card it compiles a starter set of [evaluators](/latest/agent-testing/eval#authoring) and authors judges grounded in the capability's job; both remain editable afterwards.
 
-A background check compares the scanned commit against your branch head; when the branch moves on, the agent page shows as out of sync and you can re-analyse.
+The sync also mints the capability's **tasks**: each named path through the trajectory map becomes a task with an entry anchor, the anchor segments that follow it, its tool set, and its terminal. Tasks are what [trace scoring](/latest/agent-testing/trace-scoring#tasks-and-bindings) binds production traffic to, and what the Eval Library groups evaluators under. A later sync carries a task's identity through its entry anchor.
 
-### Rescans keep identity
+After you change code or the toml, run `overmind sync` again to refresh structure on the platform.
 
-A capability is recognised by its code footprint — anchors, prompt, tools, output contract — not by its title. A rescan after a refactor carries the same record: same id, same name, same attached data, even when the file moved or the scan would retitle it (the new title lands as a suggestion, never a silent rename). A capability the scan no longer finds leaves the agent instead of being deleted, and comes back in place if a later scan reproduces it.
+### Sync keeps identity
 
-To remove a capability yourself, use **Delete capability** at the bottom of its page. The capability leaves the agent; its traces, datasets, and runs stay in place. A deleted capability is invisible to later scans, so if the code still has it, the next scan creates a fresh record.
+A capability is recognised by its code footprint — anchors, prompt, tools, output contract — not by its title. A sync after a refactor carries the same record: same id, same name, same attached data, even when the file moved or discovery would retitle it (the new title lands as a suggestion, never a silent rename). A capability the snapshot no longer includes leaves the agent instead of being deleted, and comes back in place if a later sync reproduces it.
+
+To remove a capability yourself, use **Delete capability** at the bottom of its page. The capability leaves the agent; its traces, datasets, and runs stay in place. A deleted capability is invisible to later syncs, so if the code still has it, the next sync creates a fresh record.
 
 ### Telemetry
 
-When spans arrive carrying an identity — `overmind.agent.id` or `overmind.agent.name`, set via the [SDK](/latest/tracing/sdk-python#context-helpers) — Overmind attaches them to the matching capability. Every id, name, and slug a capability has ever had keeps resolving, so a rename never strands your telemetry.
+When spans arrive carrying `overmind.capability.id` — set via [`init(capability_id=...)`](/latest/tracing/sdk-python#init) or a `capability(..., id=)` scope — Overmind attaches them to that capability. The id is stable through renames; the name attribute is a display label and never binds.
 
-An identity the project does not know leaves the span **unbound** rather than minting a phantom capability. Unbound traces are stored and browsable under Observability's Unbound filter, and they bind retroactively: when a scan or a manual create later makes that identity resolvable, the backlog re-attaches on its own.
+An identity the project does not know leaves the span **unbound** rather than minting a phantom capability. Unbound traces are stored and browsable under Observability's Unbound filter, and they bind retroactively: when a sync or a manual create later makes that identity resolvable, the backlog re-attaches on its own.
 
 ### The CLI
 
@@ -48,7 +50,7 @@ An identity the project does not know leaves the span **unbound** rather than mi
 
 ## The agent page
 
-**Agent** in the sidebar opens the product view: the capability grid and the latest scan report. Open a capability for its detail page. The header carries copyable **capability id** and **project id** chips (you'll need the capability id for trace attribution) and a **View traces** shortcut into its filtered Observability view.
+**Agent** in the sidebar opens the product view: the capability grid and the latest sync snapshot. Open a capability for its detail page. The header carries copyable **capability id** and **project id** chips (you'll need the capability id for trace attribution) and a **View traces** shortcut into its filtered Observability view.
 
 <Frame caption="Capability overview: model, source, components, trace coverage, the extracted system prompt, and the flow graph.">
   <img src="/images/platform/agent-overview.png" alt="Capability detail page overview tab" />
@@ -56,29 +58,27 @@ An identity the project does not know leaves the span **unbound** rather than mi
 
 Four sections:
 
-- **Overview** — a facts bar (model, source, built-from component counts, trace coverage), the system prompt lifted from your code, a components explorer with file-level provenance, and the interactive flow graph. This is the fastest way to check that Overmind read your code correctly.
+- **Overview** — a facts bar (model, source, built-from component counts, trace coverage), the system prompt lifted from your code, a components explorer with file-level provenance, and the interactive trajectory map. This is the fastest way to check that Overmind read your code correctly.
 - **Dataset** — datasets attached to this capability, built from its traces or uploaded. See [Datasets](/latest/core/datasets).
 - **Eval metrics** — the capability's evaluators and eval sets, with score history. See [Eval](/latest/agent-testing/eval).
 - **Models** — the production baseline and any models trained on this capability's data, linking into [Training](/latest/models/training) and [Inference](/latest/models/inference).
 
-<Frame caption="The flow graph: inputs, prompt-builder lanes, tool calls, and the output contract, as parsed from the repository.">
+<Frame caption="The trajectory map: the entry point, each task's steps and decision surfaces, and its terminals, as parsed from the repository.">
   <img src="/images/platform/agent-flow.png" alt="Capability flow graph fullscreen view" />
 </Frame>
 
-## Trace coverage and the observability PR
+## Trace coverage
 
-The overview reports **trace coverage**: which of the capability's discovered components actually emit telemetry. Clicking it lists every untraced entrypoint and tool with file/line references, and provides a ready-made instrumentation prompt you can copy into your editor's AI assistant.
+The overview reports **trace coverage**: which of the capability's discovered components actually emit telemetry. Clicking it lists every untraced entrypoint and tool with file/line references, and provides a ready-made instrumentation prompt you can copy into your coding agent.
 
 <Frame caption="Trace coverage: 0 of 3 components traced, each untraced entrypoint linked to its source location, with a copyable instrumentation prompt.">
   <img src="/images/platform/trace-coverage.png" alt="Trace coverage panel with untraced components" />
 </Frame>
 
-Alternatively, Overmind can write the missing tracing code itself and open a pull request against your branch (the **observability PR**). The PR adds SDK initialisation and span decorators, and appends an `OVERMIND_API_KEY=` placeholder to your `.env.example` so the deployment wiring is explicit. Status is tracked per repository (not started → in progress → PR open → merged).
-
 ## API
 
 ```bash
-# The whole agent graph: current capabilities, edges, last scan
+# The whole agent graph: current capabilities, edges, last sync
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/agent/?project={project_id}"
 
 # List capabilities / one capability
@@ -88,12 +88,16 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilit
 # The machine-readable evaluation spec and prompt versions
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/eval_spec/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/prompts/"
+
+# The capability's tasks and how well the eval set covers each one
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/coverage/?capability={id}"
 ```
 
-`PATCH /api/capabilities/{id}/` updates mutable fields. `DELETE /api/capabilities/{id}/` hides the capability: it leaves lists, scans, and identity lookup, and its data stays. See the [REST API](/latest/platform/api) overview for the full surface.
+`PATCH /api/capabilities/{id}/` updates mutable fields. `DELETE /api/capabilities/{id}/` hides the capability: it leaves lists, syncs, and identity lookup, and its data stays. See the [REST API](/latest/platform/api) overview for the full surface.
 
 ## Good to know
 
-- **Prompts are versioned.** Each scan or optimisation iteration snapshots the system prompt, tools JSON, and model as a numbered prompt version, retrievable via `/api/capabilities/{id}/prompts/`.
+- **Prompts are versioned.** Each sync or optimisation iteration snapshots the system prompt, tools JSON, and model as a numbered prompt version, retrievable via `/api/capabilities/{id}/prompts/`.
 - **The baseline matters.** The capability's `model` field is what training benchmarks and optimiser baselines measure against — keep it accurate.
-- **Delete hides, it doesn't destroy.** Traces, datasets, and runs underneath a deleted capability remain intact. Its `overmind/<id>` inference alias stops serving.
+- **Delete hides, it doesn't destroy.** Traces, datasets, and runs underneath a deleted capability remain intact. Its inference alias stops serving.

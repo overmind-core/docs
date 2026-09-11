@@ -9,11 +9,11 @@ Training turns an agent's accumulated data into a model of your own. You pick a 
 | Choice | Requirement |
 | --- | --- |
 | **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A dataset with the training intent (chat-style messages). See [Datasets](/latest/core/datasets#the-data-model) |
-| **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
+| **Training dataset** | A **train** dataset whose active version fits (chat transcripts with an assistant turn, the capability's own). See [Datasets](/latest/core/datasets#contracts) |
+| **Eval dataset** | A separate **eval** dataset whose active version fits; the finished model is measured on it. Land it from other traces so the two never share a `trace_id` |
 | **Rubric** | The eval set that does the measuring, chosen from the capability's sets |
 
-The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). Dataset validation runs before launch with the same checks the [Data Workshop](/latest/core/datasets#the-data-workshop) applies at ingest, so problems surface as fixable findings up front instead of a failed run an hour in.
+The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). The job uses and freezes the exact version it trains on, and validation runs before launch with the same rules the [contract](/latest/core/datasets#contracts) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
 
 ## Configuring experiments
 
@@ -74,10 +74,10 @@ The headline number is the delta per metric. The comparison is deliberately agai
 
 A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/latest/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the capability's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
 
-When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the capability at the new model and opens the pull request — the switch happens through your normal review, never automatically.
+When the benchmark says the trained model wins, copy the **model swap prompt** from the training run (`GET /api/finetuning-jobs/{id}/model-swap-prompt/`) and paste it into your coding agent. It retargets the capability in your repo; the switch stays in your normal review flow, never automatic on the server.
 
 ## Good to know
 
-- Model quality comes almost entirely from the data. Get the Workshop verdict to **Ready** before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
-- The training dataset is [locked](/latest/core/datasets#the-data-model) while the run is in flight. Finish curation first, or duplicate the dataset.
+- Model quality comes almost entirely from the data. Get the product to the **train** contract and a clean alignment report before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
+- The run uses a [version](/latest/core/datasets#versions-and-uses); keep curating in the workshop and the next run picks up the new active version.
 - Each experiment reports its final credit cost; estimates are shown before you commit.
