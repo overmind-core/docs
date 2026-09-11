@@ -1,0 +1,212 @@
+---
+title: Observability
+description: How traces get from your agent into Overmind — the OTLP endpoint, the ingestion pipeline, the span data model, and the trace explorer.
+---
+
+Overmind's observability is built on OpenTelemetry end to end. Your process exports standard OTLP spans; the platform ingests them, maps them onto its data model, ties them to a capability, and scores each arriving trace with your evaluators. This page covers the full path a span travels, with the real endpoints, headers, and attribute names the platform reads.
+
+## Architecture
+
+There is no collector, sidecar, or proxy between your agent and the platform. SDKs (and any vanilla OTel exporter) POST OTLP protobuf directly to the API, which writes spans to Postgres and fans out post-processing to background workers:
+
+```flow
+flow row
+title: The ingestion pipeline, span by span
+A[Your process | OTel SDK / Overmind SDK] -> B[POST /api/v1/traces | OTLP protobuf + API key]
+B -> C[Bulk upsert | Span rows, idempotent on span_id]
+C -> D[Projection | capability, session, job attribution]
+D -> E[Live scoring | evaluator tasks per root span]
+E -> F[Console | trace list, span detail, scores]
+```
+
+Ingestion is synchronous up to the database write, so a `200` response means your spans are stored. Re-sending the same spans is safe: rows are upserted on the span ID, so retries and duplicate exports never create duplicate data. Live scoring runs asynchronously on a dedicated worker queue, isolated so ingest bursts can't starve evaluation.
+
+## The OTLP endpoint
+
+| | |
+| --- | --- |
+| Endpoint | `POST https://api.overmindlab.ai/api/v1/traces` (alias: `POST /v1/traces`) |
+| Protocol | OTLP/HTTP **protobuf** (`ExportTraceServiceRequest`). OTLP/JSON and gRPC are not accepted |
+| Content-Type | `application/x-protobuf`; gzip-compressed bodies are supported |
+| Auth | `X-Api-Key: ovr_...` or `Authorization: Bearer ovr_...` |
+| Response | `{"spans_ingested": N, "spans_post_processed": M}` |
+
+The `/v1/traces` alias exists so a stock OTel HTTP exporter works with nothing but a base URL — exporters append `/v1/traces` themselves:
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://api.overmindlab.ai"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+export OTEL_EXPORTER_OTLP_HEADERS="x-api-key=ovr_..."
+```
+
+The API key pins every span in the request to its project. Trace ingest is deliberately exempt from credit gating — running out of credits never drops your telemetry.
+
+## Getting traces in
+
+The fastest path is the same prompt as the Observability empty state — paste it into your coding agent and let the [Overmind Telemetry skill](https://github.com/overmind-core/overmind) install and wire the SDK:
+
+```text
+Install the Overmind AI skill from github.com/overmind-core/overmind and use it to add tracing to this application with Overmind following best practices.
+```
+
+Set `OVERMIND_API_KEY` in the environment first. For a step-by-step walkthrough, see the [Quickstart](/latest/quickstart). To instrument by hand:
+
+<Tabs>
+  <Tab title="Python SDK">
+    ```python
+    import overmind
+
+    overmind.init(
+        service_name="research-agent",
+        environment="production",
+        providers=["openai", "anthropic"],  # omit to auto-detect installed providers
+        agent_name="Research Agent",
+    )
+    ```
+
+    After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, and Agno client libraries are captured automatically — prompts, completions, tool calls, token usage, latency, and errors. See the [Python SDK reference](/latest/tracing/sdk-python) for decorators that trace your own code.
+  </Tab>
+  <Tab title="TypeScript SDK">
+    ```ts
+    import { OpenAI } from "openai";
+    import { OvermindClient } from "@overmind-lab/trace-sdk";
+
+    const overmind = new OvermindClient({
+      apiKey: process.env.OVERMIND_API_KEY!,
+      appName: "research-agent",
+      agentName: "Research Agent",
+    });
+
+    overmind.initTracing({
+      enableBatching: true, // the default; use false in dev to see spans immediately
+      enabledProviders: { openai: OpenAI },
+    });
+    ```
+
+    Supported providers: OpenAI, Anthropic, Google GenAI, and AWS Bedrock. See the [TypeScript SDK reference](/latest/tracing/sdk-typescript).
+  </Tab>
+  <Tab title="Any language (raw OTel)">
+    Configure any OpenTelemetry SDK (Go, Java, Rust, .NET, ...) with the three environment variables above, or in code:
+
+    ```go
+    exporter, _ := otlptracehttp.New(ctx,
+        otlptracehttp.WithEndpoint("api.overmindlab.ai"),
+        otlptracehttp.WithHeaders(map[string]string{"x-api-key": os.Getenv("OVERMIND_API_KEY")}),
+    )
+    ```
+
+    Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.agent.name` as a resource attribute — so your spans are classified and attributed like SDK spans.
+  </Tab>
+  <Tab title="Connectors">
+    If your traces already live in another platform, connect it under **Observability → Integrations**. Three connectors are available:
+
+    | Connector | Credentials | Imports |
+    | --- | --- | --- |
+    | **Langfuse** | Host URL (optional for cloud), public key `pk-lf-...`, secret key `sk-lf-...`; pick the Langfuse project | Traces, evaluations, prompt versions |
+    | **LangSmith** | API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional (EU: `eu.api.smith.langchain.com`) | Traces, runs, threads |
+    | **Braintrust** | API key or service token `bt-st-...`; API URL | Project logs, spans, scores |
+
+    Each connector runs a resumable historical backfill, then polls incrementally; **Sync now** triggers a manual pull. Credentials are encrypted at rest and used only to read. Imported traces can be browsed and turned into datasets like native ones, but live trace scoring applies only to telemetry arriving through the OTLP endpoint.
+  </Tab>
+</Tabs>
+
+## How spans map to the data model
+
+A trace is not a separate record: it is the set of span rows sharing a `trace_id`, and the root span (the one with no parent) is what the trace list shows. Each stored span keeps the full OTLP payload — timing, status, resource attributes, span attributes, events, and links — plus platform fields computed at ingest: a span type, an operation name, and foreign keys to the project, capability, session, and job it belongs to.
+
+### Span classification
+
+Each span is typed at ingest, in priority order:
+
+1. An explicit `overmind.span.type` attribute (`entry_point`, `workflow`, `tool_call`, `function`, `llm_call`, `retrieval` — what the SDK decorators set) always wins.
+2. `gen_ai.operation.name = "execute_tool"` or a `tool.name` attribute marks the span as a tool call.
+3. Otherwise the span defaults to a model call.
+
+### Attributes the ingest pipeline reads
+
+The pipeline understands three attribute dialects — the Overmind SDKs' own keys, the OTel GenAI semantic conventions, and OpenLLMetry/Traceloop keys — checked in that priority order:
+
+| Purpose | Attribute keys (priority order) |
+| --- | --- |
+| Input tokens | `genai.usage.prompt_tokens`, `genai.prompt_tokens`, `gen_ai.usage.prompt_tokens`, `gen_ai.usage.input_tokens`, `llm.usage.prompt_tokens` |
+| Output tokens | `genai.usage.completion_tokens`, `genai.completion_tokens`, `gen_ai.usage.completion_tokens`, `gen_ai.usage.output_tokens`, `llm.usage.completion_tokens` |
+| Cached tokens | `genai.cache_read_tokens`, `gen_ai.usage.cache_read_input_tokens`, `gen_ai.usage.cache_read_tokens` |
+| Model | `genai.model`, `genai.response.model`, `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.model` |
+| Cost | `genai.cost` if the client stamped it, otherwise derived from token counts and model pricing |
+| Inputs / outputs | `overmind.input.data` / `overmind.output.data`, `traceloop.entity.input` / `.output`, `gen_ai.input.messages` / `gen_ai.output.messages`, indexed `gen_ai.prompt.{N}.*` / `gen_ai.completion.{N}.*` |
+| Agent identity | `overmind.agent.id`, `overmind.agent.name` |
+| Session grouping | `conversation.id` |
+| Project (session-auth ingest only) | `overmind.project.id` resource attribute |
+
+Traceloop instrumentation is normalised on the way in — scope names under `@traceloop/*` are rewritten to `@overmind/*` — so OpenLLMetry-instrumented apps work without changes. OpenInference (`openinference.*`) attributes are **not** parsed.
+
+### Capability attribution
+
+Traces attach to a [capability](/latest/core/capabilities) through the identity stamped on their spans:
+
+- **`overmind.agent.id`** — the capability's UUID, copied from its page in the console. Exact and rename-proof; prefer it when known.
+- **`overmind.agent.name`** — a human-readable name, matched case-insensitively against every name the capability has ever had, so a rename never breaks attribution.
+
+Both SDKs stamp these on every span from one setting: `overmind.init(agent_name=...)` / `set_agent_name()` in Python, the `agentId` / `agentName` client options or `setAgentId()` / `setAgentName()` in TypeScript.
+
+An identity the project does not know never creates a capability. The span lands under the **Unbound** filter instead, and binds retroactively once a scan or a manual create makes that identity resolvable.
+
+<Warning>
+Unbound spans are stored and browsable, but they won't appear on any capability's page, won't be live-scored by its evaluators, and won't join capability-scoped datasets until they bind. Set the identity from day one.
+</Warning>
+
+### Sessions
+
+Stamp a shared `conversation.id` on the traces of one multi-turn exchange — `set_conversation_id("session-42")` in both SDKs — and Overmind groups them into a **session** with rolled-up trace counts, tokens, cost, and timespan. The **Sessions** view in Observability lists them.
+
+## Scores on arrival
+
+Every ingested **root** span enqueues a scoring task. If the owning agent has evaluators marked for trace scoring in its active [eval set](/latest/agent-testing/eval#eval-sets), they run against the fresh trace and write their results onto the span — for example `{"correctness": 0.9, "correctness_reason": "..."}` — which the console renders in the **Scores** column. A periodic sweep catches any trace the immediate pass missed.
+
+This makes the trace list a live quality monitor: filter to low scores over the last hour and read exactly what failed.
+
+## Exploring traces in the console
+
+The **Observability** page is a filterable table with three views: **Root traces** (default, one row per end-to-end run), **All spans**, and **Sessions**. Quick filters cover LLM calls, successes, errors, slow (>5s), expensive (>$0.01), and high-token (≥5k) traces; columns include duration, tokens, cost, model, status, scores, and capability. Filters, sort order, and page number all live in the URL, so any slice is a shareable link.
+
+<Frame caption="Root traces with quick filters. The Scores column carries live evaluator results.">
+  <img src="/images/platform/tracing-list.png" alt="Trace list with quick filters and score column" />
+</Frame>
+
+Clicking a trace opens its detail as a panel over the list: a span tree (switchable to a flame-chart waterfall) beside the selected span's detail — inputs, outputs, metadata, and any trace scores with their reasoning. Model-call spans render the full request/response; tool spans show the tool name and arguments.
+
+<Frame caption="Span detail: the span tree with token/cost rollups, plus the selected span's input, output, and trace scores.">
+  <img src="/images/platform/span-detail.png" alt="Trace detail with span tree and span details panel" />
+</Frame>
+
+### From traces to datasets
+
+Select rows (or **Select all** across pages) and **Add to dataset**. This is the highest-leverage workflow in Observability: real production behaviour becomes the test set your agent is measured against, with each resulting datapoint keeping a link to its source trace. [Datasets](/latest/core/datasets) covers what happens next.
+
+<Frame caption="Bulk selection: 3,876 traces about to become a dataset.">
+  <img src="/images/platform/traces-add-to-dataset.png" alt="Trace selection bar with Add to dataset action" />
+</Frame>
+
+## Reading traces over the API
+
+Everything the console shows is available over REST with the same API key:
+
+```bash
+# List root traces (django-filter query params for time, status, capability, service)
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/traces/"
+
+# One trace with all of its spans
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/traces/{trace_id}/"
+
+# Distinct service names, sessions
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/traces/services/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/sessions/"
+```
+
+See the [REST API](/latest/platform/api) page for the full endpoint list.
+
+## Practical guidance
+
+Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`agent_name`) from the start. Auto-instrumentation alone produces flat model-call spans; wrap your entry point, workflows, and tools with the [SDK span helpers](/latest/tracing/sdk-python#tracing-your-own-code) so the span tree mirrors your agent's actual structure — that structure is what evaluators and dataset conversion key off. For short-lived processes, flush before exit (`force_flush_traces()` in Python, `await client.shutdown()` in TypeScript).

@@ -1,0 +1,50 @@
+---
+title: Projects & Administration
+description: Projects and membership, API keys, the GitHub connection, tracing connectors, the Jobs view, and billing.
+---
+
+## Projects
+
+A project is the tenant boundary for everything: capabilities, traces, datasets, eval sets, runs, deployed models, connectors, and API keys all belong to exactly one project, and switching projects switches the entire console view. Members are added per project (`/api/projects/{id}/memberships/`), so access follows the work.
+
+Data does not cross project boundaries — an API key is pinned to its project, and a model deployed in one project is not callable from another. That isolation is what makes a project safe to hand to another team or use as a staging sandbox.
+
+## API keys
+
+One key type serves everything programmatic: the tracing SDKs, raw OTLP ingest, the REST API, the `overmind` CLI executioner, and the inference API.
+
+- **Format**: `ovr_` followed by a random token. Only a SHA-256 hash is stored — the full key is **shown once, at creation**.
+- **Headers**: `X-Api-Key: <key>` or `Authorization: Bearer <key>`.
+- **Scope**: the key's project. Requests authenticated with it can only see that project's data.
+- **Expiry**: optional — 30/90/180 days, 1 year, or never. Inactive and expired keys are rejected; each key records when it was last used.
+- **Where**: **Projects → your project → API keys** in the console (also creatable from the Observability empty state), or [over the API](/latest/platform/api#authentication).
+
+Treat keys like passwords: scope one per environment, keep them out of source control, revoke what you no longer need. Revocation is immediate.
+
+## Settings surfaces
+
+### GitHub
+
+The GitHub connection powers repository scans, observability PRs, Optimiser PRs, and Model PRs. You install the Overmind GitHub App on the specific repositories you choose — never account-wide by default. Connection status, repo selection, and scan state live under **Agent → Connect a repository**; disconnecting uninstalls the app and removes access.
+
+### Tracing connectors
+
+Managed under **Observability → Integrations**. Three connectors are available: **Langfuse** (host URL + `pk-lf-...` / `sk-lf-...` keys, per-project import), **LangSmith** (API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional, EU is `eu.api.smith.langchain.com`), and **Braintrust** (API key or service token `bt-st-...`; API URL). Each runs a resumable backfill then incremental sync, with a manual **Sync now**. Credentials are encrypted at rest and used only to read traces.
+
+## Jobs
+
+Long-running work — eval runs, optimisation runs, training runs, and dataset analyses — is tracked in the **Jobs** view, filterable by type and status. Each row deep-links into the surface that owns it, and a running-jobs indicator in the top bar shows what's in flight from anywhere in the console.
+
+## Billing and credits
+
+Overmind runs on a subscription (Free / Pro) plus credits. Work that consumes compute on Overmind's side — dataset analysis, evaluator generation, eval runs, optimisation orchestration, training, model serving — draws on your project's credits. **Settings** shows the balance, the full usage ledger, and top-up.
+
+When credits run out, paid actions stop with an explicit `402 insufficient credits` response instead of degrading quietly. Two things are never credit-gated: **trace ingest** (your telemetry always lands) and browsing what's already computed.
+
+<Note>
+Model calls made by *your own* application — including the calls the Optimiser's local executioner makes while replaying your agent — go to your model provider under your keys. Overmind credits cover the work Overmind performs on its side.
+</Note>
+
+## Console conveniences
+
+The command palette (<kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd>) jumps to any capability, dataset, or page by name. Every filtered view in Observability is a shareable URL — and because filters map 1:1 to [API query parameters](/latest/platform/api#conventions), a console URL doubles as an API recipe. The project home is the **Brain** chat: agentic Q&A over your project's capabilities, traces, and failures, with slash commands and entity @-mentions.

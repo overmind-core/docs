@@ -53,49 +53,105 @@
     }
   },
   "navigation": {
-    "groups": [
+    "versions": [
       {
-        "group": "Overview",
-        "pages": [
-          "index",
-          "quickstart"
+        "version": "active",
+        "default": true,
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "index",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Tracing",
+            "pages": [
+              "core/observability",
+              "tracing/sdk-python",
+              "tracing/sdk-typescript"
+            ]
+          },
+          {
+            "group": "Core",
+            "pages": [
+              "core/capabilities",
+              "core/datasets"
+            ]
+          },
+          {
+            "group": "Agent Testing",
+            "pages": [
+              "agent-testing/eval",
+              "agent-testing/optimisers"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "models/training",
+              "models/inference"
+            ]
+          },
+          {
+            "group": "Platform",
+            "pages": [
+              "platform/api",
+              "platform/administration",
+              "platform/glossary"
+            ]
+          }
         ]
       },
       {
-        "group": "Tracing",
-        "pages": [
-          "core/observability",
-          "tracing/sdk-python",
-          "tracing/sdk-typescript"
-        ]
-      },
-      {
-        "group": "Core",
-        "pages": [
-          "core/capabilities",
-          "core/datasets"
-        ]
-      },
-      {
-        "group": "Agent Testing",
-        "pages": [
-          "agent-testing/eval",
-          "agent-testing/optimisers"
-        ]
-      },
-      {
-        "group": "Models",
-        "pages": [
-          "models/training",
-          "models/inference"
-        ]
-      },
-      {
-        "group": "Platform",
-        "pages": [
-          "platform/api",
-          "platform/administration",
-          "platform/glossary"
+        "version": "latest",
+        "tag": "Latest",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "latest/index",
+              "latest/quickstart"
+            ]
+          },
+          {
+            "group": "Tracing",
+            "pages": [
+              "latest/core/observability",
+              "latest/tracing/sdk-python",
+              "latest/tracing/sdk-typescript"
+            ]
+          },
+          {
+            "group": "Core",
+            "pages": [
+              "latest/core/capabilities",
+              "latest/core/datasets"
+            ]
+          },
+          {
+            "group": "Agent Testing",
+            "pages": [
+              "latest/agent-testing/eval",
+              "latest/agent-testing/optimisers"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "latest/models/training",
+              "latest/models/inference"
+            ]
+          },
+          {
+            "group": "Platform",
+            "pages": [
+              "latest/platform/api",
+              "latest/platform/administration",
+              "latest/platform/glossary"
+            ]
+          }
         ]
       }
     ]

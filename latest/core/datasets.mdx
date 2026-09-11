@@ -1,0 +1,95 @@
+---
+title: Datasets
+description: The datapoint schema, dataset intents and surfaces, trace-to-dataset conversion, and the Data Workshop.
+---
+
+A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Datasets are built from production traces, uploaded files, or connector imports. Every datapoint built from a trace keeps a link back to it, so any row can be audited against the run that produced it.
+
+## The data model
+
+A **datapoint** carries:
+
+```json
+{
+  "input": { "company_name": "Acme Corp", "inquiry": "Need enterprise pricing" },
+  "expected_output": { "category": "hot", "lead_score": 85 },
+  "persona": null,
+  "tags": [],
+  "extra": { "any_other_columns": "preserved verbatim" },
+  "source_trace_id": "e058e13cd636a2c61d18..."
+}
+```
+
+Columns that don't fit the canonical shape land in `extra` rather than being dropped. A **dataset** adds three classifiers:
+
+| Field | Values | Meaning |
+| --- | --- | --- |
+| `source` | `custom`, `traces`, `external` | Where the rows came from: upload, trace conversion, or a connector |
+| `intent` | `eval`, `ft` | What the dataset is for. Eval data feeds [eval runs](/latest/agent-testing/eval) and the [Optimiser](/latest/agent-testing/optimisers); training data (`ft`, shown as **Training**) feeds [Training](/latest/models/training). A third value, `unstructured`, appears only on datasets that predate intents — nothing can build one, and nothing downstream reads one |
+| `surface` | `capability`, `model` | For trace-built datasets: the capability's delivered input/output, or the raw LLM call inside it |
+
+Intent is fixed at creation, because the rows are stored in that intent's canonical shape. To reuse eval data for training (or vice versa), you re-ingest: the rows are read again into a new dataset in the target shape, with a `derived_from` link back, and the original is never mutated.
+
+Surface follows intent where the two conflict: a fine-tuned model is served inside your harness, so it can only learn the model call — a training dataset built from traces always reads the `model` surface.
+
+<Warning>
+A dataset is locked while a training run, eval run, or optimisation run is reading it — edits are rejected until that run reaches a terminal state. This protects reproducibility; duplicate the dataset if you need to keep curating.
+</Warning>
+
+## Creating datasets
+
+<Tabs>
+  <Tab title="From traces">
+    Select rows in [Observability](/latest/core/observability#from-traces-to-datasets) and **Add to dataset**. The dialog walks Source → Review → Create: it detects the likely purpose from the data (**Evaluation**, **Training**, or **Train + Eval** for both from one selection), lets you pick the trace surface — **Capability** (what it received and what it delivered) or **Model** (the raw prompt/completion pair inside) — and shows the field mapping (`"input" → "expected_output"`) before anything is ingested.
+
+    <Frame caption="Converting 25 selected traces: intent detection, the capability-vs-model surface choice, and the field mapping plan.">
+      <img src="/images/platform/data-from-traces.png" alt="New dataset dialog converting traces" />
+    </Frame>
+
+    Over the API: `POST /api/ingestions/` with a trace `selection` (or `trace_ids`) stages the build, and `POST /api/ingestions/{id}/commit/` writes it — see [Building a dataset](/latest/platform/api#building-a-dataset). Passing `target_dataset` appends to an existing dataset instead of creating one.
+  </Tab>
+  <Tab title="Upload">
+    Drag a **CSV, TSV, JSON, or JSONL** file anywhere onto the Datasets page. Uploads are the usual path for seed sets and labelled ground truth. For eval data, the expected shape is an array of `{"input": ..., "expected_output": ...}` objects; extra columns are preserved in `extra`.
+  </Tab>
+  <Tab title="From a connector">
+    Traces synced from a [connector](/latest/core/observability#getting-traces-in) (Langfuse, LangSmith, Braintrust) land as traces first, then follow the same select-and-convert path as native traces.
+  </Tab>
+</Tabs>
+
+A dataset can be bound to a capability or left project-scoped. Binding unlocks the capability-fit checks below and surfaces the dataset on the capability's page.
+
+## The Data Workshop
+
+Opening a dataset lands you in the Workshop: a spreadsheet-style table beside a quality report. **Re-analyse** runs the scoring pass — deterministic checks plus an AI analyst pass over the corpus — producing a score out of 100 and a verdict: **Ready**, **Ready with warnings**, or **Not ready**.
+
+<Frame caption="A training dataset scoring 70.2/100, Ready with warnings. Each pillar explains what it measures and its contribution.">
+  <img src="/images/platform/dataws.png" alt="Data Workshop with score and pillar breakdown" />
+</Frame>
+
+The score rolls up from weighted pillars — **Coverage** (do rows span the breadth the dataset claims), **Safety** (personal data that must not be trained on; detected entities can be masked), **Capability fit** (does the data match the bound capability's tools, input contract, and provenance), **Consistency**, **Volume**, **Training Signal** (are the target outputs behaviour worth cloning), **Conversation Integrity** (turns in legal order, tool calls that parse and resolve), **Uniqueness**, and **Completeness**. The scoring lens follows the dataset's intent.
+
+Findings surface as **insights**, each with severity, evidence, and a proposed fix. Fixes are dry-run against your real rows before they're offered, and applying one is staged: preview the row diff, approve or discard, and the change lands as a **commit** in the dataset's history. Checks you've judged acceptable can be **waived** — the waiver records who accepted it and stays visible. Any older state can be restored; a restore is itself a new commit, so history is never rewritten. This is what makes results reproducible: an eval run records the exact dataset commit it scored.
+
+The table itself supports search, sorting, filtering, cell editing with row diffs, multi-row selection and deletion, per-column statistics, and export.
+
+## API
+
+```bash
+# List datasets / one dataset with datapoints
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/datapoints/"
+
+# Create (versions auto-increment per capability), activate the version runs should use
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
+  -d '{"capability": "<capability-uuid>", "name": "triage-eval", "datapoints": [{"input": {...}, "expected_output": {...}}]}' \
+  "https://api.overmindlab.ai/api/datasets/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/activate/"
+
+# Kick off a Workshop analysis
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/analyze/"
+```
+
+## Getting the most out of it
+
+Start small and real: 10–50 representative trace-sourced examples beat a thousand synthetic rows for almost every purpose. Let the verdict guide the order of fixes — whatever blocks readiness first, then high-severity insights — and waive consciously. When the same defect keeps appearing in fresh trace batches, that's usually a signal about the agent, not the data.
