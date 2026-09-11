@@ -134,6 +134,7 @@
             "group": "Agent Testing",
             "pages": [
               "latest/agent-testing/eval",
+              "latest/agent-testing/trace-scoring",
               "latest/agent-testing/optimisers"
             ]
           },

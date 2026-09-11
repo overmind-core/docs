@@ -1,95 +1,104 @@
 ---
 title: Datasets
-description: The datapoint schema, dataset intents and surfaces, trace-to-dataset conversion, and the Data Workshop.
+description: Source, cells, versions — how a dataset lands, how its agent shapes it cell by cell, how every cell is a version and how a run uses one.
 ---
 
-A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Datasets are built from production traces, uploaded files, or connector imports. Every datapoint built from a trace keeps a link back to it, so any row can be audited against the run that produced it.
+A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Overmind treats it as one chain:
 
-## The data model
-
-A **datapoint** carries:
-
-```json
-{
-  "input": { "company_name": "Acme Corp", "inquiry": "Need enterprise pricing" },
-  "expected_output": { "category": "hot", "lead_score": 85 },
-  "persona": null,
-  "tags": [],
-  "extra": { "any_other_columns": "preserved verbatim" },
-  "source_trace_id": "e058e13cd636a2c61d18..."
-}
-```
-
-Columns that don't fit the canonical shape land in `extra` rather than being dropped. A **dataset** adds three classifiers:
-
-| Field | Values | Meaning |
+| Thing | What it is | Who writes it |
 | --- | --- | --- |
-| `source` | `custom`, `traces`, `external` | Where the rows came from: upload, trace conversion, or a connector |
-| `intent` | `eval`, `ft` | What the dataset is for. Eval data feeds [eval runs](/latest/agent-testing/eval) and the [Optimiser](/latest/agent-testing/optimisers); training data (`ft`, shown as **Training**) feeds [Training](/latest/models/training). A third value, `unstructured`, appears only on datasets that predate intents — nothing can build one, and nothing downstream reads one |
-| `surface` | `capability`, `model` | For trace-built datasets: the capability's delivered input/output, or the raw LLM call inside it |
+| **Source** | The rows exactly as they arrived — a file, pasted rows, or a trace selection. Version 1.0 | Landing. Never edited |
+| **Cell** | One Python transformation over the previous frame. Each cell that ran is the next version: 1.1, 1.2, … | You, or the dataset's agent |
+| **Active version** | The cell a run reads: the last one that ran unless you set another | You |
 
-Intent is fixed at creation, because the rows are stored in that intent's canonical shape. To reuse eval data for training (or vice versa), you re-ingest: the rows are read again into a new dataset in the target shape, with a `derived_from` link back, and the original is never mutated.
+Two things describe what the table is for: the **intent** (`train` or `eval`) and the **capability** it belongs to. Landing proposes both from the rows, you can change either on the page, and both freeze the moment a version is used. Every version carries two measured contracts against them.
 
-Surface follows intent where the two conflict: a fine-tuned model is served inside your harness, so it can only learn the model call — a training dataset built from traces always reads the `model` surface.
+Nothing is reshaped on the way in and nothing is edited in place. To change the table you change a cell and run again; the cells after it run again in place and keep their version numbers. A version a run has read is frozen: its script is read-only, its frame cannot change, and so is every cell before it.
 
-<Warning>
-A dataset is locked while a training run, eval run, or optimisation run is reading it — edits are rejected until that run reaches a terminal state. This protects reproducibility; duplicate the dataset if you need to keep curating.
-</Warning>
-
-## Creating datasets
+## Landing a source
 
 <Tabs>
   <Tab title="From traces">
-    Select rows in [Observability](/latest/core/observability#from-traces-to-datasets) and **Add to dataset**. The dialog walks Source → Review → Create: it detects the likely purpose from the data (**Evaluation**, **Training**, or **Train + Eval** for both from one selection), lets you pick the trace surface — **Capability** (what it received and what it delivered) or **Model** (the raw prompt/completion pair inside) — and shows the field mapping (`"input" → "expected_output"`) before anything is ingested.
-
-    <Frame caption="Converting 25 selected traces: intent detection, the capability-vs-model surface choice, and the field mapping plan.">
-      <img src="/images/platform/data-from-traces.png" alt="New dataset dialog converting traces" />
-    </Frame>
-
-    Over the API: `POST /api/ingestions/` with a trace `selection` (or `trace_ids`) stages the build, and `POST /api/ingestions/{id}/commit/` writes it — see [Building a dataset](/latest/platform/api#building-a-dataset). Passing `target_dataset` appends to an existing dataset instead of creating one.
+    Select rows in [Observability](/latest/core/observability#from-traces-to-datasets) and **Add to dataset**, or land every trace matching the current filters. Choose what one row is: a **task** (the unit [trace scoring](/latest/agent-testing/trace-scoring) judges, with the reconstructed `messages`, `tools`, `input`, `output`, the bound `behaviour_key`, every judge's `verdicts`, `success_score`, cost and token counts, and the `trace_id`/`unit_span_id` lineage), a whole **trace**, or one **assistant turn** (the transcript up to that turn). The dialog shows the row count each grain gives before you land.
   </Tab>
-  <Tab title="Upload">
-    Drag a **CSV, TSV, JSON, or JSONL** file anywhere onto the Datasets page. Uploads are the usual path for seed sets and labelled ground truth. For eval data, the expected shape is an array of `{"input": ..., "expected_output": ...}` objects; extra columns are preserved in `extra`.
-  </Tab>
-  <Tab title="From a connector">
-    Traces synced from a [connector](/latest/core/observability#getting-traces-in) (Langfuse, LangSmith, Braintrust) land as traces first, then follow the same select-and-convert path as native traces.
+  <Tab title="Upload or paste">
+    Drop a **CSV, TSV, JSON, JSONL, or Parquet** file anywhere on the Datasets page, or paste rows straight into the dialog. Columns and types are read from the file; numbers stay numbers, nested JSON stays JSON.
   </Tab>
 </Tabs>
 
-A dataset can be bound to a capability or left project-scoped. Binding unlocks the capability-fit checks below and surfaces the dataset on the capability's page.
+Landing writes the source as Parquet, stamps every row with a `source_row` index so later versions can be diffed value by value, scores every capability of the project against the rows (bound ids, the system turn, tool names, input keys) to propose one, and proposes the intent from the shape: transcripts with assistant turns are train, an input with a reference is eval, anything else is **pending** until the agent decides.
 
-## The Data Workshop
+<Warning>
+A cell value larger than about 200 KB (a tool call carrying a serialised agent state, say) is cut to a preview marker on the way in. The row and every other column land intact.
+</Warning>
 
-Opening a dataset lands you in the Workshop: a spreadsheet-style table beside a quality report. **Re-analyse** runs the scoring pass — deterministic checks plus an AI analyst pass over the corpus — producing a score out of 100 and a verdict: **Ready**, **Ready with warnings**, or **Not ready**.
+## The workshop
 
-<Frame caption="A training dataset scoring 70.2/100, Ready with warnings. Each pillar explains what it measures and its contribution.">
-  <img src="/images/platform/dataws.png" alt="Data Workshop with score and pillar breakdown" />
-</Frame>
+Opening a dataset lands you in the Data Workshop: a version strip down the left edge, the cells stacked in the middle, and the dataset's agent on the right. There is no header: the name, the intent and the capability are the agent's to change, from the chat.
 
-The score rolls up from weighted pillars — **Coverage** (do rows span the breadth the dataset claims), **Safety** (personal data that must not be trained on; detected entities can be masked), **Capability fit** (does the data match the bound capability's tools, input contract, and provenance), **Consistency**, **Volume**, **Training Signal** (are the target outputs behaviour worth cloning), **Conversation Integrity** (turns in legal order, tool calls that parse and resolve), **Uniqueness**, and **Completeness**. The scoring lens follows the dataset's intent.
+- A cell is a title, a Python body and the frame it left. The body reads the previous frame as `df` (pandas, with `pd` and `np` bound) and leaves the next one in `df`. It runs in an isolated interpreter with a CPU and memory cap, no file or network access, and imports from the workshop's library list: the standard library, pandas, numpy, pyarrow, DuckDB, scipy, scikit-learn, rapidfuzz, tiktoken and a few more, plus a short list the agent can install on request.
+- Under the script, the table marks new rows and changed values against the cell before, with the old value on hover.
+- The active version's cell carries the consumers: a train table offers **Train a model**; an eval table offers **Run the optimiser** and **Use in a training job** (the eval dataset that scores the job). Export sits in the cell's title chip. Any other version offers **Set active**.
 
-Findings surface as **insights**, each with severity, evidence, and a proposed fix. Fixes are dry-run against your real rows before they're offered, and applying one is staged: preview the row diff, approve or discard, and the change lands as a **commit** in the dataset's history. Checks you've judged acceptable can be **waived** — the waiver records who accepted it and stays visible. Any older state can be restored; a restore is itself a new commit, so history is never rewritten. This is what makes results reproducible: an eval run records the exact dataset commit it scored.
+**Run** executes every cell whose script or input changed. A failing cell shows its traceback, the cells after it stay queued, and the last good version stays active; fix the cell and run again.
 
-The table itself supports search, sorting, filtering, cell editing with row diffs, multi-row selection and deletion, per-column statistics, and export.
+### The agent
+
+The chat on the right is the dataset's own agent, a Cursor session with ten tools over the chain and a workspace that holds the capability card, the library list, one file per cell, and every version's frame. It writes a script, tests it against a version, and only then lands a cell, so a cell that lands has already run once.
+
+The first landing starts one turn. It decides a pending intent, lands the fewest cells that make the active version meet both contracts, each run as it lands, then runs the quality checks an engineer would run for that intent — refusals and truncated turns, duplicates, length outliers, tool calls that do not parse, leakage of the reference into the input, behaviour coverage — and lands one cell per finding that has rows behind it, run at once, with the count in its note. A fix that would drop more than half the rows lands as a **proposal** instead: it waits in the chat as a card with **Run** and **Discard**, never in the notebook — Run lands and runs it, Discard drops it. The name, the intent and the capability change through the chat too (ask the agent; a used version fixes the intent and the capability), and changing either re-measures every version. When a contract fails, the contract chip on the active version suggests only the moves that would change the verdict: **Ask Overmind to fix it** sends one turn on that contract alone (no quality pass); the other intent is offered when its shape already holds; a better-ranked capability is offered when the capability contract is the one failing. Each suggestion is a chat turn: the agent makes the change and re-aligns the chain.
+
+After that the conversation is open. A request that changes the data is one new cell, run at once. A request to change an existing cell edits it in place and re-runs from there. A question is answered from the status, a query, or a diff between two versions.
+
+## Contracts
+
+Every version is measured against two contracts, and the page reports whether the active version fits the intent:
+
+| Intent | Shape | Capability, row by row | Feeds |
+| --- | --- | --- | --- |
+| **Train** | A `messages` column whose every row is a chat transcript with an assistant turn (`tools` optional) | The system turn is the capability's synced system prompt; every tool call names a declared tool | [Training](/latest/models/training) |
+| **Eval** | An `input` on every row and an `expected_output` column with at least one reference | Every `input` carries the capability's required input keys | [Eval runs](/latest/agent-testing/eval), the [Optimiser](/latest/agent-testing/optimisers), backtests |
+
+The capability contract is vacuous when the capability declares nothing. Rows that fail are counted with the reason; a row that cannot meet a contract is a finding for the agent, never a default value. A training job whose eval dataset shares `trace_id`s with the train version is refused until they are separated.
+
+## Versions and uses
+
+Every run — eval, optimiser, training — **uses** the version it read and links back to it. A use freezes that version and every cell before it, starts a new major number (1.3 becomes 2.0, the cells after it become 2.1, 2.2, …), and protects the frame: it cannot be deleted, and neither can its dataset. The worker re-hashes the frame before it starts, so a run never silently reads a file that changed underneath it.
 
 ## API
 
 ```bash
-# List datasets / one dataset with datapoints
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/"
+# List, read, rename, delete
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/?project=<project-uuid>&intent=eval"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/datapoints/"
 
-# Create (versions auto-increment per capability), activate the version runs should use
+# Create from pasted rows (a file goes through /api/uploads/ first; traces take a selection)
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"capability": "<capability-uuid>", "name": "triage-eval", "datapoints": [{"input": {...}, "expected_output": {...}}]}' \
+  -d '{"project": "<project-uuid>", "name": "triage-eval", "intent": "eval",
+       "source": {"rows": [{"input": "...", "expected_output": "..."}]}}' \
   "https://api.overmindlab.ai/api/datasets/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/activate/"
 
-# Kick off a Workshop analysis
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/analyze/"
+# Rows of a version with diff marks, column stats, read-only SQL over table t
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/rows/?cell=<cell-id>&diff=1&limit=50"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/columns/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT count(*) FROM t"}' "https://api.overmindlab.ai/api/datasets/{id}/query/"
+
+# Add a cell, run the chain, talk to the agent; /events/ streams cells, runs and chat
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
+  -d '{"title": "Keep", "script": "df = df[df[\"tag\"] == \"keep\"]"}' "https://api.overmindlab.ai/api/datasets/{id}/cells/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/run/"
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
+  -d '{"message": "Drop rows whose answer is under ten tokens"}' "https://api.overmindlab.ai/api/datasets/{id}/chat/"
+
+# Who used a version; export a version (a use — the response names it in
+# X-Overmind-Cell / X-Overmind-Version / X-Overmind-Fingerprint)
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/usage/"
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl&cell={cell}"
 ```
+
+The full surface is in the [API reference](/latest/platform/api#building-a-dataset).
 
 ## Getting the most out of it
 
-Start small and real: 10–50 representative trace-sourced examples beat a thousand synthetic rows for almost every purpose. Let the verdict guide the order of fixes — whatever blocks readiness first, then high-severity insights — and waive consciously. When the same defect keeps appearing in fresh trace batches, that's usually a signal about the agent, not the data.
+Start small and real: 10–50 representative trace-sourced rows beat a thousand synthetic ones for almost every purpose. Let the first pass tell you the shape, read the proposals for the rest. When the same defect keeps appearing in fresh trace batches, that is usually a signal about the agent, not the data.

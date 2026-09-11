@@ -7,11 +7,11 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Project** — the tenant boundary. Capabilities, traces, datasets, runs, models, connectors, and API keys belong to exactly one project. See [Administration](/latest/platform/administration#projects).
 
-**Guest workspace** — a project minted for a guest session from the demo page: one public-repository scan (up to 200 MB), read-only otherwise, deleted after 7 days unless claimed. Creating an account from inside it moves the project to the new account.
+**Guest workspace** — a project minted for a guest session from the demo page, sized for local setup (`overmind init` → `/overmind setup` → `overmind sync`). Read-only otherwise, deleted after 7 days unless claimed. Creating an account from inside it moves the project to the new account.
 
 **Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/latest/core/capabilities).
 
-**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from a repository scan joined with runtime behaviour from telemetry. A capability the scan no longer finds leaves the agent and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/latest/core/capabilities).
+**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from local sync joined with runtime behaviour from telemetry. A capability the snapshot no longer includes leaves the agent and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/latest/core/capabilities).
 
 **API key** — a project-scoped credential (`ovr_...`, stored hashed, shown once at creation) that authenticates the SDKs, OTLP ingest, the REST API, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`.
 
@@ -25,7 +25,9 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`.
 
-**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` in either SDK.
+**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` (or `run(conversation_id=...)`) in the SDK. Carries a **session score** folded from the conversation ledger. See [Trace scoring](/latest/agent-testing/trace-scoring#session-scores).
+
+**Trace status** — `live` while spans are arriving or the root is missing, `completed` once the root has landed, `interrupted` when no root arrives inside the settle window.
 
 **OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`; JSON and gRPC are not accepted. See [Observability](/latest/core/observability#the-otlp-endpoint).
 
@@ -33,43 +35,55 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Trace coverage** — the fraction of a capability's discovered components (entrypoints, tools) that emit telemetry, reported on its page.
 
-**Observability PR** — a pull request Overmind opens against your repository adding SDK initialisation and span instrumentation.
+**Task** — one behaviour a capability performs, minted by capability sync from its trajectory map: an entry anchor, the anchor segments after it, its tool set, and its terminal. API resource: `behaviours`. See [Trace scoring](/latest/agent-testing/trace-scoring#tasks-and-bindings).
+
+**Unit** — the slice of a trace that gets its own verdicts: a turn span, an entry-point invocation, a key segment, or the whole trace, in that order of precedence.
+
+**Task execution** — one unit bound to a task, with its verdicts, execution score, route flags, and session score. The default row of Observability.
+
+**Instrumentation prompt** — copyable text on a capability's trace-coverage panel listing untraced entrypoints and tools for your coding agent.
 
 ## Data
 
-**Dataset** — a curated collection of datapoints with a **source** (`custom`, `traces`, `external`), an **intent** (`eval` or `ft`), and for trace-built data a **surface** (`capability` or `model`). See [Datasets](/latest/core/datasets).
+**Dataset** — a source table (a file, pasted rows, or trace units, landed as-is) and a linear chain of Python cells; every cell that ran is a **version**. It carries an **intent** (train or eval) and a **capability**, both proposed at landing and frozen by the first use. See [Datasets](/latest/core/datasets).
 
-**Datapoint** — one example: `input`, `expected_output`, optional tags/persona, an `extra` bag for non-canonical columns, and a `source_trace_id` when built from a trace.
+**Version** — one cell that ran: its frame, column manifest, both contract reports and fingerprint. The source is 1.0, each cell adds a minor (1.1, 1.2), a use starts a new major (2.0) and freezes the version with every cell before it. Runs use the version they read.
 
-**Data Workshop** — the dataset console: quality analysis (score out of 100 with a verdict), insights with staged fixes, commit history with restore, and export.
+**Data Workshop** — the dataset page: the source, Python cells with a value-level diff against the cell before, the active version with its actions, and the dataset's own agent beside it, which shapes the chain in one preparation turn and then on request.
 
-**Insight** — one analysis finding with severity, evidence, and usually a proposed, dry-run-validated fix.
-
-**Commit** — one recorded change to a dataset. Eval runs pin the exact commit they scored, making results reproducible.
+**Contract** — measured on every version, two-fold. The intent contract is the shape the **intent** asks for: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The capability contract is row by row: an eval input carries the capability's required keys, a train transcript is the capability's own system prompt and tools.
 
 ## Evaluation
 
-**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`, `dag`. See [Eval](/latest/agent-testing/eval#evaluators).
+**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`. See [Eval](/latest/agent-testing/eval#evaluators).
+
+**Claim** — what an evaluator asserts: a **type** (`grounding`, `verification`, `quality`, `conformance`, `progress`, `safety`) and a **grain** (`unit`, `trajectory`, `terminal`, `session`). The claim decides how the verdict composes into the execution score. See [Eval](/latest/agent-testing/eval#claims).
 
 **Rubric / checklist** — an LLM judge's plain-language criteria, compiled into weighted atomic checklist items; items can be hard **gates**.
 
-**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, with a sampling rate). One set per capability is **active**.
+**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, per task execution). One set per capability is **active**.
 
 **Eval run** — a controlled experiment: one data source × N variants × M evaluators, with evaluator snapshots frozen at creation. See [Eval](/latest/agent-testing/eval#eval-runs).
 
-**Variant** — one column of an eval run: either **generate** (re-run a model over the datapoints) or **existing** (grade traces as-is). One variant is the **baseline**.
+**Variant** — one column of an eval run: either **generate** (re-run a model over the rows) or **existing** (grade traces as-is). One variant is the **baseline**.
 
-**Sample** — one datapoint's normalised transcript inside a run; can be marked **degraded** if it couldn't be faithfully reconstructed, excluding it from aggregates.
+**Sample** — one row's normalised transcript inside a run; can be marked **degraded** if it couldn't be faithfully reconstructed, excluding it from aggregates.
 
 **Score** — one evaluator's result on one sample, with a typed outcome: `scored`, `abstained`, `not_applicable`, `skipped`, or `error`. Only `scored` results feed averages.
 
-**Trace scoring** — evaluators running automatically on production traces as they're ingested, writing scores onto the trace. See [Observability](/latest/core/observability#scores-on-arrival).
+**Verdict** — one evaluator's result on one trace unit, stored as its own row — the source of truth the console reads over `GET /api/verdicts/`. The unit span's `feedback_score.trace_scoring` block keeps only the composed markers.
+
+**Execution score** — the composite of a unit's verdicts (0–1): safety claims cap it, gates flip their own verdict, the rest are weighted. Shown as the Score column.
+
+**Trace scoring** — carving each settled trace into units, binding them to tasks, and judging them with the eval set's trace-scoring members. See [Trace scoring](/latest/agent-testing/trace-scoring).
+
+**Runtime expectation** — evidence the SDK declares during a run (`intent`, `expect`, `checkpoint`, `eval_context`) and the platform evaluates server-side.
 
 **Annotation** — a human label on a sample, used as ground truth for calibrating judges.
 
 ## Optimisation
 
-**Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated, replayed over a dataset, scored with a pinned eval set, and the winner ships as a PR. See [Optimisers](/latest/agent-testing/optimisers).
+**Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated, replayed over a dataset, scored with a pinned eval set, and the winning diff is applied locally. See [Optimisers](/latest/agent-testing/optimisers).
 
 **Iteration** — one loop cycle producing a batch of candidates. Iteration 0 is the **baseline** — the unmodified capability.
 
@@ -87,6 +101,6 @@ description: Definitions of terms used across Overmind, as they appear in the co
 
 **Deployed model** — a served trained model with a copyable reference (`ft-...`) callable via the OpenAI-compatible API. Statuses: queued, quantizing, deploying, warming, ready, failed, deleting, deleted. See [Inference](/latest/models/inference).
 
-**Model PR** — a pull request Overmind opens that switches the capability's configured model to a trained model that beat the baseline.
+**Model swap prompt** — text returned by `GET /api/finetuning-jobs/{id}/model-swap-prompt/` after a benchmark win; paste into a coding agent to retarget the capability in your repo.
 
 **Credits** — the billing unit for compute Overmind performs (analyses, eval runs, training, serving). Trace ingest is never credit-gated.
