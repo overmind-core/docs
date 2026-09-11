@@ -34,7 +34,7 @@ overmind.init(
 
 | Parameter | Type | Description |
 | --- | --- | --- |
-| `overmind_api_key` | `str \| None` | Falls back to `OVERMIND_API_KEY` |
+| `overmind_api_key` | `str \| None` | Falls back to `OVERMIND_API_KEY`, then the project credential saved by `overmind sync` |
 | `service_name` | `str \| None` | Shown in the console; falls back to `OVERMIND_SERVICE_NAME` |
 | `environment` | `str \| None` | e.g. `"production"`, `"staging"` |
 | `providers` | `list[str] \| None` | Any of `"openai"`, `"anthropic"`, `"google"`, `"agno"`. Omit to auto-detect installed providers |
@@ -43,7 +43,7 @@ overmind.init(
 | `agent_name` | `str \| None` | Stable agent name; stamped as `overmind.agent.name` |
 | `project_id` | `str \| None` | Project UUID (`overmind.project.id`) |
 
-Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_STRICT_MODE`.
+Environment variables: `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_SERVICE_NAME`, `OVERMIND_STRICT_MODE`. In a synced local repository, the Python SDK can read the project key, API URL, and project ID from `overmind.toml` plus the ignored `.overmind/credentials.toml` sidecar. Deployments should provide credentials through their runtime secret configuration.
 
 After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, and Agno client libraries produce `llm_call` spans automatically, capturing messages and tool calls, model and request parameters, token usage, latency, and errors. Spans export via a batching OTLP/HTTP exporter to `POST {base_url}/api/v1/traces`.
 

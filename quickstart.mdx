@@ -16,6 +16,8 @@ No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.a
     ```bash
     export OVERMIND_API_KEY="ovr_..."
     ```
+
+    In the Console onboarding flow, this export is a temporary account-scoped bootstrap key. `overmind init` prepares the local MCP entry without storing that key; the first `overmind sync` mints a project-scoped key, saves it in `.overmind/credentials.toml`, and updates the initialized IDE configuration. Reload the IDE once after sync. No second init or export is required.
   </Step>
   <Step title="Paste the setup prompt into your coding agent">
     Open your app in Cursor, Claude Code, or another coding agent and paste this prompt (same text as the Observability empty state):
@@ -24,7 +26,7 @@ No account yet? Open [console.overmindlab.ai/demo](https://console.overmindlab.a
     Install the Overmind AI skill from github.com/overmind-core/overmind and use it to add tracing to this application with Overmind following best practices.
     ```
 
-    The skill installs the SDK, initialises tracing, and instruments your LLM providers. Keep `OVERMIND_API_KEY` in the environment (or a `.env` file) so the agent can run and verify without pasting the key into chat.
+    The skill installs the SDK, initialises tracing, and instruments your LLM providers. Local Python runs can reuse the project credential saved by `overmind sync`. Deployed processes still need `OVERMIND_API_KEY` in their runtime secret configuration.
 
     Prefer to wire it by hand? See the [Python SDK](/tracing/sdk-python) or [TypeScript SDK](/tracing/sdk-typescript).
   </Step>
