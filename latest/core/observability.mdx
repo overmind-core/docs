@@ -89,15 +89,35 @@ In a local repository, run `overmind sync` first so the Python SDK can reuse its
     Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.capability.id` as a resource attribute — so your spans are classified and attributed like SDK spans.
   </Tab>
   <Tab title="Connectors">
-    If your traces already live in another platform, connect it under **Observability → Integrations**. Three connectors are available:
+    If traces already live in Langfuse, LangSmith, Braintrust, or Galileo, import them without opening the Console. The CLI holds provider keys; MCP holds source project, mapping, and sync.
 
-    | Connector | Credentials | Imports |
-    | --- | --- | --- |
-    | **Langfuse** | Host URL (optional for cloud), public key `pk-lf-...`, secret key `sk-lf-...`; pick the Langfuse project | Traces, evaluations, prompt versions |
-    | **LangSmith** | API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional (EU: `eu.api.smith.langchain.com`) | Traces, runs, threads |
-    | **Braintrust** | API key or service token `bt-st-...`; API URL | Project logs, spans, scores |
+    In a terminal (not an agent sandbox), run:
 
-    Each connector runs a resumable historical backfill, then polls incrementally; **Sync now** triggers a manual pull. Credentials are encrypted at rest and used only to read. Imported traces can be browsed and turned into datasets like native ones, but live trace scoring applies only to telemetry arriving through the OTLP endpoint.
+    ```bash
+    overmind connector add langfuse --json
+    ```
+
+    Replace `langfuse` with `langsmith`, `braintrust`, or `galileo`. Provider keys come from the environment or a TTY prompt — they are never MCP arguments and must not be pasted in chat. Overmind auth is `--api-key`, `.overmind/credentials.toml`, or `OVERMIND_API_KEY`. `--project-id` must be the MCP project.
+
+    | Connector | Env |
+    | --- | --- |
+    | **Langfuse** | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` (`LANGFUSE_HOST` optional) |
+    | **LangSmith** | `LANGSMITH_API_KEY` |
+    | **Braintrust** | `BRAINTRUST_API_KEY` |
+    | **Galileo** | `GALILEO_API_KEY` |
+
+    Generic fallback: `OVERMIND_CONNECTOR_API_KEY` and, for Langfuse, `OVERMIND_CONNECTOR_API_SECRET`. `--json` prints a connector id and the next MCP calls.
+
+    After that id exists, the coding agent configures and imports with `inspect_connectors`, `configure_connector`, and `sync_connector` (prompt: `connect-traces`). There is no `create_connector` MCP tool.
+
+    1. `inspect_connectors` with the connector id and `include_source_projects=true`.
+    2. `configure_connector` for source project, lookback, and a proposed mapping — without `confirm_mapping`.
+    3. Human approves or edits. `suggested_boundaries` are parent observation names (Overmind trace roots). `alternatives` are nested names the human may pick instead. Stop until they reply.
+    4. `configure_connector` with `confirm_mapping=true`, then `sync_connector`.
+
+    Each connector runs a resumable historical backfill, then polls incrementally. Changing confirmed mapping names or source recarves imported spans on the next sync. Credentials are encrypted at rest and used only to read. Imported traces can be browsed and turned into datasets like native ones; live trace scoring applies only to telemetry arriving through the OTLP endpoint.
+
+    **Observability → Integrations** in the Console is the same connectors, with keys entered in the UI.
   </Tab>
 </Tabs>
 
