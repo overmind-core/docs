@@ -35,7 +35,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`; JSON and gRPC are not accepted. See [Observability](/core/observability#the-otlp-endpoint).
 
-**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
+**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Keys are added with `overmind connector add` or in the Console; the source project, capability mapping, and sync are MCP tools. Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
 
 **Task** — one behaviour a capability performs, minted by capability sync from its trajectory map: an entry anchor, the anchor segments after it, its tool set, and its terminal. API resource: `behaviours`. See [Trace scoring](/agent-testing/trace-scoring#tasks-and-bindings).
 

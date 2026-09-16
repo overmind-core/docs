@@ -82,7 +82,7 @@ Names resolve within the project: capability tools take a name, slug, or id; dat
 
 ## Prompts
 
-Eleven prompts compose the tools into multi-step workflows with human checkpoints:
+Twelve prompts compose the tools into multi-step workflows with human checkpoints:
 
 | Prompt | Arguments | What it drives |
 | --- | --- | --- |
@@ -96,17 +96,18 @@ Eleven prompts compose the tools into multi-step workflows with human checkpoint
 | `ship-model` | `capability`, `deployment`, `finetune` | Verify a deployment, activate the model, hand off the repository rollout |
 | `upload-dataset-file` | `path`, `intent`, `project_id` | `overmind dataset upload` in the terminal, then verify through MCP |
 | `export-dataset` | `dataset` | `overmind dataset export` to the local filesystem |
+| `connect-traces` | `connector_type` | `overmind connector add` in the terminal, then source project, mapping confirmation, and sync through MCP |
 | `download-checkpoint` | `deployment` | `overmind model download-checkpoint` to the local filesystem |
 
 ## Resources
 
 Read-only, project-scoped entity state under `overmind://`:
 
-`project/current`, `capabilities/{capability}`, `traces/{trace_id}`, `sessions/{session}`, `datasets/{dataset}`, `eval-runs/{eval_run}`, `finetunes/{job_id}`, `deployments/{deployment}`, `optimizer-runs/{experiment}`, `connectors/{connector}`, `jobs/{kind}/{id}` — plus three static handoff guides, `dataset-upload`, `dataset-export`, and `checkpoint-download`, that tell the agent exactly which CLI command to run.
+`project/current`, `capabilities/{capability}`, `traces/{trace_id}`, `sessions/{session}`, `datasets/{dataset}`, `eval-runs/{eval_run}`, `finetunes/{job_id}`, `deployments/{deployment}`, `optimizer-runs/{experiment}`, `connectors/{connector}`, `jobs/{kind}/{id}` — plus four static handoff guides, `dataset-upload`, `dataset-export`, `checkpoint-download`, and `connector-setup`, that tell the agent exactly which CLI command to run.
 
 ## The CLI boundary
 
-Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
+Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key goes in with `overmind connector add`, and `inspect_connectors` answers `connector_setup_required` with that command until it exists. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
 
 ## The skill
 

@@ -85,16 +85,24 @@ In a local repository, run `overmind sync` first so the Python SDK can reuse its
     Use the [attribute conventions below](#how-spans-map-to-the-data-model) — especially `overmind.capability.id` as a resource attribute — so your spans are classified and attributed like SDK spans.
   </Tab>
   <Tab title="Connectors">
-    If your traces already live in another platform, connect it under **Observability → Integrations**. Four connectors are available:
+    If your traces already live in Langfuse, LangSmith, Braintrust, or Galileo, import them. Provider keys stay in your terminal; everything after that runs through MCP or the Console.
 
     | Connector | Credentials | Imports |
     | --- | --- | --- |
-    | **Langfuse** | Host URL (optional for cloud), public key `pk-lf-...`, secret key `sk-lf-...`; pick the Langfuse project | Traces and observations |
-    | **LangSmith** | API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional (EU: `eu.api.smith.langchain.com`) | Traces, runs, threads |
-    | **Braintrust** | API key or service token `bt-st-...`; API URL | Project logs and spans |
-    | **Galileo** | API key; API URL | Traces and spans |
+    | **Langfuse** | `LANGFUSE_PUBLIC_KEY` (`pk-lf-...`), `LANGFUSE_SECRET_KEY` (`sk-lf-...`); `LANGFUSE_HOST` for self-hosted | Traces and observations |
+    | **LangSmith** | `LANGSMITH_API_KEY` (`lsv2_sk_...` or `lsv2_pt_...`); `--base-url` for EU (`eu.api.smith.langchain.com`) | Traces, runs, threads |
+    | **Braintrust** | `BRAINTRUST_API_KEY` (API key or `bt-st-...` service token) | Project logs and spans |
+    | **Galileo** | `GALILEO_API_KEY` | Traces and spans |
 
-    Each connector runs a resumable historical backfill, then polls incrementally; **Sync now** triggers a manual pull. Credentials are encrypted at rest and used only to read. Imported traces are scored on arrival, browsed, and turned into datasets like native ones. A coding agent configures the same connectors through MCP — `inspect_connectors`, `configure_connector` (source project, lookback, and the capability mapping, which a human confirms), and `sync_connector` — once the credential exists.
+    In a terminal, with the provider key exported (or entered at the prompt — never pasted into a chat):
+
+    ```bash
+    overmind connector add langfuse --json      # langsmith, braintrust, galileo
+    ```
+
+    The command posts the credential to your project and prints the connector id plus the MCP calls that finish the setup. From there the coding agent — the `connect-traces` MCP prompt runs the whole sequence — calls `inspect_connectors` with `include_source_projects=true` to list the source projects and the observation shapes it found, proposes a **capability mapping** with `configure_connector` (source project, lookback, and which observation names are the trace roots of which capability), stops for you to confirm or pick an alternative boundary, then confirms the mapping and calls `sync_connector`. **Observability → Integrations** in the Console is the same connectors with the keys entered in the UI. See the [CLI](/platform/cli#overmind-connector) and [MCP](/platform/mcp#prompts).
+
+    Each connector runs a resumable historical backfill, then polls incrementally; **Sync now** triggers a manual pull, and changing a confirmed mapping recarves the imported spans on the next sync. Credentials are encrypted at rest and used only to read. Imported traces are scored on arrival, browsed, and turned into datasets like native ones.
   </Tab>
 </Tabs>
 

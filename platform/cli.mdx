@@ -1,9 +1,9 @@
 ---
 title: CLI
-description: The overmind command — init, sync, chassis, dataset upload and export, the optimise loop, model checkpoints, and skills.
+description: The overmind command — init, sync, chassis, dataset upload and export, tracing connectors, the optimise loop, model checkpoints, and skills.
 ---
 
-The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, syncs `overmind.toml`, lands files as datasets, drives optimisation runs in your repository, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does.
+The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, syncs `overmind.toml`, lands files as datasets, holds provider keys for tracing connectors, drives optimisation runs in your repository, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does.
 
 ```bash
 pip install overmind              # the CLI and the inference client
@@ -59,6 +59,15 @@ overmind dataset export <dataset-id> --format csv --cell <cell-id> --output tria
 `upload` streams a CSV, TSV, JSON, JSONL, NDJSON, or Parquet file through `/api/uploads/` in resumable chunks and lands it as a dataset; the JSON result carries the dataset `id`, its `state`, and the MCP calls to make next. `--intent` is `train` or `eval`; omit it and landing proposes one. `--split PERCENT` lands the file as two datasets, `<name> train` and `<name> eval`, with disjoint rows; `--split-position` (`head`, `tail`, or `random`, default `tail`) says where the eval rows come from, and the result adds `eval_id`. `--capability` binds the dataset on landing.
 
 `export` downloads one version — the active one unless `--cell` names another — as JSONL or CSV to a new local file; it refuses to overwrite. The download is a raw stream and never counts as a use. See [Datasets](/core/datasets).
+
+## `overmind connector`
+
+```bash
+LANGFUSE_PUBLIC_KEY=pk-lf-... LANGFUSE_SECRET_KEY=sk-lf-... overmind connector add langfuse --json
+overmind connector add langsmith --base-url https://eu.api.smith.langchain.com
+```
+
+`add TYPE` creates a tracing connector — `langfuse`, `langsmith`, `braintrust`, or `galileo` — from provider credentials it reads from the environment (`LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`, `LANGSMITH_API_KEY`, `BRAINTRUST_API_KEY`, `GALILEO_API_KEY`, or the generic `OVERMIND_CONNECTOR_API_KEY` / `OVERMIND_CONNECTOR_API_SECRET`) or asks for at a terminal prompt; in a non-interactive shell it refuses rather than take them as arguments. `--project-id` defaults to the project in `overmind.toml`, `--name` labels the connector, `--base-url` (or `LANGFUSE_HOST`) points at a self-hosted or regional provider API. The connector is created with auto-sync off; the JSON result carries its `id` and the MCP calls — `inspect_connectors`, `configure_connector`, `sync_connector` — that pick the source project, confirm the capability mapping, and start the import. See [Observability](/core/observability#getting-traces-in).
 
 ## `overmind optimise`
 

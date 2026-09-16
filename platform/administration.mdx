@@ -27,7 +27,7 @@ Treat keys like passwords: scope one per environment, keep them out of source co
 
 ## Tracing connectors
 
-Managed under **Observability → Integrations**. Four connectors are available: **Langfuse** (host URL + `pk-lf-...` / `sk-lf-...` keys, per-project import), **LangSmith** (API key `lsv2_sk_...` or `lsv2_pt_...`; API URL optional, EU is `eu.api.smith.langchain.com`), **Braintrust** (API key or service token `bt-st-...`; API URL), and **Galileo** (API key; API URL). Each runs a resumable backfill then incremental sync, with a manual **Sync now**. Credentials are encrypted at rest and used only to read traces. A coding agent configures and syncs the same connectors through MCP once the credential exists.
+**Langfuse**, **LangSmith**, **Braintrust**, and **Galileo**. Provider keys enter through the terminal (`overmind connector add TYPE --json`) or under **Observability → Integrations** in the Console; the source project, the capability mapping, and the import run through MCP (`inspect_connectors`, `configure_connector`, `sync_connector`) or the same Console page. Each connector runs a resumable backfill then incremental sync, with a manual **Sync now**. Credentials are encrypted at rest and used only to read traces. See [Observability](/core/observability#getting-traces-in).
 
 ## Running work
 
