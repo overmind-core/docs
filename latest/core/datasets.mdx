@@ -26,6 +26,8 @@ Nothing is reshaped on the way in and nothing is edited in place. To change the 
   </Tab>
 </Tabs>
 
+The dialog's **Purpose** picks the intent: **Decide from the rows** leaves it pending for landing and the agent, **Evaluation** and **Training** fix it. **Train + eval** lands one source as two datasets, `<name> train` and `<name> eval`, with disjoint rows: you give the eval share as a percentage and where the eval rows come from (first, last, or a random draw that is the same every time). The source is read once, each half lands as its own cell 0, and each dataset runs its own first agent turn. The dialog opens the train dataset; the eval one lands in the background. Each `source_spec` carries the cut and the sibling's id.
+
 Landing writes the source as Parquet, stamps every row with a `source_row` index so later versions can be diffed value by value, scores every capability of the project against the rows (bound ids, the system turn, tool names, input keys) to propose one, and proposes the intent from the shape: transcripts with assistant turns are train, an input with a reference is eval, anything else is **pending** until the agent decides.
 
 <Warning>
@@ -77,6 +79,12 @@ curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/jso
   -d '{"project": "<project-uuid>", "name": "triage-eval", "intent": "eval",
        "source": {"rows": [{"input": "...", "expected_output": "..."}]}}' \
   "https://api.overmindlab.ai/api/datasets/"
+
+# One source as a train dataset and an eval dataset (position: head | tail | random)
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
+  -d '{"project": "<project-uuid>", "name": "triage", "eval_percent": 20, "position": "tail",
+       "source": {"rows": [{"input": "...", "expected_output": "..."}]}}' \
+  "https://api.overmindlab.ai/api/datasets/split/"
 
 # Rows of a version with diff marks, column stats, read-only SQL over table t
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/rows/?cell=<cell-id>&diff=1&limit=50"
