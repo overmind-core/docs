@@ -24,7 +24,7 @@ Compose brings up Postgres (pgvector 16), Redis, the API on `http://localhost:80
 cd frontend && bun install && bun run dev    # http://localhost:5173
 ```
 
-`frontend/.env.development` already points the Console at `http://localhost:8000`. Sign-in is Clerk: the frontend env ships a development publishable key and the API a matching test secret (`CLERK_API_SECRET_KEY`, `CLERK_AUTHORIZED_PARTIES`, defaulting to `http://localhost:5173`); for a deployment of your own, create a Clerk application and set both. Then create a project and follow the [Quickstart](/quickstart) — with `overmind init --env local`, so the CLI and MCP point at your API.
+`frontend/.env.development` already points the Console at `http://localhost:8000`. Sign-in is Clerk, and the API ships no Clerk secret: create a Clerk application, put its publishable key in `frontend/.env.development.local` as `VITE_CLERK_PUBLISHABLE_KEY`, and its secret key in `.env` as `CLERK_API_SECRET_KEY` (`CLERK_AUTHORIZED_PARTIES` defaults to `http://localhost:5173`). With `CLERK_API_SECRET_KEY` blank, Console sign-in is off and the API still accepts project API keys and guest sessions. `DJANGO_ADMIN_PATH` sets the Django admin path (default `admin`); give a public deployment a private value. Then create a project and follow the [Quickstart](/quickstart) — with `overmind init --env local`, so the CLI and MCP point at your API.
 
 For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed:
 
