@@ -46,6 +46,12 @@
     "codeblocks": "system"
   },
   "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/overmind-core/overmind"
+      }
+    ],
     "primary": {
       "type": "button",
       "label": "Console",
@@ -53,111 +59,71 @@
     }
   },
   "navigation": {
-    "versions": [
+    "groups": [
       {
-        "version": "active",
-        "default": true,
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "index",
-              "quickstart"
-            ]
-          },
-          {
-            "group": "Tracing",
-            "pages": [
-              "core/observability",
-              "tracing/sdk-python",
-              "tracing/sdk-typescript"
-            ]
-          },
-          {
-            "group": "Core",
-            "pages": [
-              "core/capabilities",
-              "core/datasets"
-            ]
-          },
-          {
-            "group": "Agent Testing",
-            "pages": [
-              "agent-testing/eval",
-              "agent-testing/optimisers"
-            ]
-          },
-          {
-            "group": "Models",
-            "pages": [
-              "models/training",
-              "models/inference"
-            ]
-          },
-          {
-            "group": "Platform",
-            "pages": [
-              "platform/api",
-              "platform/administration",
-              "platform/glossary"
-            ]
-          }
+        "group": "Overview",
+        "pages": [
+          "index",
+          "quickstart",
+          "platform/self-hosting"
         ]
       },
       {
-        "version": "latest",
-        "tag": "Latest",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "latest/index",
-              "latest/quickstart"
-            ]
-          },
-          {
-            "group": "Tracing",
-            "pages": [
-              "latest/core/observability",
-              "latest/tracing/sdk-python",
-              "latest/tracing/sdk-typescript"
-            ]
-          },
-          {
-            "group": "Core",
-            "pages": [
-              "latest/core/capabilities",
-              "latest/core/datasets"
-            ]
-          },
-          {
-            "group": "Agent Testing",
-            "pages": [
-              "latest/agent-testing/eval",
-              "latest/agent-testing/trace-scoring",
-              "latest/agent-testing/optimisers"
-            ]
-          },
-          {
-            "group": "Models",
-            "pages": [
-              "latest/models/training",
-              "latest/models/inference"
-            ]
-          },
-          {
-            "group": "Platform",
-            "pages": [
-              "latest/platform/api",
-              "latest/platform/administration",
-              "latest/platform/glossary"
-            ]
-          }
+        "group": "Tracing",
+        "pages": [
+          "core/observability",
+          "tracing/sdk-python",
+          "tracing/sdk-typescript"
+        ]
+      },
+      {
+        "group": "Core",
+        "pages": [
+          "core/capabilities",
+          "core/datasets"
+        ]
+      },
+      {
+        "group": "Agent Testing",
+        "pages": [
+          "agent-testing/eval",
+          "agent-testing/trace-scoring",
+          "agent-testing/optimisers"
+        ]
+      },
+      {
+        "group": "Models",
+        "pages": [
+          "models/training",
+          "models/inference"
+        ]
+      },
+      {
+        "group": "Agents & CLI",
+        "pages": [
+          "platform/mcp",
+          "platform/cli"
+        ]
+      },
+      {
+        "group": "Platform",
+        "pages": [
+          "platform/api",
+          "platform/administration",
+          "platform/glossary"
         ]
       }
     ]
   },
   "redirects": [
+    {
+      "source": "/latest",
+      "destination": "/"
+    },
+    {
+      "source": "/latest/:slug*",
+      "destination": "/:slug*"
+    },
     {
       "source": "/context/agents",
       "destination": "/core/capabilities"

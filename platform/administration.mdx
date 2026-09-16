@@ -1,50 +1,52 @@
 ---
 title: Projects & Administration
-description: Projects and membership, API keys, the GitHub connection, tracing connectors, the Jobs view, and billing.
+description: Projects and membership, API keys, tracing connectors, running work, and billing.
 ---
 
 ## Projects
 
-A project is the tenant boundary for everything: capabilities, traces, datasets, eval sets, runs, deployed models, connectors, and API keys all belong to exactly one project, and switching projects switches the entire console view. Members are added per project (`/api/projects/{id}/memberships/`), so access follows the work.
+A project is the tenant boundary for everything: capabilities, traces, datasets, eval sets, runs, deployed models, connectors, and project keys all belong to exactly one project, and switching projects switches the entire Console view. Members are added per project (`/api/projects/{id}/memberships/`), or invited by email (`/api/projects/{id}/invites/`), so access follows the work. There is no organisation layer above projects.
 
-Data does not cross project boundaries — an API key is pinned to its project, and a model deployed in one project is not callable from another. That isolation is what makes a project safe to hand to another team or use as a staging sandbox.
+Data does not cross project boundaries — a project key is pinned to its project, and a model deployed in one project is not callable from another. That isolation is what makes a project safe to hand to another team or use as a staging sandbox.
 
 ## API keys
 
-One key type serves everything programmatic: the tracing SDKs, raw OTLP ingest, the REST API, the `overmind` CLI executioner, and the inference API.
+One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, the REST API, MCP, the `overmind` CLI, and the inference API.
 
 - **Format**: `ovr_` followed by a random token. Only a SHA-256 hash is stored — the full key is **shown once, at creation**.
 - **Headers**: `X-Api-Key: <key>` or `Authorization: Bearer <key>`.
-- **Scope**: the key's project. Requests authenticated with it can only see that project's data.
-- **Expiry**: optional — 30/90/180 days, 1 year, or never. Inactive and expired keys are rejected; each key records when it was last used.
-- **Where**: **Projects → your project → API keys** in the console (also creatable from the Observability empty state), or [over the API](/platform/api#authentication).
+- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of. MCP and the SDK's saved credential are project-scoped; the onboarding prompt carries a temporary account-scoped key that `overmind sync` trades for a project one.
+- **Lifetime**: keys do not expire. Revoke what you no longer need; revocation is immediate, and each key records when it was last used.
+- **Where**: **Projects → your project → API keys** in the Console, the onboarding and observability setup panels, or [over the API](/platform/api#authentication).
 
-Treat keys like passwords: scope one per environment, keep them out of source control, revoke what you no longer need. Revocation is immediate.
+<Frame caption="A project's API keys: name, scope, prefix, last use.">
+  <img src="/images/platform/project-api-keys.jpg" alt="Project page with the API keys table" />
+</Frame>
 
-## Settings surfaces
+Treat keys like passwords: scope one per environment, keep them out of source control, revoke what you no longer need. `overmind init` adds the file it writes a key into to `.gitignore`.
 
-### GitHub
+## Tracing connectors
 
-The GitHub connection powers repository scans, observability PRs, Optimiser PRs, and Model PRs. You install the Overmind GitHub App on the specific repositories you choose — never account-wide by default. Connection status, repo selection, and scan state live under **Agent → Connect a repository**; disconnecting uninstalls the app and removes access.
+**Langfuse**, **LangSmith**, **Braintrust**, and **Galileo**. Provider keys enter through the terminal (`overmind connector add TYPE --json`) or under **Observability → Integrations** in the Console; the source project, the capability mapping, and the import run through MCP (`inspect_connectors`, `configure_connector`, `sync_connector`) or the same Console page. Each connector runs a resumable backfill then incremental sync, with a manual **Sync now**. Credentials are encrypted at rest and used only to read traces. See [Observability](/core/observability#getting-traces-in).
 
-### Tracing connectors
+## Running work
 
-Langfuse, LangSmith, Braintrust, and Galileo. Provider keys stay in the terminal (`overmind connector add TYPE --json`); source project, capability mapping, and import run through MCP (`inspect_connectors`, `configure_connector`, `sync_connector`). **Observability → Integrations** in the Console is the same connectors with keys entered in the UI. See [Observability](/core/observability#getting-traces-in).
-
-## Jobs
-
-Long-running work — eval runs, optimisation runs, training runs, and dataset analyses — is tracked in the **Jobs** view, filterable by type and status. Each row deep-links into the surface that owns it, and a running-jobs indicator in the top bar shows what's in flight from anywhere in the console.
+Long-running work — eval runs, optimisation runs, and training runs — shows in the running-jobs indicator in the top bar from anywhere in the Console, each entry deep-linking into the surface that owns it. Dataset landings and agent turns show on the dataset itself. Over MCP, `get_job` reads any of them by kind and id.
 
 ## Billing and credits
 
-Overmind runs on a subscription (Free / Pro) plus credits. Work that consumes compute on Overmind's side — dataset analysis, evaluator generation, eval runs, optimisation orchestration, training, model serving — draws on your project's credits. **Settings** shows the balance, the full usage ledger, and top-up.
+Credits belong to the **user** and are shared across every project you are in. Work that consumes compute on Overmind's side — judge calls in eval runs and trace scoring, the Data Workshop agent, optimiser scoring, training, and serving — is metered on a ledger. **Settings** shows the plan, the balance, the full usage ledger, and top-up.
 
-When credits run out, paid actions stop with an explicit `402 insufficient credits` response instead of degrading quietly. Two things are never credit-gated: **trace ingest** (your telemetry always lands) and browsing what's already computed.
+<Frame caption="Settings on a self-hosted stack: account spend and the usage ledger. The hosted product adds the plan, the balance, and top-up above it.">
+  <img src="/images/platform/settings-credits.jpg" alt="Settings page with credits and ledger" />
+</Frame>
+
+On the hosted product a new account starts with a free grant, plans are Free and Pro, and when credits run out paid actions stop with an explicit `402 insufficient credits` response instead of degrading quietly. A self-hosted stack without Stripe keys meters the same charges with no cap and no quota — see [Self-hosting](/platform/self-hosting#billing-modes). Two things are never credit-gated anywhere: **trace ingest** (your telemetry always lands) and browsing what's already computed.
 
 <Note>
-Model calls made by *your own* application — including the calls the Optimiser's local executioner makes while replaying your agent — go to your model provider under your keys. Overmind credits cover the work Overmind performs on its side.
+Model calls made by *your own* application — including the calls the optimiser makes while replaying your agent in your checkout — go to your model provider under your keys. Overmind credits cover the work Overmind performs on its side; an optimisation run's judge calls are routed and metered, its candidate runs are yours.
 </Note>
 
 ## Console conveniences
 
-The command palette (<kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd>) jumps to any capability, dataset, or page by name. Every filtered view in Observability is a shareable URL — and because filters map 1:1 to [API query parameters](/platform/api#conventions), a console URL doubles as an API recipe. The project home is the **Brain** chat: agentic Q&A over your project's capabilities, traces, and failures, with slash commands and entity @-mentions.
+The command palette (<kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd>) jumps to any capability, dataset, or page by name. Every filtered view in Observability is a shareable URL — and because filters map 1:1 to [API query parameters](/platform/api#conventions), a Console URL doubles as an API recipe. The project home is the **Agent** page: the capability grid, or the onboarding prompt while the project is empty.

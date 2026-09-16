@@ -1,46 +1,42 @@
 ---
 title: Optimisers
-description: The optimisation loop — candidate code diffs, the local executioner, scoring with your eval set, and the resulting pull request.
+description: The optimisation loop — candidate code diffs generated and replayed in your repository, scored with your eval set on the platform, and the winning diff to apply locally; plus model comparison and hybrid runs.
 ---
 
-The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your evaluators. Only a change that beats the best score so far survives, and the winner ships as a pull request you review like any other.
+The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your evaluators. Only a change that beats the best score so far survives; the winning diff stays on the candidate for you to apply in your repo. The same loop compares models: a **backtest** replays the dataset through each candidate model instead of each candidate diff.
 
 ## Prerequisites
 
 <Steps>
   <Step title="A capability from your code">
-    Candidates are edits to source, so the capability must come from a connected repository with a known entrypoint. See [Agent & Capabilities](/core/capabilities).
+    Candidates are edits to source, so the capability must be synced from your repo with a known entrypoint in `overmind.toml`. See [Agent & Capabilities](/core/capabilities).
   </Step>
-  <Step title="An eval-intent dataset">
-    The run replays the agent over the dataset's datapoints; the inputs must be a shape the agent can be invoked with. See [Datasets](/core/datasets).
+  <Step title="An eval dataset">
+    The run replays the agent over the rows of an eval dataset's active version, which must fit both **eval** contracts; the inputs must be a shape the agent can be invoked with. See [Datasets](/core/datasets#contracts).
   </Step>
   <Step title="An eval set">
     Candidates are graded by the eval set you pick, pinned at creation so later edits can't change an in-flight run's scoring. See [Eval](/agent-testing/eval#eval-sets).
   </Step>
-  <Step title="The local executioner">
-    Your agent executes in **your** environment, not Overmind's. The `overmind` CLI runs a local daemon that applies candidate diffs and runs your agent against your repo:
-
-    ```bash
-    pip install overmind
-    export OVERMIND_API_KEY="ovr_..."
-    overmind optimize
-    ```
-
-    The daemon registers itself with the platform, polls for commands, executes each datapoint run locally, and reports results (output, trace ID, exit code) back. The run page shows its live connection status and heartbeat.
+  <Step title="A coding agent in the repository">
+    Your agent executes in **your** environment, not Overmind's. The loop is driven from your checkout by the `overmind` CLI, and the candidate diffs are written by your coding agent. **Optimiser → New run** in the Console hands you the prompt to paste — **Harness** for prompt and code optimisation, **Backtesting** for model comparison — which the `/overmind optimise` and `/overmind backtest` commands run end to end.
   </Step>
 </Steps>
 
-You also set a **budget**: the number of iterations (default 5), candidates per iteration (default 3), and patience — consecutive iterations without improvement before early stop (default 3).
+<Frame caption="New run: the Harness and Backtesting prompts the coding agent runs.">
+  <img src="/images/platform/optimiser-new-run.jpg" alt="New optimiser run dialog with Harness and Backtesting tabs" />
+</Frame>
+
+The run's **budget** is the number of iterations (default 5) and candidates per iteration (default 3); patience — consecutive iterations without improvement before early stop — is 3.
 
 ## How a run works
 
 ```flow
 flow col
 title: The optimisation loop
-S[Smoke test | can the entrypoint be invoked?] -> B[Baseline | iteration 0, agent as-is]
-B -> G[Generate candidate diffs | one per optimisation area]
-G -> R[Replay each candidate over the dataset | local executioner]
-R -> SC[Score with the pinned eval set]
+S[Smoke test | run one datapoint through the command template] -> B[Baseline | iteration 0, agent as-is]
+B -> G[Generate candidate diffs | the coding agent writes them]
+G -> R[Replay each candidate over the dataset | your checkout, in parallel worktrees]
+R -> SC[Score with the pinned eval set | on the platform]
 SC -> D{Beats the best so far?}
 D -> K[New best] : Yes
 D -> X[Discard] : No
@@ -48,49 +44,59 @@ K -> P{Budget left and still improving?}
 X -> P
 P ~> G : Yes
 P -> W[Winner] : No
-W -> PR[Open PR on GitHub]
+W -> L[Apply winning diff locally]
 ```
 
-A run opens with a **smoke test** — before spending anything, Overmind verifies the executioner can actually invoke your agent's entrypoint. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
+The client owns codegen, the smoke test, and every datapoint run; the server holds the dataset version, scores posted outputs, and records the winner. Each step is one CLI verb — `set-template`, `run-smoke`, `run-baseline`, `add-candidate`, `run-iteration`, `complete` — and `overmind optimise next` tells the coding agent which one comes next. See the [CLI](/platform/cli#overmind-optimise).
 
-Each subsequent iteration generates a batch of candidate diffs, each biased toward a different area of the agent (system prompt, tool descriptions, control flow). Candidates are validated, replayed over every datapoint through the executioner, and scored with the same eval pipeline used everywhere else — every candidate links to a full [eval run](/agent-testing/eval#eval-runs) you can open. A candidate becomes the new starting point only if it beats the best score so far. Runs end by exhausting the budget or early-stopping after consecutive stalls, and can be cancelled at any point. If the executioner disconnects or credits run out, the run parks in a paused state rather than failing.
+A run opens with a **smoke test** — before spending anything, the first datapoint runs through the command template to verify the entrypoint can be invoked. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
 
-The capability's evaluation spec bounds what candidates may touch: elements marked **optimisable** are fair game, elements marked **fixed** are off-limits regardless of score gain.
+Each subsequent iteration takes a batch of candidate diffs from the coding agent, applies each in its own git worktree, replays every datapoint through it (one shared pool of workers across candidates and datapoints), posts the outputs, and waits for the platform to score them with the same eval pipeline used everywhere else — every candidate links to a full [eval run](/agent-testing/eval#eval-runs) you can open. A candidate becomes the new best only if it beats the best score so far. Runs end by exhausting the budget or early-stopping after consecutive stalls, and can be cancelled at any point.
+
+## Modes
+
+| Mode | Candidates | Stops on |
+| --- | --- | --- |
+| **optimize** (Harness) | Code diffs the coding agent writes | Budget or patience |
+| **model_comparison** (Backtesting) | One to five OpenRouter model ids, replayed with the repository's provider calls rewritten to OpenRouter (`overmind.backtest.rewrite_repo`) | Every model, always — a comparison owes a full table |
+| **hybrid** | Diffs and models together | Budget or patience |
+
+A backtest ranks its candidates **coverage-fair**: by score, then by the share of the eval suite's claims the candidate's outputs covered, then by fewest excluded commands — so a model that scored well by skipping hard datapoints does not win. When every candidate ties and the suite left card claims uncovered, no winner is selected and the run says so. Model calls in a backtest can run on Overmind credits through the platform gateway or on your own OpenRouter key.
 
 ## Following a run
 
-<Frame caption="A finished run: baseline 52.0 → best 78.0 over 8 iterations and 25 candidates, with the score-per-iteration chart and the iteration log.">
-  <img src="/images/platform/optimise-run.png" alt="Optimiser run page with score chart" />
+<Frame caption="A finished run: baseline to best over five iterations, with the score-per-iteration chart and the iteration log.">
+  <img src="/images/platform/optimiser-run.jpg" alt="Optimiser run page with score chart" />
 </Frame>
 
-The header carries baseline score, best score, iterations and candidates completed, patience, elapsed time, and the entrypoint under test. Each iteration expands into its candidates, and each candidate into its **patch** — the literal diff — plus a link to its eval run:
+The header carries the baseline score, the best tested harness or model, the overall winner, iterations and candidates completed, patience, elapsed time, when it started, and the entrypoint under test. Each iteration expands into its candidates, and each candidate into its **patch** — the literal diff, copyable and downloadable — plus a link to its eval run:
 
-<Frame caption="Iteration 3 wins (+5%). The candidate's patch is a reviewable diff; every candidate links to the eval run that scored it.">
-  <img src="/images/platform/optimiser-iterations.png" alt="Optimiser iterations with expanded candidate patch" />
+<Frame caption="An expanded iteration: the winning candidate's patch is a reviewable diff, and every candidate links to the eval run that scored it.">
+  <img src="/images/platform/optimiser-patch.jpg" alt="Optimiser iterations with expanded candidate patch" />
 </Frame>
 
-## The result is a pull request
+## The result is a scored diff
 
-**Apply changes on GitHub** opens a pull request in your connected repository containing the winning diff. From there it's your normal review process — Overmind never pushes changes on its own. Because candidates were scored with the same evaluators you use everywhere else, the number on the PR is directly comparable to your eval runs and live trace scores.
+The winning candidate keeps its diff on the record: the patch on the run page. Apply it in your repository with your normal git workflow; the coding agent that drove the loop already has it staged in the candidate's worktree. Because candidates were scored with the same evaluators you use everywhere else, the headline score is directly comparable to your eval runs and live trace scores.
 
 ## API
 
 ```bash
-# List runs, inspect one, follow its iterations and executioner commands
+# List runs, inspect one, follow its iterations and the datapoint commands
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/iterations/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/commands/"
 
-# Executioner connection status, cancel, ship the winner
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/connection/"
+# Cancel
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/cancel/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/create-pr/"
 ```
+
+The loop's own calls — `POST .../template/`, `.../add-iteration/`, `.../results/`, `.../evaluate/`, `.../complete/` — are what the CLI posts; you do not call them by hand. Over MCP, `check_optimizer_readiness` validates the dataset, eval set, model ids, and credits, `start_optimizer` schedules a run in any mode and returns the CLI command to drive it, and `inspect_optimizer_result` reads iterations, candidate patches, the winner, and the next action.
 
 ## Good to know
 
 - **You measure what you optimise.** If your evaluators don't capture what you care about, the Optimiser will faithfully improve the wrong thing. Invest in [Eval](/agent-testing/eval) first.
-- **Model costs are yours.** The executioner runs your agent for real — iterations × candidates × datapoints model calls under your provider keys. The budget is the cost lever.
+- **Model costs are yours.** The loop runs your agent for real — iterations × candidates × datapoints model calls under your provider keys (or Overmind credits for a backtest through the gateway). The budget is the cost lever; the judge calls that score outputs are metered on the platform.
 - **The dataset defines the situations explored.** A narrow dataset produces improvements narrow to match; refresh it with recent traces periodically.
 - **Plateaus point at the model.** When runs stop improving, the remaining gap is usually in the model rather than the code around it — the run page points you to [Training](/models/training), and by then you already have the dataset and eval set it needs.

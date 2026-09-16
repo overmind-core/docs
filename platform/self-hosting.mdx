@@ -1,0 +1,91 @@
+---
+title: Self-hosting
+description: Run the open-source platform yourself — Docker Compose, the environment reference, the agent and provider keys, training and serving backends, and billing modes.
+---
+
+The platform is one repository, [overmind-core/overmind](https://github.com/overmind-core/overmind): the Django API (`overbae/`), the React Console (`frontend/`), the Python SDK and CLI (`overmind/`), and the Modal workers for training and serving. The hosted product at overmindlab.ai runs this same code.
+
+## Requirements
+
+Docker with Compose, [uv](https://docs.astral.sh/uv/) for anything Python outside the containers, and [Bun](https://bun.sh/) for the Console. Training and serving need a Modal or Baseten account and are optional.
+
+## Start the stack
+
+```bash
+git clone https://github.com/overmind-core/overmind.git
+cd overmind
+cp .env.example .env      # fill in at minimum OPENROUTER_API_KEY
+docker compose up -d      # API, Postgres, Redis, four Celery workers, beat, Grafana
+```
+
+Compose brings up Postgres (pgvector 16), Redis, the API on `http://localhost:8000` with hot reload, four Celery workers and beat, and Grafana on `http://localhost:3001`. The API container runs migrations and seeds the managed evaluators on every start. The Console is a Vite app served separately:
+
+```bash
+cd frontend && bun install && bun run dev    # http://localhost:5173
+```
+
+`frontend/.env.development` already points the Console at `http://localhost:8000`. Sign-in is Clerk: the frontend env ships a development publishable key and the API a matching test secret (`CLERK_API_SECRET_KEY`, `CLERK_AUTHORIZED_PARTIES`, defaulting to `http://localhost:5173`); for a deployment of your own, create a Clerk application and set both. Then create a project and follow the [Quickstart](/quickstart) — with `overmind init --env local`, so the CLI and MCP point at your API.
+
+For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed:
+
+```bash
+docker compose exec -T api python manage.py shell < seed.py
+```
+
+## Environment reference
+
+`.env.example` is the operator contract. Every variable is read by `docker-compose.yml` or `overbae/settings.py`.
+
+### Required
+
+| Variable | Purpose |
+| --- | --- |
+| `DJANGO_SECRET_KEY` | Django's signing key; change it anywhere but a laptop |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated hostnames the API answers for |
+| `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials; required when `DJANGO_DEBUG=False` |
+| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, optimiser scoring, frontier inference |
+| `FRONTEND_URL` | Where the Console lives, for links in prompts and emails |
+
+Postgres and Redis default to the Compose services (`POSTGRES_*`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`).
+
+### The Data Workshop agent
+
+The dataset agent runs on the first key it finds, in this order: `CURSOR_API_KEY` (a Cursor Composer session), `OPENROUTER_API_KEY`, then `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` with a native tool-calling loop. Both engines take the same tools and emit the same events. With none set the workshop page opens and the agent reports that it is not configured. `OPENAI_API_KEY` also serves embeddings for statistical evaluators.
+
+### Training and serving
+
+| Variable | Purpose |
+| --- | --- |
+| `FINETUNING_BACKEND` | `baseten` (default) or `modal`; both serve the same model catalog |
+| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_sft_worker.py` |
+| `BASETEN_API_KEY`, `BASETEN_PROJECT` | Baseten training |
+| `INFERENCE_API_KEY` | The shared secret between the API and the Modal serving endpoint |
+| `USE_UNSLOTH` | Trainer engine: plain TRL (`false`) or Unsloth (`true`), independent of the backend |
+| `HF_TOKEN` | Gated base models on Hugging Face |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME`, `AWS_REGION` | The checkpoint archive that backs weights download |
+
+Without a backend, the Console's Training and Inference pages open, the catalog lists, and a launch fails at submission with the reason.
+
+### Billing modes
+
+Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: every charge still lands on the credits ledger and shows under Settings, but there is no remaining-credit cap, no `402`, no Free/Pro quota, and no signup grant. Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, and `STRIPE_CREDIT_PRICE_ID` to turn on the hosted product's plans, top-ups, and the credit gate; point Stripe's `invoice.paid` webhook at `POST /api/billing/webhook/`.
+
+### Optional
+
+`GRAFANA_ADMIN_PASSWORD` and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel; `TOGETHER_API_KEY` for the retired Together backend that existing job rows still render.
+
+## Topology
+
+The API is Django plus DRF under uvicorn; MCP is mounted on the same ASGI app at `/api/mcp/`. Celery runs four workers over five queues: `control` (default, orchestration and beat), `io` and `io_traces` (one threads worker; trace scoring rides `io_traces`), `batch` (landing datasets, uploads) and `interactive` (dataset runs and agent turns). Workers restart on any `.py` change under `overbae/`, so a running agent turn dies when you edit backend code beneath it. Every dataset frame lives under `MEDIA_ROOT/datasets/<id>/cells/` as Parquet on the `app_data` volume.
+
+## Developing on it
+
+```bash
+make run                   # Django + Vite outside Docker
+make worker                # one local Celery worker over every queue, solo pool
+make test                  # backend tests, parallel
+make lint-format           # ruff + biome
+make generate_api_client   # after any backend API change: regenerates frontend/src/openapi/
+```
+
+`AGENTS.md` at the repo root is the playbook a coding agent reads before touching a subsystem; `.claude/skills/` holds the subsystem maps. Pull requests go against `main`; the SDK publishes to PyPI on `overmind-v*` tags.

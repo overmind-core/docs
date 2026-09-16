@@ -1,50 +1,53 @@
 ---
 title: Training
-description: Training runs — dataset validation, model recommendations, live loss curves, and the benchmark against your production model.
+description: Training runs — dataset validation, the model catalog, live loss curves, classification metrics, and the benchmark against your production model.
 ---
 
-Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch up to several experiments in parallel on managed GPU infrastructure. Loss curves stream live, and every finished model is judged with your own evaluators against the model the capability runs today — per metric, before anything changes in production.
+Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch one or several experiments in parallel on GPU infrastructure — Modal or Baseten, whichever the platform is configured for. Loss curves stream live, and every finished model is judged with your own evaluators against the model the capability runs today — before anything changes in production.
+
 ## What a run needs
 
 | Choice | Requirement |
 | --- | --- |
 | **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A dataset with the training intent (chat-style messages). See [Datasets](/core/datasets#the-data-model) |
-| **Eval dataset** | A separate eval-intent dataset the finished model is measured on |
-| **Rubric** | The eval set that does the measuring, chosen from the capability's sets |
+| **Training dataset** | A **train** dataset whose active version fits (chat transcripts with an assistant turn, the capability's own). See [Datasets](/core/datasets#contracts) |
+| **Eval dataset** | A separate **eval** dataset whose active version fits; the finished model is measured on it. Land it from other traces, or cut both from one source with **Train + eval** |
+| **Graders** | The eval set that does the measuring, chosen from the capability's sets |
+| **Name** | What the run is called on the Training page |
 
-The train/eval separation is enforced, not advisory: an overlap check compares the two datasets' source traces so the benchmark never scores data the model saw in training (`GET /api/finetuning-jobs/dataset-overlap/`). Dataset validation runs before launch with the same checks the [Data Workshop](/core/datasets#the-data-workshop) applies at ingest, so problems surface as fixable findings up front instead of a failed run an hour in.
+The train/eval separation is checked, not assumed: an overlap check compares the two datasets' source traces (`GET /api/finetuning-jobs/dataset-overlap/`), the wizard shows the count, and any row of the training set that also appears in the eval set is excluded from training and logged on the job, so the benchmark never scores data the model saw. The job uses and freezes the exact version it trains on, and validation runs before launch with the same rules the [contract](/core/datasets#contracts) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
+
+<Frame caption="The training wizard: datasets and graders on the left, the recommended models with their estimates on the right.">
+  <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
+</Frame>
 
 ## Configuring experiments
 
 The wizard recommends configurations from your dataset's statistics and cost/duration estimates, via the same endpoints you can call directly:
 
 ```bash
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/models/"          # curated base-model catalogue
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/models/"          # the base-model catalog
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/model-defaults/"  # one model's default hyperparameters
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/validate-dataset/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/recommend/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/estimate/"
 ```
 
-A single run trains multiple experiments in parallel — each with its own base model and settings — and the benchmark decides between them. Every recommended setting stays editable per experiment: epochs, learning rate, batch size, and context length (derived from your actual data), plus the training method — **adapter training (LoRA)**, with rank and alpha exposed, or **full fine-tuning**.
+A single run trains multiple experiments in parallel — each with its own base model and settings — and the benchmark decides between them. Every recommended setting stays editable per experiment: epochs, learning rate, and batch size, plus the training method — **adapter training (LoRA)** with rank, alpha, and dropout exposed, or **full fine-tuning** where the model supports it. The context length is derived from your longest row and shown, not edited. Over MCP the same steps are `get_model_catalog`, `check_finetune_readiness`, `estimate_finetune`, and `start_finetune`.
 
 ## Supported models
 
-Overmind trains open-weight instruct models across the Qwen, Llama, and Antares families — from compact models up to large mixture-of-experts. Every one supports both LoRA and full fine-tuning, serves through the same [OpenAI-compatible API](/models/inference#calling-your-model), and produces downloadable weights.
+The catalog holds about forty open-weight instruct models across the Qwen 3.5, 3.8, 3.6, 3 and 2.5 families, Llama 3, Gemma 4, LFM2.5, Antares, GPT-OSS, Muse Glimmer, and Nemotron 3.5 — from a 230M-parameter compact model up to large mixture-of-experts. Every one serves through the same [OpenAI-compatible API](/models/inference#calling-your-model) and produces downloadable weights. Not every model takes both training methods: the 27B-and-up dense models and every mixture-of-experts train as LoRA adapters only, and the picker hides the method toggle where full fine-tuning is unavailable.
 
-<Card title="Model Library" icon="layer-group" href="https://www.overmindlab.ai/models">
-  The full catalogue: every model with its parameters, context window, and training and inference pricing.
-</Card>
-
-Two things the catalogue doesn't show, both enforced at launch. A model's **max training context** is often shorter than its inference context window, so a run is rejected up front if your longest row exceeds it. And **tool calling** varies by model, so if your agent calls tools, only the models that support them are offered. The in-product picker is the live source of truth for exactly what's available to your project.
+Three things the list doesn't show, all enforced at launch. A model's **max training context** is often shorter than its inference context window, so a model whose context is shorter than your longest row is dropped from the recommendation and refused at submission. **Tool calling** varies by model, so if your agent calls tools, only the models that support them are offered. And a **backend** must be configured — Modal or Baseten — or the launch fails at submission with the reason. The in-product picker is the live source of truth for exactly what's available to your project.
 
 ## Watching a run
 
-<Frame caption="A finished experiment: train loss per step, the learning-rate schedule, the run configuration (ctx 4096, batch 1, 1 epoch, lr 1e-4), and the deployed model reference.">
-  <img src="/images/platform/training-run.png" alt="Training run monitor with loss curve and config" />
+<Frame caption="A finished experiment: train and validation loss per step, the learning-rate schedule, token accuracy, gradient norm, and the run configuration.">
+  <img src="/images/platform/training-monitor.jpg" alt="Training run monitor with loss curves and configuration" />
 </Frame>
 
-The monitor streams per-step metrics for every experiment — train loss, learning-rate schedule, token accuracy (train and validation), and gradient norm — with progress, ETA, tokens processed, and credits used. The same data is available raw:
+The monitor streams per-step metrics for every experiment — train loss, validation loss, the learning-rate schedule, token accuracy (train and validation), and gradient norm — with progress, ETA, tokens processed, and credits used. The same data is available raw:
 
 ```bash
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/{id}/loss-curves/"
@@ -53,31 +56,36 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetunin
 
 A run going wrong is visible in the curves long before it ends — validation loss climbing away from train loss — and any experiment can be cancelled individually and retried later (`POST .../cancel/`, `POST .../retry/`).
 
-<Frame caption="Two parallel experiments: one cancelled at 75%, one succeeded with a +21% score against the baseline and its model auto-deployed.">
-  <img src="/images/platform/finished-job.png" alt="Parallel experiments with cancel and success states" />
-</Frame>
-
 ## The benchmark: your trained model vs. your production model
 
-Each run spawns judge evaluations at two points, both scored on your chosen eval dataset with your chosen rubric:
+Each run spawns judge evaluations at two points, both scored on your chosen eval dataset with your chosen graders, over up to 100 rows:
 
-1. **Baseline** — the capability's production model, snapshotted at submit time.
+1. **Baseline** — the capability's production model, snapshotted at submit time. When the capability has no resolvable production model, the untouched base model is deployed and scored instead, so there is always a reference.
 2. **Final** — your newly trained model.
 
-The headline number is the delta per metric. The comparison is deliberately against the model the capability actually runs — not the untouched base model — because that's the comparison a switch decision needs.
+The headline number is the delta of the aggregate score — the mean over the graders — with the per-grader rows underneath. The comparison is deliberately against the model the capability actually runs, because that's the comparison a switch decision needs.
 
-<Frame caption="The Evals table under the metrics: Baseline and Final rows per experiment, scored with the same rubric.">
-  <img src="/images/platform/training-metrics.png" alt="Training metrics with baseline and final eval scores" />
+<Frame caption="The Evals table under the metrics: Baseline and Final rows per experiment, scored with the same graders.">
+  <img src="/images/platform/training-evals.jpg" alt="Training evals table with baseline and final scores" />
+</Frame>
+
+When the eval dataset's references are labels — a classifier, a router — the benchmark also reports per-class precision, recall, and F1 with their macro, micro, and weighted aggregates, and a confusion matrix for the final model:
+
+<Frame caption="Classification metrics for a routing capability: per-class F1 and the confusion matrix.">
+  <img src="/images/platform/training-class-metrics.jpg" alt="Per-class metrics and confusion matrix on the training page" />
 </Frame>
 
 ## After training
 
-A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<id>-<base>`) and on the capability's **Models** tab, and its weights are downloadable. Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
+A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<job>-<base>`) and in the capability's **Models** section, and its weights are downloadable (`overmind model download-checkpoint <deployment-id>`). Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
 
-When the benchmark says the trained model wins, **Model PR** (`POST /api/finetuning-jobs/{id}/create-model-pr/`) edits your repository to point the capability at the new model and opens the pull request — the switch happens through your normal review, never automatically.
+When the benchmark says the trained model wins, there are two ways to switch:
+
+- **Make live** on the model sets it as the capability's `active_model`. Anything that calls the capability alias `overmind/<capability-uuid>` gets the new model on its next request, with no repository change.
+- **Copy prompt** on the training run (`GET /api/finetuning-jobs/{id}/model-swap-prompt/`, or the `get_model_swap_prompt` MCP tool) hands your coding agent the edit that retargets the capability's code at the new model reference; `?pin=true` writes the concrete model id instead of the alias. The switch stays in your normal review flow, never automatic on the server.
 
 ## Good to know
 
-- Model quality comes almost entirely from the data. Get the Workshop verdict to **Ready** before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
-- The training dataset is [locked](/core/datasets#the-data-model) while the run is in flight. Finish curation first, or duplicate the dataset.
+- Model quality comes almost entirely from the data. Get the active version to fit the **train** contract with a clean capability report before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
+- The run uses a [version](/core/datasets#versions-and-uses); keep curating in the workshop and the next run picks up the new active version.
 - Each experiment reports its final credit cost; estimates are shown before you commit.

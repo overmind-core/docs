@@ -1,0 +1,114 @@
+---
+title: MCP
+description: The Overmind MCP server — setup per coding agent, authentication, the tool catalog, prompts, resources, and the CLI handoff for local work.
+---
+
+MCP is the platform's first-class agent surface: a project-scoped [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and wire up connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
+
+## Setup
+
+`overmind init --ide <client>` writes the entry and `overmind sync` fills in the key, which is what the [Quickstart](/quickstart) prompt does for you. The entry is an HTTP server with an `X-Api-Key` header:
+
+<CodeGroup>
+
+```json Cursor (.cursor/mcp.json)
+{
+  "mcpServers": {
+    "overmind": {
+      "url": "https://api.overmindlab.ai/api/mcp/",
+      "headers": { "X-Api-Key": "ovr_…" }
+    }
+  }
+}
+```
+
+```json Claude Code (.mcp.json)
+{
+  "mcpServers": {
+    "overmind": {
+      "type": "http",
+      "url": "https://api.overmindlab.ai/api/mcp/",
+      "headers": { "X-Api-Key": "ovr_…" }
+    }
+  }
+}
+```
+
+```json OpenCode (opencode.json)
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "overmind": {
+      "type": "remote",
+      "url": "https://api.overmindlab.ai/api/mcp/",
+      "enabled": true,
+      "headers": { "X-Api-Key": "ovr_…" }
+    }
+  }
+}
+```
+
+```bash Claude Code (one line)
+claude mcp add --transport http overmind https://api.overmindlab.ai/api/mcp/ --header "X-Api-Key: ovr_…"
+```
+
+</CodeGroup>
+
+Self-hosted: replace the URL with `http://localhost:8000/api/mcp/` (`overmind init --env local`). Codex takes the same entry in `.codex/config.toml`.
+
+## Authentication
+
+The key must be **project-scoped** — pinned to exactly one active project — and carry `read` and/or `write`. The project is bound from the key; no tool accepts a project id. A key with only `read` sees the read-only tools; mutation tools need `write`. The server answers `401` without a `WWW-Authenticate: Bearer` challenge on purpose, so MCP clients never try OAuth registration against it; `Authorization: Bearer ovr_…` is still accepted as an API key.
+
+The public surface is read and write only. There are no delete, cancel, retry-anything, or generic API tools; `retry_deployment` covers exactly the failed-or-deleted deployment case.
+
+## Tools
+
+Thirty-two tools, all project-scoped, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — structured content and compact JSON text — plus resource links for the entities it touched. Errors are values (`{"error": {code, message, retryable, fields}}`), never exceptions.
+
+| Area | Read | Write |
+| --- | --- | --- |
+| Observability | `inspect_capability_health`, `query_failures`, `query_traces`, `query_task_executions`, `get_job` | |
+| Datasets | `list_datasets`, `inspect_dataset`, `query_dataset` (read-only SQL over one ran cell) | `create_dataset_from_traces` (with `split` for a train + eval pair), `message_dataset_agent`, `run_dataset` |
+| Evaluation | `check_evaluation_readiness`, `compare_evaluations` | `upsert_evaluator`, `run_evaluation`, `annotate_evaluation_sample` |
+| Training and serving | `get_model_catalog`, `check_finetune_readiness`, `estimate_finetune`, `get_model_swap_prompt` | `start_finetune`, `retry_deployment`, `set_active_model`, `run_inference` |
+| Optimisation | `check_optimizer_readiness`, `inspect_optimizer_result` | `start_optimizer` (optimize, model comparison, or hybrid) |
+| Connectors | `inspect_connectors` | `configure_connector`, `sync_connector` |
+| Instrumentation | `get_instrumentation_plan`, `verify_instrumentation` | |
+
+Background work returns a **job receipt** — `kind`, `id`, `status`, and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `eval_run`, `finetune_job`, `deployment`, `optimizer_experiment`, and `connector_sync`.
+
+Names resolve within the project: capability tools take a name, slug, or id; dataset tools prefer the UUID `list_datasets` returned because dataset names are not unique.
+
+## Prompts
+
+Twelve prompts compose the tools into multi-step workflows with human checkpoints:
+
+| Prompt | Arguments | What it drives |
+| --- | --- | --- |
+| `investigate-capability` | `capability` | Health, failures, traces, and instrumentation evidence |
+| `instrument-repository` | `capability` | Turn the instrumentation plan into repository changes and verify the spans |
+| `prepare-evaluation` | `dataset`, `eval_set` | Dataset, evaluator, binding, and credit readiness |
+| `evaluate-change` | `dataset`, `baseline` | Run an eval and compare it with a baseline |
+| `finetune-capability` | `capability`, `dataset` | Check, estimate, and launch a training job |
+| `optimize-capability` | `capability`, `dataset` | Check readiness, schedule, and inspect an optimisation run |
+| `compare-models` | `capability`, `dataset`, `model_ids` | A bounded model-comparison run and its measured winner |
+| `ship-model` | `capability`, `deployment`, `finetune` | Verify a deployment, activate the model, hand off the repository rollout |
+| `upload-dataset-file` | `path`, `intent`, `project_id` | `overmind dataset upload` in the terminal, then verify through MCP |
+| `export-dataset` | `dataset` | `overmind dataset export` to the local filesystem |
+| `connect-traces` | `connector_type` | `overmind connector add` in the terminal, then source project, mapping confirmation, and sync through MCP |
+| `download-checkpoint` | `deployment` | `overmind model download-checkpoint` to the local filesystem |
+
+## Resources
+
+Read-only, project-scoped entity state under `overmind://`:
+
+`project/current`, `capabilities/{capability}`, `traces/{trace_id}`, `sessions/{session}`, `datasets/{dataset}`, `eval-runs/{eval_run}`, `finetunes/{job_id}`, `deployments/{deployment}`, `optimizer-runs/{experiment}`, `connectors/{connector}`, `jobs/{kind}/{id}` — plus four static handoff guides, `dataset-upload`, `dataset-export`, `checkpoint-download`, and `connector-setup`, that tell the agent exactly which CLI command to run.
+
+## The CLI boundary
+
+Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key goes in with `overmind connector add`, and `inspect_connectors` answers `connector_setup_required` with that command until it exists. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
+
+## The skill
+
+`overmind init` installs the `overmind` skill next to the MCP entry. It holds the conventions the tools assume — list first, poll jobs with `get_job`, the dataset contracts that gate every run — and one reference per workflow, which is what the `/overmind` commands load. The skill is the fallback for anything the native prompts do not cover, and the only place the local scan (`/overmind setup`) lives.
