@@ -2,66 +2,76 @@
 title: Introduction
 ---
 
-Overmind improves production AI agents with their own data. It ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval experiments, optimisation runs that open pull requests, and training runs that produce models benchmarked against the one you ship today.
+Overmind improves production AI agents with their own data. It ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval runs, optimisation runs that score code diffs in your repository, and training runs that produce models benchmarked against the one you ship today.
+
+The platform is open source — [overmind-core/overmind](https://github.com/overmind-core/overmind) holds the API, the Console, and the SDK — and runs the same way hosted at overmindlab.ai or [self-hosted](/platform/self-hosting) with Docker Compose.
 
 ```flow
 flow row
 title: From your agent's process to a model you own
 A[Your agent | SDK or any OTel exporter] -> B[OTLP ingest | POST /api/v1/traces]
-B -> C[Spans in Postgres | scored on arrival]
+B -> C[Spans in Postgres | scored per task execution]
 C -> D[Datasets | curated from traces]
 D -> E[Eval runs | variants vs baseline]
 E -> OP[Optimiser | code diffs, replayed + scored]
 D -> T[Training | trained models vs baseline]
 T -> I[Inference | OpenAI-compatible API]
-OP ~> A : winning diff lands as a PR
+OP ~> A : winning diff applied locally
 I ~> B : served model's calls are traced
 ```
 
-Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, OpenAI-compatible serving for models.
+Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, [MCP](/platform/mcp) for coding agents, OpenAI-compatible serving for models.
 
-| Surface | URL |
-| --- | --- |
-| API | `https://api.overmindlab.ai` |
-| Console | `https://console.overmindlab.ai` |
+| Surface | Hosted | Self-hosted default |
+| --- | --- | --- |
+| API | `https://api.overmindlab.ai` | `http://localhost:8000` |
+| Console | `https://console.overmindlab.ai` | `http://localhost:5173` |
+| MCP | `https://api.overmindlab.ai/api/mcp/` | `http://localhost:8000/api/mcp/` |
 
-Authenticate with a project-scoped `ovr_` key as `X-Api-Key: <key>` or `Authorization: Bearer <key>`. There is no proprietary agent framework — the SDKs auto-instrument OpenAI, Anthropic, and Gemini over OpenTelemetry, and any OTel exporter can POST to the same endpoint.
+Authenticate with an `ovr_` key as `X-Api-Key: <key>` or `Authorization: Bearer <key>`. There is no proprietary agent framework — the Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain over OpenTelemetry, and any OTel exporter can POST to the same endpoint.
 
 Overmind gives you:
 
-- **Live scoring** — evaluators run on root spans as they land
-- **Datasets from traffic** — convert traces into eval and training data
+- **Live scoring** — every trace is carved into task executions and judged against the capability's eval set
+- **Datasets from traffic** — convert traces into eval and training data, shaped by the dataset's own agent
 - **Eval runs** — variants measured against a baseline with typed scores
-- **Optimiser** — local execution, scored candidates, a PR with the winning diff
-- **Training** — managed GPU runs, loss curves, benchmark vs your production model
+- **Optimiser** — candidates generated and replayed in your repository by the CLI, scored on the platform, the winning diff on the candidate for you to apply
+- **Training** — GPU runs on Modal or Baseten, loss curves, a benchmark against your production model
 - **Inference** — OpenAI-compatible API for your trained models and frontier models
+- **MCP and CLI** — the same workflows from Cursor, Claude Code, OpenCode, or Codex
 
 ## Guides
 
 <CardGroup cols={2}>
   <Card title="Quickstart" href="/quickstart" icon="rocket">
-    API key, agent setup prompt, first trace in the console.
+    One pasted prompt: SDK, MCP, capability sync, first trace.
+  </Card>
+  <Card title="Self-hosting" href="/platform/self-hosting" icon="server">
+    Docker Compose, the environment reference, backends and billing modes.
   </Card>
   <Card title="Observability" href="/core/observability" icon="eye">
-    OTLP ingest, span model, attribute mapping, explorer.
+    OTLP ingest, span model, attribute mapping, the executions view.
   </Card>
   <Card title="Python SDK" href="/tracing/sdk-python" icon="python">
-    `init()`, auto-instrumentation, decorators, context.
-  </Card>
-  <Card title="TypeScript SDK" href="/tracing/sdk-typescript" icon="node-js">
-    `OvermindClient`, `initTracing()`, manual spans.
+    `init()`, the run boundary, decorators, tasks, runtime expectations.
   </Card>
   <Card title="Agent & Capabilities" href="/core/capabilities" icon="robot">
-    Repo scans, telemetry attribution, eval specs.
+    Local discovery, sync, tasks, telemetry attribution.
   </Card>
   <Card title="Datasets" href="/core/datasets" icon="database">
-    Schema, intents, Workshop, trace-to-dataset.
+    Source, cells, versions, contracts, the workshop agent.
   </Card>
   <Card title="Eval" href="/agent-testing/eval" icon="clipboard-check">
-    Evaluator kinds, eval sets, run reports.
+    Evaluator kinds, claims, task bindings, eval runs.
+  </Card>
+  <Card title="Trace scoring" href="/agent-testing/trace-scoring" icon="gauge-high">
+    Units, tasks, verdicts, execution and session scores.
   </Card>
   <Card title="Optimisers" href="/agent-testing/optimisers" icon="wand-magic-sparkles">
-    Loop, local executioner, resulting PR.
+    The client-driven loop, harness and backtesting modes, the winning diff.
+  </Card>
+  <Card title="MCP" href="/platform/mcp" icon="plug">
+    Setup per coding agent, the tool catalog, prompts, resources.
   </Card>
 </CardGroup>
 
@@ -69,15 +79,15 @@ Overmind gives you:
 
 <CardGroup cols={2}>
   <Card title="Training" href="/models/training" icon="dumbbell">
-    Runs, validation, loss curves, baseline benchmark.
+    Runs, the model catalog, loss curves, the baseline benchmark.
   </Card>
-  <Card title="Inference" href="/models/inference" icon="server">
-    Serving lifecycle and `/api/v1/chat/completions`.
+  <Card title="Inference" href="/models/inference" icon="microchip">
+    Serving lifecycle, the capability alias, `/api/v1/chat/completions`.
   </Card>
   <Card title="REST API" href="/platform/api" icon="code">
     Auth, endpoint map, conventions, Swagger.
   </Card>
-  <Card title="Model Library" href="https://www.overmindlab.ai/models" icon="layer-group">
-    Base models, context windows, training and inference pricing.
+  <Card title="CLI" href="/platform/cli" icon="terminal">
+    `overmind init`, `sync`, `dataset`, `optimise`, `model`.
   </Card>
 </CardGroup>
