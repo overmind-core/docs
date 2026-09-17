@@ -51,12 +51,12 @@ Prints the deterministic AST chassis digest — the modules, symbols, call graph
 ## `overmind dataset`
 
 ```bash
-overmind dataset upload rows.jsonl --intent eval --json
+overmind dataset upload rows.jsonl --intent eval --wait --json
 overmind dataset upload transcripts.jsonl --split 20 --split-position random --json
-overmind dataset export <dataset-id> --format csv --cell <cell-id> --output triage.csv
+overmind dataset export <dataset-id> --format csv --cell 1.2 --output triage.csv
 ```
 
-`upload` streams a CSV, TSV, JSON, JSONL, NDJSON, or Parquet file through `/api/uploads/` in resumable chunks and lands it as a dataset; the JSON result carries the dataset `id`, its `state`, and the MCP calls to make next. `--intent` is `train` or `eval`; omit it and landing proposes one. `--split PERCENT` lands the file as two datasets, `<name> train` and `<name> eval`, with disjoint rows; `--split-position` (`head`, `tail`, or `random`, default `tail`) says where the eval rows come from, and the result adds `eval_id`. `--capability` binds the dataset on landing.
+`upload` streams a CSV, TSV, JSON, JSONL, NDJSON, or Parquet file through `/api/uploads/` in resumable chunks and lands it as a dataset; the JSON result carries the dataset `id`, its `state`, and the MCP calls to make next. `--intent` is `train` or `eval`; omit it and landing proposes one. `--split PERCENT` lands the file as two datasets, `<name> train` and `<name> eval`, with disjoint rows; `--split-position` (`head`, `tail`, or `random`, default `tail`) says where the eval rows come from, and the result adds `eval_id`. `--capability` binds the dataset on landing. `--wait` holds until the landing and the agent's first scan end, and exits 1 with the dataset's own error when either fails; without it, poll `get_job` as `next_mcp_actions` says.
 
 `export` downloads one version — the active one unless `--cell` names another — as JSONL or CSV to a new local file; it refuses to overwrite. The download is a raw stream and never counts as a use. See [Datasets](/core/datasets).
 
