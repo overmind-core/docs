@@ -842,6 +842,12 @@ body::after {
 #content-area table tbody tr:last-child td {
   border-bottom: 0 !important;
 }
+/* An identifier in a cell wraps at a break opportunity, never mid-word. */
+#content-area table code {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
 #content-area table tbody tr:hover td {
   background: var(--surface) !important;
 }
