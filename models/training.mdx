@@ -10,12 +10,12 @@ Training turns an agent's accumulated data into a model of your own. You pick a 
 | Choice | Requirement |
 | --- | --- |
 | **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A **train** dataset whose active version fits (chat transcripts with an assistant turn, the capability's own). See [Datasets](/core/datasets#what-makes-a-version-valid) |
+| **Training dataset** | A **train** dataset whose active version fits (chat transcripts with an assistant turn, the capability's own). See [Datasets](/core/datasets#what-valid-rows-look-like) |
 | **Eval dataset** | A separate **eval** dataset whose active version fits; the finished model is measured on it. Land it from other traces, or cut both from one source with **Train + eval** |
 | **Graders** | The eval set that does the measuring, chosen from the capability's sets |
 | **Name** | What the run is called on the Training page |
 
-The train/eval separation is checked, not assumed: an overlap check compares the two datasets' source traces (`GET /api/finetuning-jobs/dataset-overlap/`), the wizard shows the count, and a job whose training version shares a trace with its eval version is refused until you split them, so the benchmark never scores data the model saw. A **Train + eval** dataset pair is disjoint by construction. The job pins and freezes the exact train, validation and eval versions it was checked on, and validation runs before launch with the same rules the [contract](/core/datasets#what-makes-a-version-valid) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
+The train/eval separation is checked, not assumed: an overlap check compares the two datasets' source traces (`GET /api/finetuning-jobs/dataset-overlap/`), the wizard shows the count, and a job whose training version shares a trace with its eval version is refused until you split them, so the benchmark never scores data the model saw. A **Train + eval** dataset pair is disjoint by construction. The job pins and freezes the exact train, validation and eval versions it was checked on, and validation runs before launch with the same rules the [contract](/core/datasets#what-valid-rows-look-like) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
 
 <Frame caption="The training wizard: datasets and graders on the left, the recommended models with their estimates on the right.">
   <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
@@ -87,5 +87,5 @@ When the benchmark says the trained model wins, there are two ways to switch:
 ## Good to know
 
 - Model quality comes almost entirely from the data. Get the active version to fit the **train** contract with a clean capability report before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
-- The run uses a [version](/core/datasets#4-use-a-version); keep curating in the workshop and the next run picks up the new active version.
+- The run uses a [version](/core/datasets#use-a-version); keep curating in the workshop and the next run picks up the new active version.
 - Each experiment reports its final credit cost; estimates are shown before you commit.
