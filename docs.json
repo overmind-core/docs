@@ -52,16 +52,8 @@
   "navbar": {
     "links": [
       {
-        "label": "Product",
-        "href": "https://www.overmindlab.ai/product"
-      },
-      {
         "label": "Models",
         "href": "https://www.overmindlab.ai/models"
-      },
-      {
-        "label": "Company",
-        "href": "https://www.overmindlab.ai/about"
       },
       {
         "label": "Research",

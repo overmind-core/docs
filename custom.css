@@ -484,17 +484,7 @@ body,
   background: var(--stone-700);
 }
 
-/* Between lg and xl the six menu items would reach the centred eye, so the
- * bar keeps the tablet gutter and the items lose their outer gap. */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  #navbar nav[aria-label="Main"] > ul {
-    gap: 2px !important;
-  }
-  #navbar li.navbar-link a:not([href*="overmindlab.ai/contact"]) {
-    padding: 8px 6px !important;
-    font-size: 13px !important;
-  }
-}
+/* Four left-hand items plus Talk to the team clear the centred eye at lg. */
 
 /* Below lg the theme keeps the eye at the left and a search + menu pair at
  * the right, which is the website's mobile chrome (eye left-4, Menu button). */
@@ -699,6 +689,10 @@ body,
 
 #content-area {
   max-width: 46rem;
+}
+html[data-page-mode="wide"] #content-area {
+  max-width: none;
+  width: 100% !important;
 }
 
 /* The group label above the h1 repeats the sidebar; the h1 is the label. */
@@ -943,6 +937,7 @@ body,
   border: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
+  overflow-x: auto;
 }
 #content-area [data-table-wrapper] table,
 #content-area [data-table-wrapper] > div {
@@ -983,6 +978,40 @@ body,
 }
 #content-area table tbody tr:hover td {
   background: var(--surface) !important;
+}
+
+/* Console model chip: provider mark + short name. */
+#content-area .om-model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 1px solid var(--frame);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: var(--tracking-cell);
+  white-space: nowrap;
+  clip-path: var(--notch);
+}
+#content-area .om-model-chip-logo,
+#content-area .om-model-chip-mono {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+#content-area .om-model-chip-logo {
+  background: currentColor;
+}
+#content-area .om-model-chip-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
 }
 
 /* ─── Cards — PixelButton ghost tiles: notched, framed at 1px, fill on hover ── */

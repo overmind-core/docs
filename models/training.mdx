@@ -2,7 +2,10 @@
 title: Models
 sidebarTitle: Models
 description: Training runs — dataset validation, the model catalog, live loss curves, classification metrics, and the benchmark against the capability's production model.
+mode: wide
 ---
+
+import { ModelCatalog } from "/snippets/model-catalog.jsx";
 
 A training run fine-tunes an open-weight model on a train dataset. One run launches one or more experiments, each a `FinetuningJob` with its own base model and hyperparameters, on the configured GPU backend (`FINETUNING_BACKEND`, default `modal`). Loss curves stream while a job runs, and every finished model is scored with the eval set you picked against the model the capability runs today.
 
@@ -38,7 +41,9 @@ A run launches its experiments together; they share a `group_id` and the Trainin
 
 ## Supported models
 
-The catalog (`overbae/modal/models.json`) holds 38 trainable open-weight chat models in twelve groups — Qwen 3.5, Qwen 3.8, Qwen 3.6, Qwen 3, Qwen 2.5, Llama 3, Gemma 4, LFM2.5, Antares, GPT-OSS, Muse Glimmer and Nemotron 3.5 — from LFM2.5 230M up to 70B and 72B dense models and a 35B mixture-of-experts. Four tiers order the list: compact, small, mid, large. Every trained model serves through the same [OpenAI-compatible API](/models/inference#calling-your-model) and its weights are downloadable. Dense models of 27B and above and every mixture-of-experts model train as LoRA adapters only; the picker shows "LoRA fine-tuning" with no switch for them.
+The training wizard lists these 38 open-weight models. Modal and Baseten share the same catalog rows. Every trained model serves through the same [OpenAI-compatible API](/models/inference#calling-your-model) and its weights are downloadable. Dense models of 27B and above and every mixture-of-experts model train as LoRA adapters only; the picker shows "LoRA fine-tuning" with no switch for them.
+
+<ModelCatalog />
 
 Three constraints are enforced at launch, not shown in the list:
 
