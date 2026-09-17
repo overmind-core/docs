@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64">
+  <!-- Body -->
+  <g transform="translate(8, 0)">
+    <path d="M44 12H32V52H44V64H0V52H16V12H0V0H44V12Z" fill="#F6F5F1"/>
+  </g>
+  <!-- Shadow -->
+  <g transform="translate(12, 4)">
+    <path d="M12 56H0V52H12V56Z" fill="#9F9B92"/>
+    <path d="M20 48H16V8H20V48Z" fill="#9F9B92"/>
+    <path d="M12 4H0V0H12V4Z" fill="#9F9B92"/>
+  </g>
+  <!-- Outline -->
+  <g transform="translate(8, 0)">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M44 12H32V52H44V64H0V52H16V12H0V0H44V12ZM4 4V8H24V56H4V60H40V56H28V8H40V4H4Z" fill="#201C19"/>
+  </g>
+</svg>

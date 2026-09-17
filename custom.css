@@ -1,13 +1,13 @@
 /*
- * Overmind docs — quiet technical theme.
+ * Overmind docs theme.
  *
- * Goal: turbopuffer-like restraint (clean canvas, readable prose, dense
- * technical content) with one Overmind brand signal: copper accent + Mondwest
- * page titles. Pixel faces are chrome-only (eyebrows, nav labels), never body.
+ * A dense technical manual on the Console's materials: stone canvas, warm
+ * ink, hairline rules, hard pixel shadows, no rounding above 3px. Type is
+ * the same three faces as the product — Mondwest for titles, NeueBit for
+ * navigation, Geist Pixel for everything else — with Geist Mono for code.
+ * The pointer is the pixel cursor set from overmindlab.ai in four states.
  *
- * Palette from the brand eye / website stone+copper tokens:
- *   #ED670F copper · #F69A5B light orange · #79380D rust
- *   #F6F5F1 stone-100 · #16120F stone-900 · #231A14 ink
+ * Every hook below is a Mintlify id/class (https://mintlify.com/docs/customize/custom-scripts).
  */
 
 /* ─── Fonts ─────────────────────────────────────────────────────────────── */
@@ -21,27 +21,22 @@
 }
 
 @font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-Regular.woff2") format("woff2");
+  font-family: "NeueBit";
+  src: url("/fonts/NeueBit-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  /* Bitmap face: caps sit high in the em box, pull the ascent in so it centres on a line. */
+  ascent-override: 80%;
 }
 
 @font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-Medium.woff2") format("woff2");
-  font-weight: 500;
+  font-family: "Geist Pixel";
+  src: url("/fonts/GeistPixel-Square.woff2") format("woff2");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
-}
-
-@font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-SemiBold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
+  ascent-override: 95.8%;
 }
 
 @font-face {
@@ -60,187 +55,500 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: "Geist Pixel";
-  src: url("/fonts/GeistPixel-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range:
-    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
-    U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: "Geist Pixel";
-  src: url("/fonts/GeistPixel-Regular-ext.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range:
-    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
-    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
-    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
 /* ─── Tokens ────────────────────────────────────────────────────────────── */
 
 :root {
-  --om-copper: #ed670f;
-  --om-orange: #f69a5b;
-  --om-rust: #79380d;
-  --om-brown-deep: #2f1606;
-  --om-cream: #feeedd;
-  --om-stone: #f6f5f1;
-  --om-stone-dark: #16120f;
-
-  --om-ink: #231a14;
+  --om-canvas: #f6f5f1;
+  --om-panel: #ffffff;
+  --om-wash: #e6e5e0;
+  --om-wash-hover: #cecdc9;
+  --om-ink: #16120f;
+  --om-ink-2: #3d3934;
   --om-ink-muted: #645e54;
-  --om-border: rgb(from var(--om-rust) r g b / 0.14);
+  --om-ink-faint: #9f9b92;
+  --om-border: #cecdc9;
+  --om-border-strong: var(--om-ink);
+  --om-copper: #ed670f;
+  --om-copper-deep: #79380d;
+  --om-copper-tint: #feeedd;
+  --om-code-bg: #16120f;
+  --om-code-ink: #f6f5f1;
+  --om-shadow-px: 3px 3px 0 0 var(--om-border);
+  --om-shadow-px-hover: 4px 4px 0 0 var(--om-ink);
 
-  --om-code-bg: #faf8f4;
-  --om-shadow: 0 1px 2px rgb(from var(--om-brown-deep) r g b / 0.04);
+  --om-font-display: "PP Mondwest", ui-serif, Georgia, serif;
+  --om-font-nav: "NeueBit", ui-monospace, monospace;
+  --om-font-body: "Geist Pixel", ui-monospace, monospace;
+  --om-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Geist Pixel quantises every advance to a 38/1000em cell; this is the one tracking step. */
+  --om-tracking-cell: 0.038em;
 }
 
 .dark {
-  --om-ink: #f5f3ee;
+  --om-canvas: #16120f;
+  --om-panel: #201c19;
+  --om-wash: #292623;
+  --om-wash-hover: #3d3934;
+  --om-ink: #f6f5f1;
+  --om-ink-2: #e6e5e0;
   --om-ink-muted: #9f9b92;
-  --om-border: rgb(from var(--om-orange) r g b / 0.16);
-  --om-code-bg: #1c1815;
-  --om-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  --om-ink-faint: #645e54;
+  --om-border: #3d3934;
+  --om-copper: #f69a5b;
+  --om-copper-deep: #ed670f;
+  --om-copper-tint: #2f1606;
+  --om-code-bg: #0e0c09;
+  --om-code-ink: #f6f5f1;
 }
 
-/* ─── Global ────────────────────────────────────────────────────────────── */
+/* ─── Cursor — the pixel pointer from overmindlab.ai, four states ───────── */
 
-/* Flat stone canvas — hide Mintlify decorative overlays when present.
- * (docs.json has no decoration key; this covers residual theme defaults.) */
-body > div[aria-hidden="true"][class*="pointer-events-none"],
+/* !important throughout: Tailwind's `cursor-pointer` utility sits on most
+ * interactive elements and would otherwise win on specificity. */
+html,
+body,
+#content-area,
+#sidebar,
+#navbar,
+#table-of-contents {
+  cursor: url("/images/cursors/cursor-default.svg") 2 2, auto !important;
+}
+
+#content-area :is(p, li, blockquote, figcaption, dt, dd, td, th, caption, pre, code, span):not(a *, button *, summary *, [role="tab"] *) {
+  cursor: url("/images/cursors/cursor-select.svg") 4 10, text !important;
+}
+
+a,
+button,
+[role="button"],
+[role="link"],
+[role="menuitem"],
+[role="tab"],
+[role="option"],
+input,
+select,
+summary,
+label[for],
+.cursor-pointer,
+a *,
+button *,
+[role="button"] *,
+[role="menuitem"] *,
+[role="tab"] *,
+summary *,
+.cursor-pointer * {
+  cursor: url("/images/cursors/cursor-hover.svg") 2 0, pointer !important;
+}
+
+/* Mousedown anywhere flashes the pressed pointer, on the target and every ancestor. */
+html:active,
+html:active * {
+  cursor: url("/images/cursors/cursor-click.svg") 2 2, auto !important;
+}
+
+/* ─── Canvas ────────────────────────────────────────────────────────────── */
+
+html,
+body {
+  background: var(--om-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#background-color,
 body div.pointer-events-none.fixed[aria-hidden="true"] {
   display: none !important;
 }
 
-html,
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.011em;
-}
-
 body,
 #content-area {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: var(--om-font-body);
   color: var(--om-ink);
+  /* One 400 master; let the browser synthesise <strong>. */
+  font-synthesis: weight;
 }
 
-#content-area :is(p, li, td, dd) {
-  font-size: 0.975rem;
-  line-height: 1.65;
-  color: color-mix(in srgb, var(--om-ink) 88%, transparent);
+::selection {
+  background: var(--om-copper);
+  color: #ffffff;
 }
 
-#content-area :is(p, li) a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--om-ink) 28%, transparent);
-  text-underline-offset: 2px;
-  transition:
-    text-decoration-color 120ms ease,
-    color 120ms ease;
+:is(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--om-copper);
+  outline-offset: 2px;
+  border-radius: 0;
 }
 
-#content-area :is(p, li) a:hover {
-  color: var(--om-copper);
-  text-decoration-color: var(--om-copper);
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--om-border) transparent;
 }
 
-.dark #content-area :is(p, li) a:hover {
-  color: var(--om-orange);
-  text-decoration-color: var(--om-orange);
+/* Rounded corners top out at 3px everywhere. */
+#content-area :is(.card, .callout, .code-block, .accordion, .accordion-group, .step, figure, img, video, button, kbd, [class*="rounded"]) {
+  border-radius: 3px !important;
 }
 
-/* ─── Headings ──────────────────────────────────────────────────────────── */
+/* ─── Navbar — the dark bar ─────────────────────────────────────────────── */
 
-#content-area :is(h1, h2, h3, h4, h5, h6) {
-  letter-spacing: -0.02em;
+#navbar {
+  background: #16120f !important;
+  color: #f6f5f1;
+  border-bottom: 1px solid #3d3934;
+}
+#navbar > div,
+#navbar-transition {
+  background: transparent !important;
+  border-color: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+#navbar img {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+#navbar a[href="/"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.6rem !important;
+  text-decoration: none !important;
+}
+#navbar a[href="/"] img {
+  height: 26px !important;
+  width: 26px !important;
+  max-width: 26px !important;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+}
+#navbar a[href="/"]::after {
+  content: "Overmind";
+  font-family: var(--om-font-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1;
+  letter-spacing: 0.025em;
+  color: #f6f5f1;
+  white-space: nowrap;
+}
+
+#navbar a:not([href="/"]),
+#navbar button,
+#navbar [role="button"] {
+  font-family: var(--om-font-body) !important;
+  font-size: 14px !important;
+  letter-spacing: var(--om-tracking-cell);
+  color: #e6e5e0 !important;
+  text-transform: none !important;
+  border-radius: 2px !important;
+}
+#navbar a:not([href="/"]):hover,
+#navbar button:hover {
+  color: #ffffff !important;
+  background: #292623 !important;
+}
+
+#navbar #topbar-cta-button {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+#navbar #topbar-cta-button a,
+#navbar a[href*="console.overmindlab.ai"] {
+  background: var(--om-copper) !important;
+  color: #16120f !important;
+  border: 1px solid var(--om-copper) !important;
+  border-radius: 2px !important;
+  font-family: var(--om-font-body) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  padding: 0 12px !important;
+  height: 30px !important;
+  line-height: 28px !important;
+  box-shadow: 2px 2px 0 0 #79380d;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+#navbar #topbar-cta-button a:hover,
+#navbar a[href*="console.overmindlab.ai"]:hover {
+  background: #f69a5b !important;
+  color: #16120f !important;
+  box-shadow: 3px 3px 0 0 #79380d;
+  opacity: 1 !important;
+}
+#navbar #topbar-cta-button a:active,
+#navbar a[href*="console.overmindlab.ai"]:active {
+  box-shadow: 1px 1px 0 0 #79380d;
+}
+#navbar #topbar-cta-button a svg,
+#navbar #topbar-cta-button a::before,
+#navbar #topbar-cta-button a::after,
+#navbar #topbar-cta-button a > div::before,
+#navbar #topbar-cta-button a > div::after {
+  display: none !important;
+}
+
+#navbar #search-bar-entry,
+#navbar button[class*="search"] {
+  background: #201c19 !important;
+  border: 1px solid #3d3934 !important;
+  color: #9f9b92 !important;
+  border-radius: 2px !important;
+}
+#navbar #search-bar-entry:hover,
+#navbar button[class*="search"]:hover {
+  border-color: #645e54 !important;
+  background: #292623 !important;
+  color: #f6f5f1 !important;
+}
+#navbar #search-bar-entry kbd,
+#navbar kbd {
+  font-family: var(--om-font-mono);
+  font-size: 11px;
+  border: 1px solid #3d3934;
+  border-radius: 2px;
+  background: transparent;
+  color: #9f9b92;
+}
+
+/* ─── Sidebar — plain rail, inverted current row ────────────────────────── */
+
+#sidebar,
+#sidebar-content {
+  background: var(--om-canvas) !important;
+  border-right: 1px solid var(--om-border);
+}
+
+#navigation-items {
+  padding: 20px 12px 32px 12px !important;
+}
+
+#navigation-items div:has(> .sidebar-group-header) {
+  margin-top: 0 !important;
+  margin-bottom: 20px;
+}
+
+#navigation-items .sidebar-group-header {
+  font-family: var(--om-font-nav) !important;
+  font-weight: 400 !important;
+  /* NeueBit caps are half the declared size: 24px reads as a 12px label. */
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--om-ink) !important;
+  margin: 0 0 6px 0 !important;
+  padding: 0 8px !important;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
+#navigation-items ul.sidebar-group {
+  border-left: 0;
+  margin-left: 0;
+  padding-left: 0;
+}
+
+#navigation-items .sidebar-group li a,
+#navigation-items .sidebar-group li button {
+  font-family: var(--om-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 14px;
+  letter-spacing: var(--om-tracking-cell);
+  line-height: 1.25;
+  padding: 5px 8px !important;
+  border-radius: 2px;
+  color: var(--om-ink-muted) !important;
+  border: 0 !important;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+#navigation-items .sidebar-group li a::before,
+#navigation-items .sidebar-group li a::after,
+#navigation-items .sidebar-group li a > div.absolute {
+  display: none !important;
+}
+
+#navigation-items .sidebar-group li a:hover,
+#navigation-items .sidebar-group li button:hover {
+  background: var(--om-wash);
   color: var(--om-ink) !important;
 }
 
-/* Page title — Mondwest is the one brand voice at display size */
-#content-area h1 {
-  font-family: "PP Mondwest", "Geist", ui-serif, serif !important;
+#navigation-items .sidebar-group li a[aria-current="page"],
+#navigation-items .sidebar-group li a[aria-current="page"]:hover {
+  background: var(--om-ink) !important;
+  color: var(--om-canvas) !important;
+  text-shadow: none !important;
+}
+#navigation-items .sidebar-group li a[aria-current="page"] * {
+  color: inherit !important;
+}
+
+#navigation-items svg {
+  color: var(--om-ink-faint);
+}
+
+/* ─── Content column ────────────────────────────────────────────────────── */
+
+#content-area {
+  max-width: 46rem;
+}
+
+#content-area .eyebrow,
+#content-area .eyebrow * {
+  font-family: var(--om-font-nav) !important;
+  font-size: 24px !important;
+  line-height: 1;
+  letter-spacing: 0.05em;
   font-weight: 400 !important;
-  font-size: clamp(2.25rem, 1.6rem + 1.8vw, 3.25rem);
-  letter-spacing: 0;
+  text-transform: none !important;
+  color: var(--om-copper-deep) !important;
+  margin-bottom: 6px;
+  -webkit-font-smoothing: auto;
+}
+.dark #content-area .eyebrow,
+.dark #content-area .eyebrow * {
+  color: var(--om-copper) !important;
+}
+
+#content-area #page-title,
+#content-area h1 {
+  font-family: var(--om-font-display) !important;
+  font-weight: 400 !important;
+  font-size: 2.5rem;
   line-height: 1.05;
-  margin-bottom: 1.25rem;
+  letter-spacing: -0.015em;
+  color: var(--om-ink) !important;
+  margin: 0 0 0.75rem 0;
+}
+
+#header p,
+#content-area #page-title + p,
+#content-area header p {
+  font-family: var(--om-font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--om-ink-muted) !important;
+  margin-top: 0.25rem;
+}
+
+/* One hairline between the header and the body, as a manual has. */
+#header,
+#content-area > header {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--om-border);
 }
 
 #content-area h2 {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 1.35rem;
-  line-height: 1.25;
-  margin-top: 2.5rem;
+  font-family: var(--om-font-display) !important;
+  font-weight: 400 !important;
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--om-ink) !important;
+  margin-top: 3rem;
+  margin-bottom: 0.75rem;
 }
 
 #content-area h3 {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 1.1rem;
-  line-height: 1.3;
+  font-family: var(--om-font-display) !important;
+  font-weight: 400 !important;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--om-ink) !important;
+  margin-top: 2rem;
 }
 
 #content-area :is(h4, h5, h6) {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.975rem;
-  line-height: 1.35;
+  font-family: var(--om-font-body) !important;
+  font-weight: 400 !important;
+  font-size: 15px;
+  letter-spacing: var(--om-tracking-cell);
+  color: var(--om-ink) !important;
 }
 
-#content-area :is(strong, b, th) {
-  font-weight: 600;
+#content-area :is(h2, h3) a,
+#content-area :is(h2, h3) a:hover {
+  color: inherit !important;
+  text-decoration: none;
+}
+
+#content-area :is(p, li, dd, td) {
+  font-family: var(--om-font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: var(--om-ink-2);
+}
+#content-area li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+#content-area ul > li::marker {
+  color: var(--om-ink-faint);
+}
+
+#content-area :is(strong, b) {
+  color: var(--om-ink);
+  font-weight: 700;
+}
+
+#content-area :is(p, li, td) a:not(.card) {
+  color: var(--om-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--om-ink-faint);
+  text-underline-offset: 3px;
+  transition: color 150ms ease, text-decoration-color 150ms ease, background-color 150ms ease;
+}
+#content-area :is(p, li, td) a:not(.card):hover {
+  color: var(--om-copper-deep);
+  text-decoration-color: var(--om-copper);
+  background: var(--om-copper-tint);
+}
+.dark #content-area :is(p, li, td) a:not(.card):hover {
+  color: var(--om-copper);
+}
+
+#content-area hr {
+  border: 0;
+  border-top: 1px solid var(--om-border);
+}
+
+#content-area blockquote {
+  border-left: 2px solid var(--om-ink);
+  padding-left: 1rem;
+  color: var(--om-ink-muted);
+  font-style: normal;
 }
 
 /* ─── Code ──────────────────────────────────────────────────────────────── */
 
-#content-area :is(p, li, td, th) code:not(pre code),
 #content-area :not(pre) > code {
-  font-family: "Geist Mono", ui-monospace, monospace !important;
-  font-size: 0.875em;
-  font-weight: 450;
-  letter-spacing: -0.01em;
-  border-radius: 3px;
+  font-family: var(--om-font-mono) !important;
+  font-size: 0.86em;
+  font-weight: 400;
+  letter-spacing: 0;
+  border-radius: 2px !important;
   padding: 0.1em 0.35em;
-  background: color-mix(in srgb, var(--om-ink) 5%, transparent) !important;
+  background: var(--om-wash) !important;
   border: 0 !important;
   color: var(--om-ink) !important;
 }
 
-#content-area pre,
-#content-area pre code,
-#content-area [data-component-part="code-block-root"] code {
-  font-family: "Geist Mono", ui-monospace, monospace !important;
-  font-size: 0.84rem !important;
-  line-height: 1.55 !important;
-  letter-spacing: -0.01em;
-}
-
-/*
- * .code-block is the real bordered/rounded container Mintlify renders (the
- * [data-component-part="code-block-root"] selector this used to target does
- * not exist in the current DOM, so the block was falling through to
- * Mintlify's default rounded-2xl + gray border while `pre` inside it got
- * our flush, square-cornered styling — two roundings on one block). Keep
- * every inner layer flush so the whole component has exactly one border
- * and one radius.
- */
 #content-area .code-block {
-  border: 1px solid var(--om-border) !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
+  border: 1px solid var(--om-ink) !important;
+  border-radius: 3px !important;
+  box-shadow: var(--om-shadow-px) !important;
   background: var(--om-code-bg) !important;
   overflow: hidden;
+  margin: 1.5rem 0;
+}
+.dark #content-area .code-block {
+  border-color: var(--om-border) !important;
 }
 
 #content-area .code-block pre,
@@ -248,403 +556,48 @@ body,
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+  background: var(--om-code-bg) !important;
+  margin: 0;
 }
 
-#content-area [style*="--shiki-dark-bg" i],
-#content-area pre {
-  background-color: var(--om-code-bg) !important;
+#content-area pre,
+#content-area pre code,
+#content-area .code-block code {
+  font-family: var(--om-font-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0;
+  color: var(--om-code-ink);
 }
 
-/*
- * Shiki dual-theme: light colors are inline `color: rgb(...)`, dark colors
- * live in `--shiki-dark`. Mintlify no longer emits hex in the color
- * property, so hex-matching remaps left dark-mode text at light-theme
- * ink on a dark paper (invisible). Use the CSS variable in dark mode.
- */
-.dark #content-area pre span[style*="--shiki-dark"] {
-  color: var(--shiki-dark) !important;
+/* Code-block header (filename / language tabs) as a strip on the same panel. */
+#content-area .code-block > div:first-child:not(:has(pre)),
+#content-area .code-block [class*="code-group"] > div:first-child {
+  background: #201c19 !important;
+  border-bottom: 1px solid #3d3934 !important;
+  font-family: var(--om-font-mono) !important;
+  font-size: 12px !important;
+  color: #9f9b92 !important;
 }
 
-/* Optional warm accents on top of the default dark palette */
-.dark #content-area pre span[style*="--shiki-dark: #C586C0" i],
-.dark #content-area pre span[style*="--shiki-dark:#C586C0" i] {
-  color: #ed670f !important;
-}
-.dark #content-area pre span[style*="--shiki-dark: #569CD6" i],
-.dark #content-area pre span[style*="--shiki-dark:#569CD6" i] {
-  color: #d9822b !important;
-}
-.dark #content-area pre span[style*="--shiki-dark: #CE9178" i],
-.dark #content-area pre span[style*="--shiki-dark:#CE9178" i] {
-  color: #e0a878 !important;
-}
-.dark #content-area pre span[style*="--shiki-dark: #6A9955" i],
-.dark #content-area pre span[style*="--shiki-dark:#6A9955" i] {
-  color: #8a7a68 !important;
-}
-
-/* A plain icon, not a chip — the block itself already carries the one
- * border and radius the component needs. */
 #content-area [data-testid="copy-code-button"] {
-  border-radius: 3px !important;
+  border-radius: 2px !important;
   background: transparent !important;
-  border: 0 !important;
-  color: var(--om-ink-muted) !important;
+  border: 1px solid transparent !important;
+  color: #9f9b92 !important;
+  transition: color 150ms ease, border-color 150ms ease;
 }
 #content-area [data-testid="copy-code-button"]:hover {
-  background: color-mix(in srgb, var(--om-ink) 8%, transparent) !important;
-  color: var(--om-copper) !important;
+  color: #f6f5f1 !important;
+  border-color: #645e54 !important;
 }
-.dark #content-area [data-testid="copy-code-button"]:hover {
-  color: var(--om-orange) !important;
-}
-/*
- * The scrim behind the copy button: flat, our own code background, and
- * rounded to match .code-block's own top-right corner (6px) instead of
- * Mintlify's default 16px, which read as a mismatched corner poking out
- * once the block itself was retargeted above.
- */
 #content-area [data-fade-overlay] {
   background: var(--om-code-bg) !important;
   background-image: none !important;
-  border-radius: 0 6px 0 0 !important;
+  border-radius: 0 !important;
 }
 
-/* ─── Navbar ────────────────────────────────────────────────────────────── */
-
-#navbar img,
-#navbar a:hover img {
-  opacity: 1 !important;
-  filter: none !important;
-}
-
-/* Eye + Mondwest wordmark lockup */
-#navbar a[href="/"] {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0.7rem !important;
-  text-decoration: none !important;
-}
-
-#navbar a[href="/"] img,
-#navbar a[href="/"] img.nav-logo {
-  height: 28px !important;
-  width: 28px !important;
-  max-width: 28px !important;
-  flex-shrink: 0;
-}
-
-#navbar a[href="/"]::after {
-  content: "Overmind";
-  font-family: "PP Mondwest", ui-serif, serif;
-  font-weight: 700 !important;
-  font-synthesis-weight: auto;
-  font-size: 1.25rem;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: none;
-  color: var(--om-ink);
-  white-space: nowrap;
-  -webkit-font-smoothing: antialiased;
-}
-
-.dark #navbar a[href="/"]::after {
-  color: #f5f3ee;
-}
-
-#navbar > div.z-0 {
-  background: rgb(from var(--om-stone) r g b / 0.85) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.dark #navbar > div.z-0 {
-  background: rgb(from var(--om-stone-dark) r g b / 0.85) !important;
-}
-#navbar > div.z-10.absolute {
-  border-color: var(--om-border) !important;
-}
-
-#navbar a[href*="console.overmindlab.ai"] {
-  border-radius: 3px !important;
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-transform: none;
-}
-#navbar a[href*="console.overmindlab.ai"]:hover {
-  opacity: 1 !important;
-  background: var(--om-rust) !important;
-}
-
-#navbar button[class*="group/search"] {
-  border: 1px solid var(--om-border) !important;
-  border-radius: 3px !important;
-  background: transparent !important;
-  color: var(--om-ink-muted) !important;
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-size: 13px;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-/* ─── Footer ────────────────────────────────────────────────────────────── */
-
-#footer {
-  display: none !important;
-}
-#content-area {
-  padding-bottom: 3rem;
-}
-
-@media (min-width: 1024px) {
-  #content-area {
-    max-width: 720px !important;
-    margin-left: max(0px, calc(50vw - 360px - 14rem)) !important;
-  }
-}
-
-/* ─── Sidebar — quiet rail, copper only on current ──────────────────────── */
-
-div:has(> #navigation-items) {
-  background: transparent;
-  border-right: 1px solid var(--om-border);
-}
-
-#navigation-items {
-  padding: 16px 12px 24px 16px !important;
-  scrollbar-gutter: auto !important;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-#navigation-items:hover {
-  scrollbar-color: color-mix(in srgb, var(--om-ink) 20%, transparent)
-    transparent;
-}
-
-#navigation-items div:has(> .sidebar-group-header) {
-  margin-top: 0 !important;
-  margin-bottom: 22px;
-}
-
-#navigation-items ul.sidebar-group {
-  border-left: 0;
-  margin-left: 0;
-}
-
-/* Section eyebrows — pixel face, copper, uppercase (chrome only) */
-#navigation-items .sidebar-group-header {
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
-  font-weight: 400 !important;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  text-transform: uppercase;
-  color: var(--om-rust) !important;
-  margin-bottom: 8px !important;
-  padding: 0 8px !important;
-  -webkit-font-smoothing: auto;
-  -moz-osx-font-smoothing: auto;
-}
-.dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-orange) r g b / 0.8) !important;
-}
-
-#navigation-items .sidebar-group li a {
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-weight: 450 !important;
-  font-size: 13.5px;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-  padding: 5px 8px !important;
-  border-radius: 3px;
-  color: var(--om-ink-muted) !important;
-  transition:
-    color 120ms ease,
-    background-color 120ms ease;
-}
-
-#navigation-items .sidebar-group li a:hover {
-  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
-  color: var(--om-ink) !important;
-}
-
-#navigation-items .sidebar-group li a[aria-current="page"] {
-  text-shadow: none !important;
-  color: var(--om-ink) !important;
-  background: color-mix(in srgb, var(--om-copper) 10%, transparent);
-  font-weight: 500 !important;
-}
-.dark #navigation-items .sidebar-group li a[aria-current="page"] {
-  background: color-mix(in srgb, var(--om-orange) 12%, transparent);
-}
-
-/* Remove the old square marker pseudo-elements if any linger via specificity */
-#navigation-items .sidebar-group li a::before {
-  display: none !important;
-}
-
-/* ─── In-page TOC ───────────────────────────────────────────────────────── */
-
-h2:has(#table-of-contents-content) span,
-button:has(+ #table-of-contents-content) span {
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--om-rust);
-  -webkit-font-smoothing: auto;
-}
-.dark h2:has(#table-of-contents-content) span {
-  color: rgb(from var(--om-orange) r g b / 0.75);
-}
-
-ul.toc .toc-item a {
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  padding-top: 0.2rem;
-  padding-bottom: 0.2rem;
-  color: var(--om-ink-muted);
-}
-
-/* ─── Copy-page controls ────────────────────────────────────────────────── */
-
-/*
- * A split button: "rounded-l-xl"/"rounded-r-xl" mean round-on-the-left-only
- * and round-on-the-right-only, meant to sit flush as one pill. Rounding
- * every corner on both halves gave the two inner corners their own curve
- * right next to each other, reading as a collision instead of a seam.
- */
-#content-area button[class*="rounded-l-xl"],
-#content-area button[class*="rounded-r-xl"] {
-  border-color: var(--om-border) !important;
-  color: var(--om-ink-muted) !important;
-  background: transparent !important;
-}
-#content-area button[class*="rounded-l-xl"] {
-  border-radius: 6px 0 0 6px !important;
-  border-right-width: 0 !important;
-}
-#content-area button[class*="rounded-r-xl"] {
-  border-radius: 0 6px 6px 0 !important;
-}
-#content-area button[class*="rounded-l-xl"]:hover,
-#content-area button[class*="rounded-r-xl"]:hover {
-  background: color-mix(in srgb, var(--om-copper) 8%, transparent) !important;
-  color: var(--om-copper) !important;
-}
-
-[data-radix-menu-content] {
-  background: var(--om-stone) !important;
-  border: 1px solid var(--om-border) !important;
-  border-radius: 4px !important;
-  box-shadow: var(--om-shadow) !important;
-  color: var(--om-ink);
-}
-.dark [data-radix-menu-content] {
-  background: #201c19 !important;
-  border-color: var(--om-border) !important;
-  color: var(--om-ink);
-}
-[data-radix-menu-content]
-  :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
-  background: color-mix(in srgb, var(--om-copper) 10%, transparent) !important;
-  color: var(--om-copper) !important;
-}
-
-/* ─── Cards ─────────────────────────────────────────────────────────────── */
-
-#content-area .card {
-  border-color: var(--om-border) !important;
-  background: transparent !important;
-  border-radius: 4px !important;
-  box-shadow: none !important;
-  transition: border-color 120ms ease;
-}
-#content-area .card:hover {
-  border-color: rgb(from var(--om-copper) r g b / 0.45) !important;
-}
-.dark #content-area .card:hover {
-  border-color: rgb(from var(--om-orange) r g b / 0.4) !important;
-}
-
-/* ─── Callouts ──────────────────────────────────────────────────────────── */
-
-#content-area .callout {
-  --om-acc: var(--om-copper);
-  border-color: rgb(from var(--om-acc) r g b / 0.22) !important;
-  background: rgb(from var(--om-acc) r g b / 0.04) !important;
-  border-radius: 4px !important;
-  box-shadow: none !important;
-}
-#content-area .callout[class*="border-neutral"] {
-  --om-acc: var(--om-rust);
-}
-#content-area .callout[class*="border-green"] {
-  --om-acc: #4e7a45;
-}
-#content-area .callout[class*="border-yellow"] {
-  --om-acc: #a97a10;
-}
-#content-area .callout[class*="border-red"] {
-  --om-acc: #a83a1c;
-}
-#content-area .callout [data-component-part="callout-icon"],
-#content-area .callout [data-component-part="callout-icon"] svg {
-  color: var(--om-acc) !important;
-  fill: var(--om-acc) !important;
-}
-#content-area .callout [data-component-part="callout-content"],
-#content-area
-  .callout
-  [data-component-part="callout-content"]
-  :is(p, li, strong, em) {
-  color: var(--om-ink) !important;
-}
-
-/* ─── Steps ─────────────────────────────────────────────────────────────── */
-
-#content-area .step div[class*="step-indicator"] {
-  background: color-mix(in srgb, var(--om-copper) 10%, transparent) !important;
-  color: var(--om-copper) !important;
-}
-.dark #content-area .step div[class*="step-indicator"] {
-  background: color-mix(in srgb, var(--om-orange) 14%, transparent) !important;
-  color: var(--om-orange) !important;
-}
-#content-area .step [data-component-part="step-line"],
-#content-area .step > div > div[class*="w-px"] {
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--om-ink) 18%, transparent),
-    transparent
-  ) !important;
-}
-
-/* ─── Accordions ────────────────────────────────────────────────────────── */
-
-#content-area :is(.accordion, .accordion-group) {
-  border-color: var(--om-border) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 4px !important;
-}
-#content-area [data-component-part="accordion-title"] {
-  color: var(--om-ink-muted) !important;
-}
-#content-area details[open] > summary [data-component-part="accordion-title"] {
-  color: var(--om-ink) !important;
-}
-
-/* ─── Tabs ──────────────────────────────────────────────────────────────── */
-
-#content-area [data-component-part="tabs-list"] {
-  border-bottom-color: var(--om-border) !important;
-}
-
-/* ─── Tables ────────────────────────────────────────────────────────────── */
+/* ─── Tables — hairlines only ───────────────────────────────────────────── */
 
 #content-area table,
 #content-area [data-table-wrapper] {
@@ -652,29 +605,190 @@ ul.toc .toc-item a {
   border-radius: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
+  margin: 1.5rem 0;
 }
 
 #content-area table th {
-  padding: 8px 12px !important;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  background: transparent;
-  border-bottom: 1px solid color-mix(in srgb, var(--om-ink) 22%, transparent) !important;
-  color: var(--om-ink) !important;
+  padding: 6px 10px 8px 0 !important;
+  text-align: left;
+  font-family: var(--om-font-body);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: var(--om-tracking-cell);
+  background: transparent !important;
+  border-bottom: 1px solid var(--om-ink) !important;
+  color: var(--om-ink-muted) !important;
 }
 
 #content-area table td {
-  padding: 9px 12px !important;
+  padding: 8px 10px 8px 0 !important;
   vertical-align: top;
-  border-color: color-mix(in srgb, var(--om-ink) 10%, transparent) !important;
+  font-size: 14px;
+  border-bottom: 1px solid var(--om-border) !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  background: transparent !important;
 }
-
-#content-area table tbody tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--om-ink) 2.5%, transparent);
+#content-area table tbody tr:last-child td {
+  border-bottom: 0 !important;
 }
 #content-area table tbody tr:hover td {
-  background: color-mix(in srgb, var(--om-copper) 5%, transparent);
+  background: var(--om-wash) !important;
+}
+
+/* ─── Cards — pixel tiles ───────────────────────────────────────────────── */
+
+#content-area .card {
+  border: 1px solid var(--om-border) !important;
+  background: var(--om-canvas) !important;
+  border-radius: 3px !important;
+  box-shadow: var(--om-shadow-px) !important;
+  padding: 16px 18px !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+#content-area .card:hover {
+  border-color: var(--om-ink) !important;
+  box-shadow: var(--om-shadow-px-hover) !important;
+  background: var(--om-panel) !important;
+}
+#content-area .card:active {
+  box-shadow: 1px 1px 0 0 var(--om-ink) !important;
+}
+
+#content-area .card [class*="card-title"],
+#content-area .card h2,
+#content-area .card h3 {
+  font-family: var(--om-font-body) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--om-tracking-cell);
+  color: var(--om-ink) !important;
+  margin: 0 0 4px 0 !important;
+}
+#content-area .card p,
+#content-area .card span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--om-ink-muted);
+}
+#content-area .card svg,
+#content-area .card [class*="card-icon"] {
+  display: none !important;
+}
+
+/* ─── Callouts ──────────────────────────────────────────────────────────── */
+
+#content-area .callout {
+  --om-acc: var(--om-ink);
+  border: 1px solid var(--om-acc) !important;
+  border-left-width: 3px !important;
+  background: var(--om-canvas) !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+  padding: 12px 14px !important;
+}
+#content-area .callout[class*="border-neutral"],
+#content-area .callout[class*="gray"] {
+  --om-acc: var(--om-ink-faint);
+}
+#content-area .callout[class*="border-green"],
+#content-area .callout[class*="green"] {
+  --om-acc: #2a7b50;
+}
+#content-area .callout[class*="border-yellow"],
+#content-area .callout[class*="amber"],
+#content-area .callout[class*="orange"] {
+  --om-acc: #b45309;
+}
+#content-area .callout[class*="border-red"],
+#content-area .callout[class*="red"] {
+  --om-acc: #b91c1c;
+}
+#content-area .callout[class*="blue"],
+#content-area .callout[class*="sky"] {
+  --om-acc: #2f6aa8;
+}
+#content-area .callout [data-component-part="callout-icon"],
+#content-area .callout [data-component-part="callout-icon"] svg {
+  color: var(--om-acc) !important;
+  fill: var(--om-acc) !important;
+}
+#content-area .callout [data-component-part="callout-content"],
+#content-area .callout [data-component-part="callout-content"] :is(p, li, strong, em) {
+  color: var(--om-ink) !important;
+  font-size: 14px;
+}
+
+/* ─── Steps ─────────────────────────────────────────────────────────────── */
+
+#content-area .step [data-component-part="step-number"] {
+  background: transparent !important;
+}
+#content-area .step [data-component-part="step-indicator"] {
+  background: var(--om-ink) !important;
+  color: var(--om-canvas) !important;
+  border-radius: 2px !important;
+  font-family: var(--om-font-mono) !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  border: 0 !important;
+}
+#content-area .step [data-component-part="step-indicator"] * {
+  color: inherit !important;
+}
+#content-area .step [data-component-part="step-line"],
+#content-area .step > div > div[class*="w-px"] {
+  background: var(--om-border) !important;
+}
+#content-area .step [data-component-part="step-title"],
+#content-area .step h3 {
+  font-family: var(--om-font-body) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--om-tracking-cell);
+  margin-top: 0 !important;
+}
+
+/* ─── Accordions / tabs ─────────────────────────────────────────────────── */
+
+#content-area :is(.accordion, .accordion-group) {
+  border: 1px solid var(--om-border) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 3px !important;
+}
+#content-area .accordion summary:hover {
+  background: var(--om-wash) !important;
+}
+#content-area [data-component-part="accordion-title"] {
+  font-family: var(--om-font-body) !important;
+  font-size: 14px !important;
+  color: var(--om-ink) !important;
+}
+
+#content-area [data-component-part="tabs-list"],
+#content-area [role="tablist"] {
+  border-bottom: 1px solid var(--om-border) !important;
+  gap: 0 !important;
+}
+#content-area [role="tab"] {
+  font-family: var(--om-font-body) !important;
+  font-size: 14px !important;
+  letter-spacing: var(--om-tracking-cell);
+  color: var(--om-ink-muted) !important;
+  padding: 8px 12px !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -1px;
+}
+#content-area [role="tab"]:hover {
+  color: var(--om-ink) !important;
+  background: var(--om-wash) !important;
+}
+#content-area [role="tab"][aria-selected="true"],
+#content-area [role="tab"][data-state="active"] {
+  color: var(--om-ink) !important;
+  border-bottom-color: var(--om-ink) !important;
 }
 
 /* ─── kbd ───────────────────────────────────────────────────────────────── */
@@ -682,56 +796,187 @@ ul.toc .toc-item a {
 #content-area kbd {
   padding: 1px 5px;
   border: 1px solid var(--om-border);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  background: transparent;
   color: var(--om-ink-muted);
-  font-family: "Geist Mono", ui-monospace, monospace;
+  font-family: var(--om-font-mono);
   font-size: 0.85em;
 }
 
-/* ─── Selection / focus ─────────────────────────────────────────────────── */
+/* ─── Frames / screenshots ──────────────────────────────────────────────── */
 
-::selection {
-  background-color: rgb(from var(--om-copper) r g b / 0.22);
+#content-area figure.frame {
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 1.5rem 0;
+}
+#content-area figure.frame > div[class*="bg-grid"],
+#content-area figure.frame > div[class*="pointer-events-none"][class*="border"] {
+  display: none !important;
+}
+#content-area figure.frame > div.overflow-hidden {
+  border-radius: 3px !important;
+  border: 1px solid var(--om-ink) !important;
+  box-shadow: var(--om-shadow-px);
+}
+#content-area figure.frame figcaption {
+  font-family: var(--om-font-body);
+  font-size: 13px;
+  letter-spacing: var(--om-tracking-cell);
+  color: var(--om-ink-muted);
+  margin-top: 0.6rem;
+}
+#content-area img {
+  border-radius: 0;
+}
+
+/* ─── Copy-page split control ───────────────────────────────────────────── */
+
+#content-area button[class*="rounded-l"],
+#content-area button[class*="rounded-r"],
+#content-area [class*="copy-page"] button {
+  border: 1px solid var(--om-border) !important;
+  color: var(--om-ink-muted) !important;
+  background: transparent !important;
+  font-family: var(--om-font-body) !important;
+  font-size: 13px !important;
+  letter-spacing: var(--om-tracking-cell);
+  box-shadow: none !important;
+}
+#content-area button[class*="rounded-l"] {
+  border-radius: 2px 0 0 2px !important;
+  border-right-width: 0 !important;
+}
+#content-area button[class*="rounded-r"] {
+  border-radius: 0 2px 2px 0 !important;
+}
+#content-area button[class*="rounded-l"]:hover,
+#content-area button[class*="rounded-r"]:hover {
+  background: var(--om-wash) !important;
+  color: var(--om-ink) !important;
+  border-color: var(--om-ink) !important;
+}
+
+[data-radix-menu-content],
+[data-radix-popper-content-wrapper] > div {
+  background: var(--om-panel) !important;
+  border: 1px solid var(--om-ink) !important;
+  border-radius: 3px !important;
+  box-shadow: var(--om-shadow-px) !important;
   color: var(--om-ink);
+  font-family: var(--om-font-body);
+}
+[data-radix-menu-content] :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
+  background: var(--om-wash) !important;
+  color: var(--om-ink) !important;
+  border-radius: 2px !important;
 }
 
-:is(
-  a,
-  button,
-  [role="button"],
-  input,
-  select,
-  textarea,
-  [tabindex]
-):focus-visible {
-  outline: 2px solid var(--om-orange);
-  outline-offset: 2px;
+/* ─── Table of contents ─────────────────────────────────────────────────── */
+
+#table-of-contents {
+  font-family: var(--om-font-body);
+}
+#table-of-contents nav > h2,
+#table-of-contents nav > h2 button,
+#table-of-contents nav > h2 span {
+  font-family: var(--om-font-nav) !important;
+  font-size: 24px !important;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: none !important;
+  color: var(--om-ink) !important;
+  -webkit-font-smoothing: auto;
+}
+#table-of-contents svg {
+  display: none;
 }
 
-* {
-  scrollbar-color: color-mix(in srgb, var(--om-ink) 22%, transparent)
-    transparent;
+ul.toc {
+  border-left: 1px solid var(--om-border);
+  margin-left: 0;
+}
+ul.toc .toc-item a {
+  font-family: var(--om-font-body) !important;
+  font-size: 13px;
+  letter-spacing: var(--om-tracking-cell);
+  line-height: 1.35;
+  padding: 3px 0 3px 12px;
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  color: var(--om-ink-muted) !important;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+ul.toc .toc-item a::before {
+  display: none !important;
+}
+ul.toc .toc-item a:hover {
+  color: var(--om-ink) !important;
+  border-left-color: var(--om-ink-faint);
+}
+ul.toc .toc-item a[class*="active"],
+ul.toc .toc-item.active a,
+ul.toc .toc-item a[aria-current="true"] {
+  color: var(--om-ink) !important;
+  border-left-color: var(--om-ink);
 }
 
-/* ─── Flow diagrams ─────────────────────────────────────────────────────── */
+/* ─── Pagination / footer ───────────────────────────────────────────────── */
+
+#pagination {
+  border-top: 1px solid var(--om-border);
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+}
+#pagination a {
+  font-family: var(--om-font-body) !important;
+  font-size: 14px !important;
+  letter-spacing: var(--om-tracking-cell);
+  color: var(--om-ink-muted) !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-decoration: none;
+}
+#pagination a:hover {
+  color: var(--om-ink) !important;
+}
+#pagination a span,
+#pagination a div {
+  color: inherit !important;
+}
+
+#footer {
+  display: none !important;
+}
+
+/* ─── Flow diagrams — the ink panel ─────────────────────────────────────── */
 
 #content-area .om-flow {
-  --f-node-fill: color-mix(in srgb, var(--om-ink) 3%, transparent);
-  --f-node-stroke: color-mix(in srgb, var(--om-ink) 22%, transparent);
-  --f-edge: color-mix(in srgb, var(--om-ink) 38%, transparent);
+  --f-node-fill: #201c19;
+  --f-node-stroke: #645e54;
+  --f-edge: #9f9b92;
   --f-accent: var(--om-copper);
-  --f-canvas: var(--om-stone);
+  --f-canvas: #16120f;
 
-  margin: 2rem 0;
+  margin: 1.75rem 0;
+  padding: 24px 20px;
   display: flex;
   justify-content: center;
+  background: #16120f;
+  border: 1px solid var(--om-ink);
+  border-radius: 3px;
+  box-shadow: var(--om-shadow-px);
 }
 .dark #content-area .om-flow {
-  --f-node-fill: color-mix(in srgb, var(--om-ink) 6%, transparent);
-  --f-node-stroke: color-mix(in srgb, var(--om-ink) 20%, transparent);
-  --f-accent: var(--om-orange);
-  --f-canvas: var(--om-stone-dark);
+  --f-node-fill: #201c19;
+  --f-node-stroke: #645e54;
+  --f-edge: #9f9b92;
+  --f-canvas: #0e0c09;
+  background: #0e0c09;
+  border-color: var(--om-border);
 }
 
 #content-area .om-flow-svg {
@@ -746,41 +991,40 @@ ul.toc .toc-item a {
   stroke-width: 1;
 }
 #content-area .om-flow-node.is-decision .om-flow-shape {
-  fill: color-mix(in srgb, var(--f-accent) 7%, transparent);
-  stroke: color-mix(in srgb, var(--f-accent) 40%, transparent);
+  fill: #2f1606;
+  stroke: var(--f-accent);
 }
 
 #content-area .om-flow-title,
 #content-area .om-flow-sub,
 #content-area .om-flow-chip-text {
-  font-family: "Geist Mono", ui-monospace, monospace;
+  font-family: var(--om-font-mono);
   font-weight: 400;
   text-anchor: middle;
 }
 #content-area .om-flow-title {
   font-size: 13px;
-  fill: var(--om-ink);
+  fill: #f6f5f1;
 }
 #content-area .om-flow-sub {
   font-size: 11px;
-  fill: var(--om-ink-muted);
+  fill: #9f9b92;
 }
 
 #content-area .om-flow-edge {
   stroke: var(--f-edge);
-  stroke-width: 1.25;
-  stroke-linecap: round;
+  stroke-width: 1;
+  stroke-linecap: square;
   fill: none;
 }
 #content-area .om-flow-edge.is-dashed {
-  stroke-dasharray: 4 4;
-  stroke: color-mix(in srgb, var(--om-ink) 28%, transparent);
+  stroke-dasharray: 3 3;
+  stroke: #645e54;
 }
 #content-area .om-flow-head {
   fill: var(--f-edge);
   stroke: none;
 }
-
 #content-area .om-flow-chip[data-pending] {
   opacity: 0;
 }
@@ -789,44 +1033,12 @@ ul.toc .toc-item a {
 }
 #content-area .om-flow-chip-text {
   font-size: 11px;
-  fill: var(--om-ink-muted);
+  fill: #9f9b92;
 }
 
-/* ─── Frame / screenshots — one wrapper, one rounding ───────────────────── */
+/* ─── Assistant / chat widgets stay on the same materials ───────────────── */
 
-/*
- * Mintlify's <Frame> is figure.frame > (grid backdrop, the clipping
- * div.overflow-hidden that actually holds the image, a border-ring overlay,
- * figcaption). `#content-area figure` only reached the outer figure, so its
- * card padding/background/radius stayed live while the inner clipping div
- * kept its own separate (larger) radius underneath — rounded and square at
- * once. Strip the figure down to a plain box and put the one visible
- * border+radius on the div that actually clips the image.
- */
-#content-area figure.frame {
-  padding: 0 !important;
-  background: transparent !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-#content-area figure.frame > div[class*="bg-grid"],
-#content-area
-  figure.frame
-  > div[class*="pointer-events-none"][class*="border"] {
-  display: none !important;
-}
-
-#content-area figure.frame > div.overflow-hidden {
-  border-radius: 8px !important;
-  border: 1px solid var(--om-border) !important;
-}
-
-#content-area figure.frame figcaption {
-  color: var(--om-ink-muted);
-  font-size: 0.85rem;
-}
-
-#content-area img {
-  border-radius: 0;
+#chat-assistant-sheet,
+[class*="assistant"] textarea {
+  font-family: var(--om-font-body);
 }

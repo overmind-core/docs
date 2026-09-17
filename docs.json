@@ -1,12 +1,16 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Overmind",
-  "theme": "luma",
+  "theme": "linden",
   "logo": {
     "light": "/logo/overmind-eye-copper.svg",
     "dark": "/logo/overmind-eye-copper.svg"
   },
   "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "light",
+    "strict": false
+  },
   "seo": {
     "metatags": {
       "og:image": "https://docs.overmindlab.ai/images/og-default.png",
@@ -35,15 +39,15 @@
       "weight": 400
     },
     "body": {
-      "family": "Geist",
-      "source": "/fonts/Geist-Regular.woff2",
+      "family": "Geist Pixel",
+      "source": "/fonts/GeistPixel-Square.woff2",
       "format": "woff2",
       "weight": 400
     }
   },
   "styling": {
     "eyebrows": "section",
-    "codeblocks": "system"
+    "codeblocks": "dark"
   },
   "navbar": {
     "links": [
