@@ -200,14 +200,12 @@ Only a run that was actually created uses a version. Checking readiness, estimat
 
 | Limit | Value | What to do |
 | --- | --- | --- |
-| Rows per dataset, tested | 100,000 | Paging, SQL, diff and typical cells stay interactive at this size |
-| Upload size | 2 GB, sent in 8 MB chunks | Prefer JSONL or Parquet for large files |
+| Upload size | 2 GB | Prefer JSONL or Parquet for large files |
 | One `.json` document | 256 MB | Use JSONL above that |
 | Text encoding | UTF-8 (a BOM is fine) | Re-save legacy encodings |
 | Explicit trace ids in one selection | 10,000 | Use filters for more |
 | Trace cell size | ~200 KB, then a preview marker | Files and pasted rows are not cut |
-| One cell | 120 s CPU, 300 s wall, 6 GB memory | Vectorise; filter early |
-| An upload that never becomes a dataset | Removed after 24 hours | Start the upload again |
+| One cell's run time | 300 s | Vectorise; filter early |
 
 ## From the CLI
 
