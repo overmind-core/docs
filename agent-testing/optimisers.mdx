@@ -3,6 +3,8 @@ title: Optimisers
 description: The optimisation loop — candidate code diffs generated and replayed in your repository, scored with your eval set on the platform, and the winning diff to apply locally; plus model comparison and hybrid runs.
 ---
 
+import { Ascii } from "/snippets/ascii.jsx";
+
 The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your evaluators. Only a change that beats the best score so far survives; the winning diff stays on the candidate for you to apply in your repo. The same loop compares models: a **backtest** replays the dataset through each candidate model instead of each candidate diff.
 
 ## Prerequisites
@@ -30,22 +32,44 @@ The run's **budget** is the number of iterations (default 5) and candidates per 
 
 ## How a run works
 
-```flow
-flow col
-title: The optimisation loop
-S[Smoke test | run one datapoint through the command template] -> B[Baseline | iteration 0, agent as-is]
-B -> G[Generate candidate diffs | the coding agent writes them]
-G -> R[Replay each candidate over the dataset | your checkout, in parallel worktrees]
-R -> SC[Score with the eval set | on the platform]
-SC -> D{Beats the best so far?}
-D -> K[New best] : Yes
-D -> X[Discard] : No
-K -> P{Budget left and still improving?}
-X -> P
-P ~> G : Yes
-P -> W[Winner] : No
-W -> L[Apply winning diff locally]
-```
+<Ascii
+  lines={[
+    "╔════════════╗   ╔══════════╗   ╔══════════════════════════╗              ",
+    "║ Smoke test ║░─▶║ Baseline ║░─▶║ Generate candidate diffs ║░             ",
+    "╚════════════╝░  ╚══════════╝░  ╚══════════════════════════╝░             ",
+    " ░░░░░░░░░░░░░░   ░░░░░░░░░░░░   ░░░░░░░░░░░░│░░░░░░░░░░░░░░░             ",
+    "              ┌──────────────────────────────┘                            ",
+    "              ▼                                                           ",
+    "╔═ Your checkout ════════════╗                     ╔═ Overmind ═════════╗ ",
+    "║ ╔═══════════════════════╗  ║░                    ║  ╔══════════════╗  ║░",
+    "║ ║ Replay each candidate ║░ ║░──over the dataset─▶║  ║  Score with  ║░ ║░",
+    "║ ║ in parallel worktrees ║░ ║░                    ║  ║ the eval set ║░ ║░",
+    "║ ╚═══════════════════════╝░ ║░                    ║  ╚══════════════╝░ ║░",
+    "║  ░░░░░░░░░░░░░░░░░░░░░░░░░ ║░                    ║   ░░░░░░░░░░░░░░░░ ║░",
+    "╚════════════════════════════╝░                    ╚════════════════════╝░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░                     ░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
+
+<Ascii
+  lines={[
+    "                                        ╔══════════════════════════╗            ",
+    "                                        ║ Generate candidate diffs ║░           ",
+    "                                        ╚══════════════════════════╝░           ",
+    "                                         ░░░░░░░░░░░░░▲ Yes ░░░░░░░░░           ",
+    "  ╔════════════════╗        ╔══════════╗    ╔══════════════════╗                ",
+    "  ║ Beats the best ║░──Yes─▶║ New best ║░─┴▶║ Budget left and  ║░               ",
+    "  ║    so far?     ║░       ╚══════════╝░ │ ║ still improving? ║░               ",
+    "  ╚════════════════╝░        ░░░░░░░░░░░░ │ ╚══════════════════╝░               ",
+    "   ░░░░░░░│░░░░░░░░░░                     │  ░░░░░░░░░│░░░░░░░░░░               ",
+    "          ▼ No                            │           ▼ No                      ",
+    "     ╔═════════╗                          │      ╔════════╗   ╔═══════════════╗ ",
+    "     ║ Discard ║░─────────────────────────┘      ║ Winner ║░─▶║ Apply winning ║░",
+    "     ╚═════════╝░                                ╚════════╝░  ║  diff locally ║░",
+    "      ░░░░░░░░░░░                                 ░░░░░░░░░░  ╚═══════════════╝░",
+    "                                                               ░░░░░░░░░░░░░░░░░",
+  ]}
+/>
 
 The client owns codegen, the smoke test, and every datapoint run; the server holds the dataset version, scores posted outputs, and records the winner. Each step is one CLI verb, and `overmind optimise next` tells the coding agent which one comes next:
 

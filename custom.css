@@ -824,7 +824,7 @@ body,
 }
 
 /* Block rhythm: every block element takes the same vertical margin. */
-#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-flow) {
+#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-ascii) {
   margin-top: 1.25rem !important;
   margin-bottom: 1.25rem !important;
 }
@@ -1412,96 +1412,30 @@ ul.toc .toc-item a[aria-current="true"] {
   font-size: 13px;
 }
 
-/* ─── Flow diagrams — the ink panel ─────────────────────────────────────── */
+/* ─── Diagrams — box-drawing art (snippets/ascii.jsx) ───────────────────
+ * The boxes carry their own frame and hatched shadow, so the pre is bare:
+ * body mono, no wrap, stone-100 on the canvas. Two stacked diagrams read as
+ * one figure. */
 
-#content-area .om-flow {
-  --f-node-fill: var(--surface);
-  --f-node-stroke: var(--stone-500);
-  --f-edge: var(--stone-400);
-  --f-accent: var(--copper-500);
-  --f-canvas: var(--code-bg);
-
-  position: relative;
-  isolation: isolate;
-  clip-path: var(--notch);
-  padding: 24px 20px;
-  display: flex;
-  justify-content: center;
-  background: transparent;
-}
-#content-area .om-flow::before,
-#content-area .om-flow::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  clip-path: var(--notch);
-}
-#content-area .om-flow::before {
-  inset: 0;
-  z-index: -2;
-  background: var(--frame);
-}
-#content-area .om-flow::after {
-  inset: 1px;
-  z-index: -1;
-  background: var(--code-bg);
-}
-
-#content-area .om-flow-svg {
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-
-#content-area .om-flow-shape {
-  fill: var(--f-node-fill);
-  stroke: var(--f-node-stroke);
-  stroke-width: 1;
-}
-#content-area .om-flow-node.is-decision .om-flow-shape {
-  fill: var(--copper-800);
-  stroke: var(--f-accent);
-}
-
-#content-area .om-flow-title,
-#content-area .om-flow-sub,
-#content-area .om-flow-chip-text {
+#content-area .om-ascii {
+  margin: 1.25rem 0;
+  padding: 0 !important;
+  overflow-x: auto;
+  background: transparent !important;
+  border: 0;
+  border-radius: 0;
   font-family: var(--font-mono);
-  font-weight: 400;
-  text-anchor: middle;
+  font-size: 13px !important;
+  line-height: 17px !important; /* Geist Mono ascent+descent at 13px: the box glyphs meet */
+  letter-spacing: 0;
+  color: var(--stone-100) !important;
+  white-space: pre;
+  tab-size: 4;
+  font-variant-ligatures: none;
+  scrollbar-width: thin;
 }
-#content-area .om-flow-title {
-  font-size: 13px;
-  fill: var(--stone-100);
-}
-#content-area .om-flow-sub {
-  font-size: 11px;
-  fill: var(--stone-400);
-}
-
-#content-area .om-flow-edge {
-  stroke: var(--f-edge);
-  stroke-width: 1;
-  stroke-linecap: square;
-  fill: none;
-}
-#content-area .om-flow-edge.is-dashed {
-  stroke-dasharray: 3 3;
-  stroke: var(--stone-500);
-}
-#content-area .om-flow-head {
-  fill: var(--f-edge);
-  stroke: none;
-}
-#content-area .om-flow-chip[data-pending] {
-  opacity: 0;
-}
-#content-area .om-flow-chip-bg {
-  fill: var(--f-canvas);
-}
-#content-area .om-flow-chip-text {
-  font-size: 11px;
-  fill: var(--stone-400);
+#content-area .om-ascii + .om-ascii {
+  margin-top: 0.75rem !important;
 }
 
 /* ─── Search and assistant sheets stay on the same materials ────────────── */

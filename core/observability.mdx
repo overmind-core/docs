@@ -3,21 +3,49 @@ title: Observability
 description: How traces get from your agent into Overmind — the OTLP endpoint, the ingest pipeline, the span data model, and the Observability views.
 ---
 
+import { Ascii } from "/snippets/ascii.jsx";
+
 Overmind observability is OpenTelemetry end to end. Your process exports OTLP spans; the API stores them, maps them onto its data model, binds them to a capability, and scores each trace with the capability's evaluators. This page covers the path a span travels, with the endpoints, headers, and attribute names the platform reads.
 
 ## Architecture
 
 There is no collector, sidecar, or proxy between your agent and the platform. SDKs (and any OTel exporter) POST OTLP protobuf to the API. The request handler writes the spans, projects each one onto its capability and session, and queues trace scoring:
 
-```flow
-flow row
-title: The ingest pipeline, span by span
-A[Your process | OTel SDK / Overmind SDK] -> B[POST /api/v1/traces | OTLP protobuf + API key]
-B -> C[Bulk upsert | Span rows, idempotent on span_id]
-C -> D[Projection | capability and session attribution, in the request]
-D -> E[Trace scoring | queued per root span, io_traces queue]
-E -> F[Console | task executions, root traces, sessions]
-```
+<Ascii
+  lines={[
+    "╔═════════════════════════╗           ╔═ Overmind ════════════════════════════╗ ",
+    "║       Your process      ║░          ║      ╔═════════════════════════╗      ║░",
+    "║ OTel SDK / Overmind SDK ║░───OTLP──▶║      ║   POST /api/v1/traces   ║░     ║░",
+    "╚═════════════════════════╝░          ║      ║ OTLP protobuf + API key ║░     ║░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░          ║      ╚═════════════════════════╝░     ║░",
+    "                                      ║       ░░░░░░░░░░░░▼░░░░░░░░░░░░░░     ║░",
+    "                                      ║ ╔══════════════════════════════════╗  ║░",
+    "                                      ║ ║           Bulk upsert            ║░ ║░",
+    "                                      ║ ║ Span rows, idempotent on span_id ║░ ║░",
+    "                                      ║ ╚══════════════════════════════════╝░ ║░",
+    "                                      ║  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ║░",
+    "                                      ╚═══════════════════════════════════════╝░",
+    "                                       ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
+
+<Ascii
+  lines={[
+    "╔═ Overmind ══════════════════════════════════════════════════════════════════╗ ",
+    "║ ╔══════════════════════════════════╗   ╔═════════════════════════════════╗  ║░",
+    "║ ║            Projection            ║░  ║          Trace scoring          ║░ ║░",
+    "║ ║ capability + session attribution ║░─▶║ queued per root span, io_traces ║░ ║░",
+    "║ ╚══════════════════════════════════╝░  ╚═════════════════════════════════╝░ ║░",
+    "║  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ░░░░░░░░░░░░░░░░▼░░░░░░░░░░░░░░░░░░ ║░",
+    "║                                       ╔═══════════════════════════════════╗ ║░",
+    "║                                       ║              Console              ║░║░",
+    "║                                       ║ task executions, traces, sessions ║░║░",
+    "║                                       ╚═══════════════════════════════════╝░║░",
+    "║                                        ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░║░",
+    "╚═════════════════════════════════════════════════════════════════════════════╝░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
 
 The write and the projection run inside the request, so a `200` response means the spans are stored and attributed. Re-sending the same spans is safe: rows are upserted on `span_id`. Trace scoring is queued once per root span that lands in the batch and runs on the `io_traces` Celery queue.
 

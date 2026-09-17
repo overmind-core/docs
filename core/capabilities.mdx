@@ -3,21 +3,47 @@ title: Agent & Capabilities
 description: How Overmind models your agent — one graph per project, made of capabilities discovered by a local scan, described by agent-authored cards, and confirmed by telemetry.
 ---
 
+import { Ascii } from "/snippets/ascii.jsx";
+
 Your **agent** in Overmind is the product itself: one per project, mapped as a graph of **capabilities**. A capability is one purpose the product serves — triage tickets, answer from the knowledge base, resolve a dispute. Each capability record joins two sides: static structure from your repository (entry points, prompts, tools, modes, call edges) and runtime behaviour from telemetry (traces, task executions, live scores). Everything else on the platform hangs off capabilities — traces bind to one, datasets are aligned to one, eval sets belong to one, optimisation runs edit a capability's code, and trained models are benchmarked against the model a capability runs in production.
 
 ## How capabilities get into Overmind
 
-```flow
-flow row
-title: Two paths into the same capability record
-A[Local repo | overmind scan → cards → overmind scan push] -> C[Capability] : POST /api/v1/scan/
-B[Production telemetry] -> C : overmind.capability.id
-C -> E[Traces]
-C -> F[Datasets]
-C -> G[Eval sets]
-C -> H[Optimisation runs]
-C -> I[Trained models]
-```
+<Ascii
+  lines={[
+    "╔══════════════════════╗                                ╔═ Overmind ══════════╗ ",
+    "║      Local repo      ║░                               ║                     ║░",
+    "║ scan → cards → push  ║░────POST /api/v1/scan/─────┐   ║                     ║░",
+    "╚══════════════════════╝░                           │   ║  ╔══════════════╗   ║░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░                           ├──▶║  ║  Capability  ║░  ║░",
+    "                                                    │   ║  ╚══════════════╝░  ║░",
+    "╔══════════════════════╗                            │   ║   ░░░░░░░░░░░░░░░░  ║░",
+    "║ Production telemetry ║░──overmind.capability.id───┘   ║                     ║░",
+    "╚══════════════════════╝░                               ║                     ║░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░                               ╚═════════════════════╝░",
+    "                                                         ░░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
+
+<Ascii
+  lines={[
+    "╔═ Overmind ═════════════════════════════════════════════════════╗ ",
+    "║                  ┌───────┬────────────┬──────────────┐         ║░",
+    "║                  │       ▼            ▼              ▼         ║░",
+    "║ ╔════════════╗   │  ╔════════╗  ╔══════════╗  ╔════════════╗   ║░",
+    "║ ║ Capability ║░──┤  ║ Traces ║░ ║ Datasets ║░ ║ Eval sets  ║░  ║░",
+    "║ ╚════════════╝░  │  ╚════════╝░ ╚══════════╝░ ╚════════════╝░  ║░",
+    "║  ░░░░░░░░░░░░░░  │   ░░░░░░░░░░  ░░░░░░░░░░░░  ░░░░░░░░░░░░░░  ║░",
+    "║                  └────────────┬──────────────────────┐         ║░",
+    "║                               ▼                      ▼         ║░",
+    "║                     ╔═══════════════════╗   ╔════════════════╗ ║░",
+    "║                     ║ Optimisation runs ║░  ║ Trained models ║░║░",
+    "║                     ╚═══════════════════╝░  ╚════════════════╝░║░",
+    "║                      ░░░░░░░░░░░░░░░░░░░░░   ░░░░░░░░░░░░░░░░░░║░",
+    "╚════════════════════════════════════════════════════════════════╝░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
 
 ### The scan
 

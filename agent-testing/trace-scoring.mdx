@@ -3,18 +3,27 @@ title: Trace scoring
 description: How a production trace becomes scored task executions — units, behaviours, verdicts, the execution score, and session scores.
 ---
 
+import { Ascii } from "/snippets/ascii.jsx";
+
 Every trace that reaches Overmind is scored against the owning capability's active [eval set](/agent-testing/eval#eval-sets). Scoring does not grade the trace as one blob: it carves the trace into **units**, binds each unit to one of the capability's **behaviours**, judges each unit on its own, and rolls the results up into an **execution score** per unit and a **session score** per conversation. This page is the contract behind the **Task executions** view in [Observability](/core/observability#exploring-traces-in-the-console).
 
-```flow
-flow row
-title: From an arriving trace to scored executions
-A[Root span lands | or the trace is interrupted] -> B[Carve | units from turn spans, entry points, key segments, or the root]
-B -> C[Bind | each unit to a behaviour of its capability]
-C -> D[Judge | trace-scoring members run per unit]
-D -> E[Verdicts | one row per evaluator per unit]
-E -> F[Execution score | composed per unit, written on the unit span]
-F -> G[Session score | folded over the conversation ledger]
-```
+<Ascii
+  lines={[
+    "╔═ Overmind ══════════════════════════════════════════════════════════════════╗ ",
+    "║ ╔═════════════════╗    ╔═══════╗           ╔══════╗               ╔═══════╗ ║░",
+    "║ ║ Root span lands ║░──▶║ Carve ║░──units──▶║ Bind ║░──behaviour──▶║ Judge ║░║░",
+    "║ ╚═════════════════╝░   ╚═══════╝░          ╚══════╝░              ╚═══════╝░║░",
+    "║  ░░░░░░░░░░░░░░░░░░░    ░░░░░░░░░           ░░░░░░░░               ░░░│░░░░░║░",
+    "║       ┌───────────────────────────────────────────────────────────────┘     ║░",
+    "║       ▼                                                                     ║░",
+    "║ ╔══════════╗                 ╔═════════════════╗          ╔═══════════════╗ ║░",
+    "║ ║ Verdicts ║░────composed───▶║ Execution score ║░─folded─▶║ Session score ║░║░",
+    "║ ╚══════════╝░                ╚═════════════════╝░         ╚═══════════════╝░║░",
+    "║  ░░░░░░░░░░░░                 ░░░░░░░░░░░░░░░░░░░          ░░░░░░░░░░░░░░░░░║░",
+    "╚═════════════════════════════════════════════════════════════════════════════╝░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
 
 ## When a trace is scored
 

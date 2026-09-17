@@ -3,19 +3,43 @@ title: "Introduction"
 description: "Overmind improves production AI agents with their own data: traces in, scored datasets, eval runs, optimisation runs, and trained models out."
 ---
 
-```flow
-flow row
-title: From your agent's process to a model you own
-A[Your agent | SDK or any OTel exporter] -> B[OTLP ingest | POST /api/v1/traces]
-B -> C[Spans in Postgres | scored per task execution]
-C -> D[Datasets | curated from traces]
-D -> E[Eval runs | variants vs baseline]
-E -> OP[Optimiser | code diffs, replayed + scored]
-D -> T[Training | trained models vs baseline]
-T -> I[Inference | OpenAI-compatible API]
-OP ~> A : winning diff applied locally
-I ~> B : served model's calls are traced
-```
+import { Ascii } from "/snippets/ascii.jsx";
+
+<Ascii
+  lines={[
+    "╔══════════════════════════╗          ╔═ Overmind ════════════════════════════╗ ",
+    "║        Your agent        ║░         ║        ╔═════════════════════╗        ║░",
+    "║ SDK or any OTel exporter ║░──OTLP──▶║        ║     OTLP ingest     ║░       ║░",
+    "╚══════════════════════════╝░         ║        ║ POST /api/v1/traces ║░       ║░",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░░         ║        ╚═════════════════════╝░       ║░",
+    "                                      ║         ░░░░░░░░░░▼░░░░░░░░░░░░       ║░",
+    "                                      ║     ╔═══════════════════════════╗     ║░",
+    "                                      ║     ║     Spans in Postgres     ║░    ║░",
+    "                                      ║     ║ scored per task execution ║░    ║░",
+    "                                      ║     ╚═══════════════════════════╝░    ║░",
+    "                                      ║      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    ║░",
+    "                                      ╚═══════════════════════════════════════╝░",
+    "                                       ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░",
+  ]}
+/>
+
+<Ascii
+  lines={[
+    "╔═ Overmind ══════════════════════════════════════╗                             ",
+    "║                  ╔═══════════╗   ╔═══════════╗  ║░                            ",
+    "║               ┌─▶║ Eval runs ║░─▶║ Optimiser ║░─╫best diff──┐                 ",
+    "║               │  ╚═══════════╝░  ╚═══════════╝░ ║░          │                 ",
+    "║ ╔══════════╗  │   ░░░░░░░░░░░░░   ░░░░░░░░░░░░░ ║░          │  ╔════════════╗ ",
+    "║ ║ Datasets ║░─┤                                 ║░          ├─▶║ Your agent ║░",
+    "║ ╚══════════╝░ │                                 ║░          │  ╚════════════╝░",
+    "║  ░░░░░░░░░░░░ │  ╔══════════╗    ╔═══════════╗  ║░          │   ░░░░░░░░░░░░░░",
+    "║               └─▶║ Training ║░──▶║ Inference ║░─╫─traced────┘                 ",
+    "║                  ╚══════════╝░   ╚═══════════╝░ ║░                            ",
+    "║                   ░░░░░░░░░░░░    ░░░░░░░░░░░░░ ║░                            ",
+    "╚═════════════════════════════════════════════════╝░                            ",
+    " ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░                            ",
+  ]}
+/>
 
 Overmind ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval runs, optimisation runs that score code diffs in your repository, and training runs that produce models benchmarked against the one you ship today.
 
