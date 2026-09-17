@@ -3,22 +3,22 @@ title: Self-hosting
 description: Run the open-source platform yourself — Docker Compose, the environment reference, the agent and provider keys, training and serving backends, and billing modes.
 ---
 
-The platform is one repository, [overmind-core/overmind](https://github.com/overmind-core/overmind): the Django API (`overbae/`), the React Console (`frontend/`), the Python SDK and CLI (`overmind/`), and the Modal workers for training and serving. The hosted product at overmindlab.ai runs this same code.
+The platform is one repository, [overmind-core/overmind](https://github.com/overmind-core/overmind): the Django API (`overbae/`), the React Console (`frontend/`), the Python SDK and CLI (`overmind/`), and the Modal workers for training and serving (`overbae/modal/`). The hosted product at overmindlab.ai runs this same code.
 
 ## Requirements
 
-Docker with Compose, [uv](https://docs.astral.sh/uv/) for anything Python outside the containers, and [Bun](https://bun.sh/) for the Console. Training and serving need a Modal or Baseten account and are optional.
+Docker with Compose, [uv](https://docs.astral.sh/uv/) for anything Python outside the containers, and [Bun](https://bun.sh/) for the Console. The API refuses to start without a training backend's credentials (Modal or Baseten), an S3 credential pair for the checkpoint archive, and `INFERENCE_API_URL` — see [Training and serving](#training-and-serving).
 
 ## Start the stack
 
 ```bash
 git clone https://github.com/overmind-core/overmind.git
 cd overmind
-cp .env.example .env      # fill in at minimum OPENROUTER_API_KEY
+cp .env.example .env      # fill in OPENROUTER_API_KEY, the training backend, AWS keys, INFERENCE_API_URL
 docker compose up -d      # API, Postgres, Redis, four Celery workers, beat, Grafana
 ```
 
-Compose brings up Postgres (pgvector 16), Redis, the API on `http://localhost:8000` with hot reload, four Celery workers and beat, and Grafana on `http://localhost:3001`. The API container runs migrations and seeds the managed evaluators on every start. The Console is a Vite app served separately:
+Compose brings up Postgres (`pgvector/pgvector:pg16`), Redis 7, the API on `http://localhost:8000` (uvicorn with `--reload`), four Celery workers and beat, and Grafana on `http://localhost:3001`. The API container runs `migrate` and `seed_evaluators` on every start (`RUN_DB_BOOTSTRAP=0` skips both). Compose sets `DJANGO_DEBUG=True`, `MEDIA_ROOT=/data/media` and `DATA_ROOT=/data` on the `app_data` volume. The Console is a Vite app served separately:
 
 ```bash
 cd frontend && bun install && bun run dev    # http://localhost:5173
@@ -34,37 +34,40 @@ docker compose exec -T api python manage.py shell < seed.py
 
 ## Environment reference
 
-`.env.example` is the operator contract. Every variable is read by `docker-compose.yml` or `overbae/settings.py`.
+`.env.example` is the operator contract. Every variable is read by `docker-compose.yml` or `overbae/settings.py`; the defaults below are the settings defaults unless Compose overrides them.
 
-### Required
+### Core
 
 | Variable | Purpose |
 | --- | --- |
-| `DJANGO_SECRET_KEY` | Django's signing key; change it anywhere but a laptop |
+| `DJANGO_SECRET_KEY` | Django's signing key; the default is an insecure development value |
+| `DJANGO_DEBUG` | `True` or `False` (default `False`; Compose sets `True`). Off, Postgres connects with `sslmode=require` |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated hostnames the API answers for |
-| `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials; required when `DJANGO_DEBUG=False` |
-| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, optimiser scoring, frontier inference |
-| `FRONTEND_URL` | Where the Console lives, for links in prompts and emails |
+| `DJANGO_CORS_ALLOWED_ORIGINS` | Comma-separated Console origins; ignored while `DJANGO_DEBUG=True` (all origins allowed) |
+| `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials. Unset, one is derived from `DJANGO_SECRET_KEY`; the API prints a warning at startup when `DJANGO_DEBUG=False` |
+| `FRONTEND_URL` | Where the Console lives (default `http://localhost:5173`), for links in prompts and emails |
+| `TRACE_SETTLE_SECONDS` | How long a trace with no root span stays `live` before it reads `interrupted` (default `600`) |
+| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference |
 
-Postgres and Redis default to the Compose services (`POSTGRES_*`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`).
+Postgres and Redis default to the Compose services: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` (all `overbae`), `POSTGRES_HOST` (`postgres`), `POSTGRES_PORT` (`5432`), `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` (`redis://redis:6379/0`), `CACHE_URL` (`redis://redis:6379/1`).
 
 ### The Data Workshop agent
 
-The dataset agent runs on the first key it finds, in this order: `CURSOR_API_KEY` (a Cursor Composer session), `OPENROUTER_API_KEY`, then `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` with a native tool-calling loop. Both engines take the same tools and emit the same events. With none set the workshop page opens and the agent reports that it is not configured. `OPENAI_API_KEY` also serves embeddings for statistical evaluators.
+The dataset agent runs on the first key it finds, in this order: `CURSOR_API_KEY` (a Cursor Composer session), `OPENROUTER_API_KEY`, then `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` with a native tool-calling loop. Both engines take the same tools and emit the same events. With none set the workshop page opens and the agent reports that it is not configured. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
 
 ### Training and serving
 
 | Variable | Purpose |
 | --- | --- |
-| `FINETUNING_BACKEND` | `baseten` (default) or `modal`; both serve the same model catalog |
-| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_sft_worker.py` |
-| `BASETEN_API_KEY`, `BASETEN_PROJECT` | Baseten training |
-| `INFERENCE_API_KEY` | The shared secret between the API and the Modal serving endpoint |
-| `USE_UNSLOTH` | Trainer engine: plain TRL (`false`) or Unsloth (`true`), independent of the backend |
+| `FINETUNING_BACKEND` | `modal` (settings default) or `baseten`; `docker-compose.yml` and `.env.example` set `baseten`. `together` is accepted for the retired backend. Startup fails unless the chosen backend's credentials are set |
+| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_vllm_worker.py`, `register_model.py` and `modal_sft_worker.py` (`--env $MODAL_ENVIRONMENT`). `MODAL_ENVIRONMENT` (default `overmind-dev`) also selects the checkpoint bucket |
+| `MODAL_SFT_APP_NAME` | The deployed SFT app (default `overmind-sft`) |
+| `BASETEN_API_KEY`, `BASETEN_PROJECT` | Baseten training; the entrypoint writes `~/.trussrc` from the key |
+| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | The Modal serving endpoint printed by `modal deploy`, and the shared secret it checks. `INFERENCE_API_URL` is required at startup |
+| `USE_UNSLOTH` | Trainer engine: plain TRL (`false`) or Unsloth (`true`, settings default; Compose sets `false`), independent of the backend |
 | `HF_TOKEN` | Gated base models on Hugging Face |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME`, `AWS_REGION` | The checkpoint archive that backs weights download |
-
-Without a backend, the Console's Training and Inference pages open, the catalog lists, and a launch fails at submission with the reason.
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | The checkpoint archive that backs weights download; the key pair is required at startup |
+| `TOGETHER_API_KEY` | Only for `FINETUNING_BACKEND=together` |
 
 ### Billing modes
 
@@ -72,20 +75,21 @@ Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: ever
 
 ### Optional
 
-`GRAFANA_ADMIN_PASSWORD` and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel; `TOGETHER_API_KEY` for the retired Together backend that existing job rows still render.
+`GRAFANA_ADMIN_PASSWORD` (default `admin`) and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel; `DJANGO_LOG_LEVEL` and `OVERBAE_LOG_LEVEL` (default `INFO`).
 
 ## Topology
 
-The API is Django plus DRF under uvicorn; MCP is mounted on the same ASGI app at `/api/mcp/`. Celery runs four workers over five queues: `control` (default, orchestration and beat), `io` and `io_traces` (one threads worker; trace scoring rides `io_traces`), `batch` (landing datasets, uploads) and `interactive` (dataset runs and agent turns). Workers restart on any `.py` change under `overbae/`, so a running agent turn dies when you edit backend code beneath it. Every dataset frame lives under `MEDIA_ROOT/datasets/<id>/cells/` as Parquet on the `app_data` volume.
+The API is Django plus DRF under uvicorn; MCP is mounted on the same ASGI app at `/api/mcp/`. Celery runs four workers over five queues, routed in `CELERY_TASK_ROUTES`: `control` (default, orchestration and beat; threads), `io` and `io_traces` (one threads worker; evaluator execution, connector polling and rebinds ride `io`, trace scoring rides `io_traces`), `batch` (prefork; dataset landing, eval sample preparation, connector sync chunks) and `interactive` (prefork; dataset runs, diagnosis and agent turns). Only prefork enforces task time limits. Workers restart on any `.py` change under `overbae/`, so a running agent turn dies when you edit backend code beneath it. Every dataset frame lives under `MEDIA_ROOT/datasets/<dataset>/cells/<cell>.parquet` on the `app_data` volume.
 
 ## Developing on it
 
 ```bash
-make run                   # Django + Vite outside Docker
 make worker                # one local Celery worker over every queue, solo pool
-make test                  # backend tests, parallel
-make lint-format           # ruff + biome
+make test                  # backend tests, parallel (make test-serial to debug)
+make lint-format           # ruff + biome + tsc
+make check-migrations      # after a model change
 make generate_api_client   # after any backend API change: regenerates frontend/src/openapi/
+cd frontend && bun run typecheck && bun run lint && bun run test
 ```
 
-`AGENTS.md` at the repo root is the playbook a coding agent reads before touching a subsystem; `.claude/skills/` holds the subsystem maps. Pull requests go against `main`; the SDK publishes to PyPI on `overmind-v*` tags.
+`AGENTS.md` at the repo root is the playbook a coding agent reads before touching a subsystem; `.claude/skills/` holds the subsystem maps. Pull requests go against `main`; `oss` is based on `main` and carries the same code with the in-repo SDK. `sdk-publish.yml` builds and publishes the SDK to PyPI on pushes to `main` that touch `overmind/` and on published GitHub releases.

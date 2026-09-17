@@ -1,47 +1,91 @@
 ---
 title: Agent & Capabilities
-description: How Overmind models your agent — one product graph per project, made of capabilities synced from your repo and confirmed by telemetry.
+description: How Overmind models your agent — one graph per project, made of capabilities discovered by a local scan, described by agent-authored cards, and confirmed by telemetry.
 ---
 
-Your **agent** in Overmind is the product itself: one per project, mapped as a graph of **capabilities**. A capability is one purpose the product serves — triage tickets, answer from the knowledge base, resolve a dispute — the smallest unit you would name, ship, or fail. Each capability record joins two sides: static structure read from your repository (prompt, tools, control flow, entrypoint) and runtime behaviour from telemetry (traces, token usage, live scores). Everything else on the platform hangs off capabilities — traces are attributed to one, datasets can be bound to one, evaluators are scoped per capability, optimisation runs edit a capability's code, and trained models are benchmarked against the model a capability runs in production.
+import { Ascii } from "/snippets/ascii.jsx";
+
+Your **agent** in Overmind is the product itself: one per project, mapped as a graph of **capabilities**. A capability is one purpose the product serves — triage tickets, answer from the knowledge base, resolve a dispute. Each capability record joins two sides: static structure from your repository (entry points, prompts, tools, modes, call edges) and runtime behaviour from telemetry (traces, task executions, live scores). Everything else on the platform hangs off capabilities — traces bind to one, datasets are aligned to one, eval sets belong to one, optimisation runs edit a capability's code, and trained models are benchmarked against the model a capability runs in production.
 
 ## How capabilities get into Overmind
 
-```flow
-flow row
-title: Two paths into the same capability record
-A[Local repo | overmind.toml] -> C[Capability] : overmind sync
-B[Production telemetry] -> C : overmind.capability.id
-C -> E[Traces]
-C -> F[Datasets]
-C -> G[Eval sets]
-C -> H[Optimisation runs]
-C -> I[Trained models]
-```
+<Ascii
+  lines={[
+    "╔══════════════════════╗                               ╔═ Overmind ══════╗",
+    "║      Local repo      ║                               ║                 ║",
+    "║ scan → cards → push  ╟────POST /api/v1/scan/─────┐   ║                 ║",
+    "╚══════════════════════╝                           │   ║  ╔════════════╗ ║",
+    "                                                   ├───╫─▶║ Capability ║ ║",
+    "╔══════════════════════╗                           │   ║  ╚════════════╝ ║",
+    "║ Production telemetry ╟──overmind.capability.id───┘   ║                 ║",
+    "╚══════════════════════╝                               ║                 ║",
+    "                                                       ╚═════════════════╝",
+  ]}
+/>
 
-### Local discovery
+<Ascii
+  lines={[
+    "╔═ Overmind ═════════════════════════════════════════════════════╗",
+    "║                  ┌───────┬────────────┬──────────────┐         ║",
+    "║                  │       ▼            ▼              ▼         ║",
+    "║ ╔════════════╗   │  ╔════════╗  ╔══════════╗  ╔════════════╗   ║",
+    "║ ║ Capability ╟───┤  ║ Traces ║  ║ Datasets ║  ║ Eval sets  ║   ║",
+    "║ ╚════════════╝   │  ╚════════╝  ╚══════════╝  ╚════════════╝   ║",
+    "║                  │                                             ║",
+    "║                  └────────────┬──────────────────────┐         ║",
+    "║                               ▼                      ▼         ║",
+    "║                     ╔═══════════════════╗   ╔════════════════╗ ║",
+    "║                     ║ Optimisation runs ║   ║ Trained models ║ ║",
+    "║                     ╚═══════════════════╝   ╚════════════════╝ ║",
+    "║                                                                ║",
+    "╚════════════════════════════════════════════════════════════════╝",
+  ]}
+/>
 
-Capability structure is discovered in your repository, not on the server. `overmind init` installs the skill; **`/overmind setup`** in your coding agent runs `overmind chassis` for the deterministic AST digest, maps the capabilities into `overmind_capabilities.json`, converts that to `overmind.toml`, and pushes the snapshot with **`overmind sync`**. Each sync POSTs the local graph to your project and writes reconciled capability ids back into the toml. The [CLI page](/platform/cli#overmind-sync) covers the commands.
+### The scan
 
-Discovery reads your code deterministically — model-call sites, prompts, tools, product entrypoints, and the call graph between them — and uses that evidence to identify capabilities at the purpose level. Roles inside one orchestration (a crew, a graph of workers, a supervisor with specialists) are modes of the one capability that orchestration serves, not separate capabilities. The conversion step fills prompt spans, drops anchors the chassis cannot verify, and stamps each trajectory path `verified`.
+Discovery runs in your repository, not on the server, and it is deterministic: the same source produces the same skeleton and the same content hash. The `/overmind setup` command in your coding agent drives it; the [CLI page](/platform/cli#overmind-scan) has every flag.
 
-The snapshot populates each capability's **card**: its task, input schema and expected output fields, the tool spec (each tool's purpose, arguments, side effect, and integration), the anchors into your code, the modes, and the trajectory map with its steps. The sync writes the card, the system prompt, and the eval matrix onto the record; the capability's description, tool summary, and decision logic are derived from the card. From the card the platform then preloads a starter set of [evaluators](/agent-testing/eval#authoring) — rule-based checks compiled from the output contract, then judges grounded in the card — which stay editable afterwards.
+<Steps>
+  <Step title="overmind scan">
+    Reads the Python source under the repository root (or `--paths`), excluding tests, dot-directories, build output and anything in `.gitignore`. It extracts functions with their call edges, model-call sites and their `model=` literals, prompt literals that flow into a model call, tool bindings, and entry points (HTTP routes, CLI commands, Celery tasks, `__main__`, public functions nothing else calls). It clusters them — one cluster per distinct set of system prompts reached from an entry — and writes three files under `.overmind/`: `skeleton.json` (the wire document, content-hashed, read-only), `worksheet.json` (the one file the coding agent edits) and `report.json` (counts and timings).
+  </Step>
+  <Step title="Name the worksheet">
+    For each cluster row with `"name": null`, the coding agent reads the evidence (entries, prompt excerpt, tools, modes) and sets a `name` and `description`. Two rows that are the same product surface are merged with `merge_into`; each unattached model call is either assigned to a cluster or marked `ignore`. Roles inside one orchestration — a crew, a graph of workers, a supervisor with specialists — are **modes** of the one capability that orchestration serves, not separate capabilities.
+  </Step>
+  <Step title="overmind scan finalize">
+    Validates the worksheet against the skeleton, writes one `[[capability]]` row per declared capability (and `[[ignore]]` rows) into `overmind.toml`, rescans so the skeleton reflects the declarations, and stubs one **card** per declared capability at `.overmind/cards/<key>.json`.
+  </Step>
+  <Step title="Author the cards">
+    The scan proved where a capability lives; the card says what it does. From the source, the coding agent fills `task`, `modality`, `input_schema`, `output_fields`, `expected_output`, `success_criteria`, `failure_modes`, `constraints` and `tool_protocol` (each with `file#Lstart-Lend` provenance), the `purpose` and `side_effect` of every tool, and for every mode its `purpose`, `model`, `prompt_quote`, `terminal` and ordered `steps` anchored on functions the scan placed in the cluster. The stubbed fields (`key`, `cluster`, `evidence`, tool names and args, mode ids and prompts) are read-only. There is no server-side model call.
+  </Step>
+  <Step title="overmind scan push">
+    Validates every card against the skeleton and the working tree, then POSTs the skeleton, the manifest (`overmind.toml`), the report and the cards to `POST /api/v1/scan/`. The response carries `{key, id, status, created}` per capability, and the CLI writes the ids back into `overmind.toml` and records the push in `.overmind/last_pushed.json`. The first push with an account-scoped key creates the project and mints the project-scoped key the MCP entry uses.
+  </Step>
+</Steps>
 
-The sync also mints the capability's **tasks**: each named path through the trajectory map becomes a task with an entry anchor, the anchor segments that follow it, its tool set, and its terminal. Tasks are what [trace scoring](/agent-testing/trace-scoring#tasks-and-bindings) binds production traffic to, and what the Eval Library groups evaluators under. A later sync carries a task forward by its key first, then by its entry anchor when only one contract shares it, then by lineage; anything else is minted new.
+`overmind scan diff` compares the current skeleton with the last pushed one and exits 1 on any change, which makes it a CI check. After code changes: `overmind scan` → name new rows → `overmind scan finalize` → re-author what the refreshed cards name → `overmind scan push`. A changed prompt changes the cluster version; the card's authored fields survive the refresh, new modes and tools arrive empty.
 
-After you change code or the toml, run `overmind sync` again to refresh structure on the platform.
+### What the server does with a push
 
-### Sync keeps identity
+Every push is stored whole as a **scan snapshot** — skeleton, manifest, report, cards, hash, SDK version and git sha. The server recomputes the skeleton hash and rejects a mismatch, an unknown schema, unsafe paths, duplicate cluster ids, non-slug or duplicate manifest keys, and manifest entries absent from the skeleton (400; a body over 20 MB is 413). Then, per cluster:
 
-A capability is reconciled by the `id` in the toml when it has one, else by its `slug`. A sync after a refactor carries the same record — same id, same name, same attached data — as long as the toml keeps the id, which `/overmind setup` preserves from the previous file. A capability the snapshot no longer includes becomes a **leftover**: it leaves the agent instead of being deleted, shows a **Not in latest scan** badge, and comes back in place if a later sync reproduces it; `archived = true` in the toml keeps it a leftover on purpose. A capability minted from telemetry alone is marked **Observed** and never retired by a scan.
+- **Identity is carried**, in order: the manifest `id` → the manifest `key` (the capability's `slug`) → the capability's `cluster_id` → the single live capability whose `entrypoint_fn` is one of the cluster's entries → a new record. Manifest `merged` folds sibling clusters into one capability. Undeclared clusters still become capabilities, keyed by their primary entry's last segment; the CLI appends a `[[capability]]` row for each so the next scan shows it declared.
+- **Behaviours are minted from modes**: one contract per mode, keyed by the mode id, with an entry anchor, the anchor sequence on the shortest path from the entry to the mode's model call, and the tool set on that path. A cluster with no modes is one behaviour keyed by the cluster id. Behaviours are what [trace scoring](/agent-testing/trace-scoring#behaviours-and-bindings) binds production traffic to; the Console labels the column **Task**.
+- **The card merges**: each authored mode lands on its behaviour contract — the `steps` become the judged backbone, with `terminal`, `divergences`, `prompt_quote` and `model`; a mode is `verified` when every step anchor is reachable from its entry over the scanned call edges. The capability's card takes the semantic fields and the tool purposes. `Capability.card_version` is set to the cluster version, so the Console and `overmind://scan/latest` can report whether the card is current.
+- **The Default eval set is preloaded** for every created, remounted or card-changed capability: Tier-0 rule-based checks compiled from the card, Tier-1 generative LLM judges grounded in it, and per-behaviour outcome and step judges for trace scoring. See [Eval](/agent-testing/eval#authoring).
 
-To remove a capability yourself, use **Delete capability** at the bottom of its page. The capability leaves the agent; its traces, datasets, and runs stay in place. A deleted capability is invisible to later syncs, so if the code still has it, the next sync creates a fresh record.
+### A scan never deletes
+
+A capability the push no longer includes becomes a **leftover**: it keeps its id and data, leaves the agent view, shows a **Not in latest scan** badge, and remounts in place when a later push reproduces it. `key` in `overmind.toml` is the server identity — rename a capability by editing `name`, never `key`.
+
+To remove a capability yourself, use **Delete capability** at the bottom of its page (`DELETE /api/capabilities/{id}/`). The record is soft-deleted: it leaves lists, scans and identity lookup, its traces, datasets and runs stay, and its inference alias stops serving. Because a deleted capability is invisible to later scans, the next push of the same code mints a fresh record.
 
 ### Telemetry
 
-When spans arrive carrying `overmind.capability.id` — set via [`init(capability_id=...)`](/tracing/sdk-python#init) or a `capability(..., id=)` scope — Overmind attaches them to that capability. The id is stable through renames; the name attribute is a display label and never binds.
+Spans carrying `overmind.capability.id` — set with [`init(capability_id=...)`](/tracing/sdk-python#init) or a `capability(..., id=)` scope — bind to that capability. The value is the capability's UUID or its manifest `key`; both resolve, and both are stable through renames. `overmind.capability.name` is a display label and never binds.
 
-An identity the project does not know leaves the span **unbound** rather than minting a phantom capability. Unbound traces are stored and browsable under Observability's Unbound filter, and they bind retroactively: when a sync or a manual create later makes that identity resolvable, the backlog re-attaches on its own.
+Ingest never creates a capability. An identity the project does not know leaves the span **unbound**: it is stored, browsable under Observability's Unbound filter, and binds retroactively when a later push makes the identity resolvable. `confirmed_at` is stamped on the capability the first time a span binds to one of its behaviours; the capability page shows **Confirmed** or **Unconfirmed** accordingly. A capability created by hand (`POST /api/capabilities/`) carries an **Observed** badge instead, because no scan can confirm or retire it.
 
 ## The agent page
 
@@ -51,54 +95,56 @@ An identity the project does not know leaves the span **unbound** rather than mi
   <img src="/images/platform/agent-home.jpg" alt="Agent page with the capability grid" />
 </Frame>
 
-The header carries the name (editable in place), copyable **capability id** and **project id** chips (you'll need the capability id for trace attribution), the slug, and a **View traces** shortcut into its filtered Observability view. Below it, one scrolling page:
+The header carries the name (editable in place), copyable **capability id** and **project id** chips, the slug, the badges — **Declared** or **Inferred** (whether the manifest named it), **Confirmed** or **Unconfirmed**, **Not in latest scan** — and a **Last push** line linking to the project's scan report. **View traces** opens the capability's filtered Observability view. Below it, one scrolling page:
 
-- **Facts** — the model the capability serves through (or the deployed model behind its alias) and its source path.
-- **Prompt** — the system prompt lifted from your code, plus one prompt per mode when the capability has several.
-- **Trajectory map** — the entry point, each task's steps with the tools they may use, decision surfaces, and terminals, laid out as an interactive graph.
-- **Components** — every anchor, tool, and utility the scan found, with file-level provenance. This is the fastest way to check that Overmind read your code correctly.
-- **Dataset** — datasets attached to this capability, built from its traces or uploaded. See [Datasets](/core/datasets).
-- **Eval metrics** — the capability's evaluators and eval sets, with score history over its runs. See [Eval](/agent-testing/eval).
-- **Models** — the production baseline and any models trained on this capability's data, linking into [Training](/models/training) and [Inference](/models/inference).
+- **Facts** — the model the capability serves through (or the live deployed model behind its alias) and its source path.
+- **Prompt** — the system prompt lifted from your code, one per mode when the capability has several.
+- **Trajectory map** — the entry point, each behaviour's steps with the tools they may use, and its terminal, as an interactive graph.
+- **Components** — every anchor, tool and utility the scan found, with file-level provenance.
+- **Dataset** — datasets aligned to this capability. See [Datasets](/core/datasets).
+- **Eval metrics** — the capability's eval sets and evaluators, with score history over its runs. See [Eval](/agent-testing/eval).
+- **Models** — the production model and any models trained on this capability's data, linking into [Models](/models/training) and [Inference](/models/inference).
 
-<Frame caption="A capability page: facts, the prompt, and the trajectory map with two tasks.">
+<Frame caption="A capability page: facts, the prompt, and the trajectory map with two behaviours.">
   <img src="/images/platform/capability-page.jpg" alt="Capability page with facts bar, prompt card and trajectory map" />
 </Frame>
 
-<Frame caption="The trajectory map expanded: the entry point, each task's steps and the tools they may use, and its terminal.">
+<Frame caption="The trajectory map expanded: the entry point, each behaviour's steps and the tools they may use, and its terminal.">
   <img src="/images/platform/capability-flow.jpg" alt="Trajectory map fullscreen view" />
 </Frame>
 
+**Projects → your project → Scan** shows the latest push: the report, one row per cluster with the capability it carried, its declared and confirmed state, and whether its card is current.
+
 ## Instrumentation
 
-Which of a capability's anchors emit telemetry is answered by the traces themselves: an execution's route shows the contract anchors it matched, and a task with no executions has none. To close a gap, ask your coding agent — the `get_instrumentation_plan` MCP tool returns exact placement tickets (file, line, decorator, required scope) for a capability or one of its tasks, and `verify_instrumentation` grades a fresh trace against the contract before anything is scored. The `/overmind ensure-tracing` command runs that loop end to end. See [MCP](/platform/mcp).
+Which of a capability's anchors emit telemetry is answered by the traces themselves: a task execution's route shows the contract anchors it matched, and a behaviour with no executions has none. To close a gap, ask your coding agent: the `get_instrumentation_plan` MCP tool returns placement tickets (file, qualname, decorator, required scope) for the project or one capability, and `verify_instrumentation` grades a fresh trace against the contract without writing anything. The `/overmind ensure-tracing` command runs that loop. See [MCP](/platform/mcp).
 
 ## API
 
 ```bash
-# The whole agent graph: current capabilities and their edges
+# The whole agent graph: current capabilities, their edges, and the latest scan
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/agent/?project={project_id}"
 
 # List capabilities / one capability
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/"
 
-# The machine-readable evaluation spec and the prompts the flow derives
+# The evaluation spec and the selectable system prompts
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/eval_spec/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/capabilities/{id}/prompts/"
 
-# The capability's tasks and how well the eval set covers each one
+# Behaviours and how well the eval set covers each one
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/coverage/?capability={id}"
 
-# The toml round-trip overmind sync uses
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/v1/sync?project_id={project_id}"
+# The latest scan push
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/projects/{project_id}/scan/latest/"
 ```
 
-`PATCH /api/capabilities/{id}/` updates mutable fields, including `model` and `active_model`. `DELETE /api/capabilities/{id}/` hides the capability: it leaves lists, syncs, and identity lookup, and its data stays. `GET /api/v1/sync` returns the project's snapshot with leftovers marked `archived`. Through MCP: `inspect_capability_health`, `query_failures`, and the `overmind://capabilities/{capability}` resource. See the [REST API](/platform/api) overview for the full surface.
+`GET /api/capabilities/` returns current capabilities unless `?status=` asks for leftovers. `PATCH /api/capabilities/{id}/` updates mutable fields, including `model` and `active_model`. `POST /api/v1/scan/` is what `overmind scan push` speaks; it takes API-key auth and requires `manifest.project.id` to be in the key's scope (a project-scoped key supplies its one project). Through MCP: `inspect_capability_health`, `query_failures`, the `overmind://capabilities/{capability}` resource and `overmind://scan/latest`. See the [REST API](/platform/api) for the full surface.
 
 ## Good to know
 
-- **The baseline matters.** The capability's `model` field is what training benchmarks and optimiser baselines measure against — keep it accurate. When a deployed model is made live, `active_model` takes over behind the `overmind/<capability-uuid>` inference alias.
-- **Delete hides, it doesn't destroy.** Traces, datasets, and runs underneath a deleted capability remain intact. Its inference alias stops serving.
-- **Keep the toml in the repo.** `overmind.toml` carries the ids that keep identity stable across syncs; `.overmind/credentials.toml` next to it holds the key and stays ignored.
+- **The baseline matters.** The capability's `model` field is what training benchmarks and optimiser baselines measure against. The scan sets it from the first `model=` literal it finds, else from the first authored mode's `model`; a codebase that resolves models through a role chain has no literal, so the card is where the model gets named.
+- **Commit `overmind.toml` and `.overmind/cards/`.** They carry the ids and the authored cards that keep identity and semantics stable across pushes. `.overmind/credentials.toml` holds the project key and is excluded from git by the push.
+- **Pin identity in code if you prefer.** `@overmind.capability("<key>")` on an entry function declares it inline; the scan reads the decorator. `overmind.toml` wins on conflict and the scan prints the conflict.

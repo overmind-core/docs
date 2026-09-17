@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 64 64">
+  <!-- Body -->
+  <g transform="translate(4, 4)">
+    <path d="M40 60H32V56H28V48H16V44H12V40H8V36H4V20H0V8H4V4H12V8H20V4H28V0H40V4H44V8H48V16H52V28H56V32H60V40H56V44H52V48H48V52H44V56H40V60Z" fill="#F6F5F1"/>
+  </g>
+  <!-- Shadow -->
+  <g transform="translate(8, 8)">
+    <path d="M32 48H36V52H28V44H32V48Z" fill="#9F9B92"/>
+    <path d="M40 48H36V44H40V48Z" fill="#9F9B92"/>
+    <path d="M44 44H40V40H44V44Z" fill="#9F9B92"/>
+    <path d="M12 24H16V36H28V40H12V36H8V32H4V24H8V20H12V24Z" fill="#9F9B92"/>
+    <path d="M48 40H44V36H48V40Z" fill="#9F9B92"/>
+    <path d="M8 20H4V16H8V20Z" fill="#9F9B92"/>
+    <path d="M4 16H0V12H4V16Z" fill="#9F9B92"/>
+    <path d="M24 12H20V8H24V12Z" fill="#9F9B92"/>
+    <path d="M20 8H16V4H20V8Z" fill="#9F9B92"/>
+    <path d="M32 8H28V4H32V8Z" fill="#9F9B92"/>
+    <path d="M28 4H24V0H28V4Z" fill="#9F9B92"/>
+  </g>
+  <!-- Outline -->
+  <g transform="translate(4, 4)">
+    <path d="M40 60H32V56H40V60Z" fill="#201C19"/>
+    <path d="M36 48H32V56H28V48H16V44H36V48Z" fill="#201C19"/>
+    <path d="M44 56H40V52H44V56Z" fill="#201C19"/>
+    <path d="M48 52H44V48H48V52Z" fill="#201C19"/>
+    <path d="M52 48H48V44H52V48Z" fill="#201C19"/>
+    <path d="M16 44H12V40H16V44Z" fill="#201C19"/>
+    <path d="M40 44H36V40H40V44Z" fill="#201C19"/>
+    <path d="M56 44H52V40H56V44Z" fill="#201C19"/>
+    <path d="M12 40H8V36H12V40Z" fill="#201C19"/>
+    <path d="M60 40H56V32H60V40Z" fill="#201C19"/>
+    <path d="M8 24H12V28H8V36H4V20H8V24Z" fill="#201C19"/>
+    <path d="M48 36H44V32H48V36Z" fill="#201C19"/>
+    <path d="M52 28H56V32H48V16H52V28Z" fill="#201C19"/>
+    <path d="M32 28H28V24H32V28Z" fill="#201C19"/>
+    <path d="M28 24H24V20H28V24Z" fill="#201C19"/>
+    <path d="M40 24H36V20H40V24Z" fill="#201C19"/>
+    <path d="M4 20H0V8H4V20Z" fill="#201C19"/>
+    <path d="M36 20H32V16H36V20Z" fill="#201C19"/>
+    <path d="M24 16H20V12H24V16Z" fill="#201C19"/>
+    <path d="M48 16H44V8H48V16Z" fill="#201C19"/>
+    <path d="M20 12H12V8H20V12Z" fill="#201C19"/>
+    <path d="M32 12H28V8H32V12Z" fill="#201C19"/>
+    <path d="M12 8H4V4H12V8Z" fill="#201C19"/>
+    <path d="M28 8H20V4H28V8Z" fill="#201C19"/>
+    <path d="M44 8H40V4H44V8Z" fill="#201C19"/>
+    <path d="M40 4H28V0H40V4Z" fill="#201C19"/>
+  </g>
+</svg>

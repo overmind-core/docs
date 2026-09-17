@@ -1,12 +1,16 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Overmind",
-  "theme": "luma",
+  "theme": "linden",
   "logo": {
     "light": "/logo/overmind-eye-copper.svg",
     "dark": "/logo/overmind-eye-copper.svg"
   },
   "favicon": "/favicon.svg",
+  "appearance": {
+    "default": "dark",
+    "strict": true
+  },
   "seo": {
     "metatags": {
       "og:image": "https://docs.overmindlab.ai/images/og-default.png",
@@ -35,84 +39,147 @@
       "weight": 400
     },
     "body": {
-      "family": "Geist",
-      "source": "/fonts/Geist-Regular.woff2",
+      "family": "Geist Pixel",
+      "source": "/fonts/GeistPixel-Square.woff2",
       "format": "woff2",
       "weight": 400
     }
   },
   "styling": {
     "eyebrows": "section",
-    "codeblocks": "system"
+    "codeblocks": "dark"
   },
   "navbar": {
     "links": [
       {
-        "label": "GitHub",
-        "href": "https://github.com/overmind-core/overmind"
+        "label": "Models",
+        "href": "https://www.overmindlab.ai/models"
+      },
+      {
+        "label": "Research",
+        "href": "https://www.overmindlab.ai/research"
+      },
+      {
+        "label": "Pricing",
+        "href": "https://www.overmindlab.ai/pricing"
+      },
+      {
+        "label": "Docs",
+        "href": "https://docs.overmindlab.ai"
+      },
+      {
+        "label": "Talk to the team",
+        "href": "https://www.overmindlab.ai/contact"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Console",
+      "label": "Login",
       "href": "https://console.overmindlab.ai"
     }
   },
-  "navigation": {
-    "groups": [
+  "footer": {
+    "socials": {
+      "discord": "https://discord.gg/Kk4MHX6Y",
+      "github": "https://github.com/overmind-core/overmind",
+      "x": "https://x.com/overmindlab",
+      "linkedin": "https://www.linkedin.com/company/over-mind-ai/"
+    },
+    "links": [
       {
-        "group": "Overview",
-        "pages": [
-          "index",
-          "quickstart",
-          "platform/self-hosting"
+        "header": "Overmind",
+        "items": [
+          {
+            "label": "Home",
+            "href": "https://www.overmindlab.ai/"
+          },
+          {
+            "label": "Observability",
+            "href": "https://www.overmindlab.ai/product/observability"
+          },
+          {
+            "label": "Data Workshop",
+            "href": "https://www.overmindlab.ai/product/data-workshop"
+          },
+          {
+            "label": "Agent Testing",
+            "href": "https://www.overmindlab.ai/product/agent-testing"
+          },
+          {
+            "label": "Model Training",
+            "href": "https://www.overmindlab.ai/product/model-training"
+          }
         ]
       },
       {
-        "group": "Tracing",
-        "pages": [
-          "core/observability",
-          "tracing/sdk-python",
-          "tracing/sdk-typescript"
+        "header": "Company",
+        "items": [
+          {
+            "label": "About",
+            "href": "https://www.overmindlab.ai/about"
+          },
+          {
+            "label": "Careers",
+            "href": "https://www.overmindlab.ai/careers"
+          },
+          {
+            "label": "Research",
+            "href": "https://www.overmindlab.ai/research"
+          },
+          {
+            "label": "Glossary",
+            "href": "https://www.overmindlab.ai/glossary"
+          }
         ]
       },
       {
-        "group": "Core",
-        "pages": [
-          "core/capabilities",
-          "core/datasets"
+        "header": "Comparisons",
+        "items": [
+          {
+            "label": "vs LangSmith",
+            "href": "https://www.overmindlab.ai/compare/overmind-vs-langsmith"
+          },
+          {
+            "label": "vs Langfuse",
+            "href": "https://www.overmindlab.ai/compare/overmind-vs-langfuse"
+          },
+          {
+            "label": "vs OpenPipe",
+            "href": "https://www.overmindlab.ai/compare/overmind-vs-openpipe"
+          },
+          {
+            "label": "All comparisons",
+            "href": "https://www.overmindlab.ai/compare"
+          }
         ]
       },
       {
-        "group": "Agent Testing",
-        "pages": [
-          "agent-testing/eval",
-          "agent-testing/trace-scoring",
-          "agent-testing/optimisers"
-        ]
-      },
-      {
-        "group": "Models",
-        "pages": [
-          "models/training",
-          "models/inference"
-        ]
-      },
-      {
-        "group": "Agents & CLI",
-        "pages": [
-          "platform/mcp",
-          "platform/cli"
-        ]
-      },
-      {
-        "group": "Platform",
-        "pages": [
-          "platform/api",
-          "platform/administration",
-          "platform/glossary"
+        "header": "Legal",
+        "items": [
+          {
+            "label": "Trust Center",
+            "href": "https://app.eu.vanta.com/overmindlab.ai/trust/qa4htl2l1qrvbw1bz8wrv"
+          },
+          {
+            "label": "Privacy",
+            "href": "https://www.overmindlab.ai/legals/privacy"
+          },
+          {
+            "label": "Terms of Use",
+            "href": "https://www.overmindlab.ai/legals/terms"
+          }
         ]
       }
+    ]
+  },
+  "contextual": {
+    "options": [
+      "assistant",
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
     ]
   },
   "redirects": [
@@ -241,13 +308,61 @@
       "destination": "/agent-testing/eval"
     }
   ],
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "cursor"
+  "navigation": {
+    "groups": [
+      {
+        "group": "Overview",
+        "pages": [
+          "index",
+          "quickstart",
+          "platform/self-hosting"
+        ]
+      },
+      {
+        "group": "Tracing",
+        "pages": [
+          "core/observability",
+          "tracing/sdk-python",
+          "tracing/sdk-typescript"
+        ]
+      },
+      {
+        "group": "Core",
+        "pages": [
+          "core/capabilities",
+          "core/datasets"
+        ]
+      },
+      {
+        "group": "Agent Testing",
+        "pages": [
+          "agent-testing/eval",
+          "agent-testing/trace-scoring",
+          "agent-testing/optimisers"
+        ]
+      },
+      {
+        "group": "Model training",
+        "pages": [
+          "models/training",
+          "models/inference"
+        ]
+      },
+      {
+        "group": "Agents & CLI",
+        "pages": [
+          "platform/mcp",
+          "platform/cli"
+        ]
+      },
+      {
+        "group": "Platform",
+        "pages": [
+          "platform/api",
+          "platform/administration",
+          "platform/glossary"
+        ]
+      }
     ]
   }
 }

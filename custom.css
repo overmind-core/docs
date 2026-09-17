@@ -1,13 +1,16 @@
 /*
- * Overmind docs — quiet technical theme.
+ * Overmind docs theme — the overmindlab.ai chrome on a Turbopuffer-dense manual.
  *
- * Goal: turbopuffer-like restraint (clean canvas, readable prose, dense
- * technical content) with one Overmind brand signal: copper accent + Mondwest
- * page titles. Pixel faces are chrome-only (eyebrows, nav labels), never body.
+ * Dark only (appearance.strict in docs.json), on the website's stone/copper
+ * tokens (apps/web/app/tokens.css): stone-900 page, stone-800 surfaces,
+ * stone-700 frames. Chrome is the website's pixel language: 4px notched
+ * clip-path frames, PixelButton fills, the pixel outline that appears
+ * around a control on hover, the eye that blinks. The canvas itself is flat.
+ * Type is Mondwest for titles, NeueBit for navigation, Pixelify Sans for
+ * button captions, Geist Pixel for prose, Geist Mono for code. The pointer
+ * is the website's four-state pixel cursor.
  *
- * Palette from the brand eye / website stone+copper tokens:
- *   #ED670F copper · #F69A5B light orange · #79380D rust
- *   #F6F5F1 stone-100 · #16120F stone-900 · #231A14 ink
+ * Hooks are Mintlify ids/classes: https://mintlify.com/docs/customize/custom-scripts
  */
 
 /* ─── Fonts ─────────────────────────────────────────────────────────────── */
@@ -21,25 +24,28 @@
 }
 
 @font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-Regular.woff2") format("woff2");
+  font-family: "NeueBit";
+  src: url("/fonts/NeueBit-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  /* Bitmap face: caps sit high in the em box, pull the ascent in so it centres on a line. */
+  ascent-override: 80%;
 }
 
 @font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-Medium.woff2") format("woff2");
-  font-weight: 500;
+  font-family: "Geist Pixel";
+  src: url("/fonts/GeistPixel-Square.woff2") format("woff2");
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
+  ascent-override: 95.8%;
 }
 
 @font-face {
-  font-family: "Geist";
-  src: url("/fonts/Geist-SemiBold.woff2") format("woff2");
-  font-weight: 600;
+  font-family: "Pixelify Sans";
+  src: url("/fonts/PixelifySans-Medium.woff2") format("woff2");
+  font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
@@ -60,773 +66,1519 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: "Geist Pixel";
-  src: url("/fonts/GeistPixel-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range:
-    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
-    U+2215, U+FEFF, U+FFFD;
-}
+/* ─── Tokens (website tokens.css, dark mode) ────────────────────────────── */
 
-@font-face {
-  font-family: "Geist Pixel";
-  src: url("/fonts/GeistPixel-Regular-ext.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range:
-    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
-    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
-    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-/* ─── Tokens ────────────────────────────────────────────────────────────── */
-
-:root {
-  --om-copper: #ed670f;
-  --om-orange: #f69a5b;
-  --om-rust: #79380d;
-  --om-brown-deep: #2f1606;
-  --om-cream: #feeedd;
-  --om-stone: #f6f5f1;
-  --om-stone-dark: #16120f;
-
-  --om-ink: #231a14;
-  --om-ink-muted: #645e54;
-  --om-border: rgb(from var(--om-rust) r g b / 0.14);
-
-  --om-code-bg: #faf8f4;
-  --om-shadow: 0 1px 2px rgb(from var(--om-brown-deep) r g b / 0.04);
-}
-
+:root,
 .dark {
-  --om-ink: #f5f3ee;
-  --om-ink-muted: #9f9b92;
-  --om-border: rgb(from var(--om-orange) r g b / 0.16);
-  --om-code-bg: #1c1815;
-  --om-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  --stone-100: #f6f5f1;
+  --stone-200: #e6e5e0;
+  --stone-300: #cecdc9;
+  --stone-400: #9f9b92;
+  --stone-500: #645e54;
+  --stone-600: #3d3934;
+  --stone-700: #292623;
+  --stone-800: #201c19;
+  --stone-900: #16120f;
+  --copper-300: #f7ba8e;
+  --copper-400: #f69a5b;
+  --copper-500: #ed670f;
+  --copper-600: #79380d;
+  --copper-800: #3b1b06;
+
+  --page: var(--stone-900);
+  --surface: var(--stone-800);
+  --surface-2: var(--stone-700);
+  --surface-hover: var(--stone-600);
+  --frame: var(--stone-700);
+  --frame-strong: var(--stone-500);
+  --text: #ffffff;
+  --text-2: var(--stone-300);
+  --text-3: var(--stone-400);
+  --text-disabled: var(--stone-600);
+  --code-bg: #0e0c09;
+
+  --font-display: "PP Mondwest", ui-serif, Georgia, serif;
+  --font-nav: "NeueBit", ui-monospace, monospace;
+  --font-caption: "Pixelify Sans", ui-monospace, monospace;
+  --font-body: "Geist Pixel", ui-monospace, monospace;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Geist Pixel quantises every advance to a 38/1000em cell; this is the one tracking step. */
+  --tracking-cell: 0.038em;
+
+  /* The website's 4px notched corner (globals.css .clip-pixel-corners). */
+  --notch: polygon(
+    4px 0%, calc(100% - 4px) 0%,
+    calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 4px) 100%, 4px 100%,
+    4px calc(100% - 4px), 0% calc(100% - 4px),
+    0% 4px, 4px 4px
+  );
 }
 
-/* ─── Global ────────────────────────────────────────────────────────────── */
+/* ─── Cursor — the website's pixel pointer, four states ─────────────────── */
 
-/* Flat stone canvas — hide Mintlify decorative overlays when present.
- * (docs.json has no decoration key; this covers residual theme defaults.) */
-body > div[aria-hidden="true"][class*="pointer-events-none"],
+/* !important throughout: Tailwind's `cursor-pointer` utility sits on most
+ * interactive elements and would otherwise win on specificity. */
+html,
+body,
+#content-area,
+#sidebar,
+#navbar,
+#footer,
+#table-of-contents {
+  cursor: url("/images/cursors/cursor-default.svg") 2 2, auto !important;
+}
+
+#content-area :is(p, li, blockquote, figcaption, dt, dd, td, th, caption, pre, code, span):not(a *, button *, summary *, [role="tab"] *) {
+  cursor: url("/images/cursors/cursor-select.svg") 4 10, text !important;
+}
+
+a,
+button,
+[role="button"],
+[role="link"],
+[role="menuitem"],
+[role="tab"],
+[role="option"],
+input,
+select,
+summary,
+label[for],
+.cursor-pointer,
+a *,
+button *,
+[role="button"] *,
+[role="menuitem"] *,
+[role="tab"] *,
+summary *,
+.cursor-pointer * {
+  cursor: url("/images/cursors/cursor-hover.svg") 2 0, pointer !important;
+}
+
+/* Mousedown anywhere flashes the pressed pointer, on the target and every ancestor. */
+html:active,
+html:active * {
+  cursor: url("/images/cursors/cursor-click.svg") 2 2, auto !important;
+}
+
+/* ─── Canvas ────────────────────────────────────────────────────────────── */
+
+html,
+body {
+  background: var(--page) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#background-color,
 body div.pointer-events-none.fixed[aria-hidden="true"] {
   display: none !important;
 }
 
-html,
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.011em;
-}
-
 body,
 #content-area {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  color: var(--om-ink);
+  font-family: var(--font-body);
+  color: var(--text);
+  /* One 400 master; let the browser synthesise <strong>. */
+  font-synthesis: weight;
 }
 
-#content-area :is(p, li, td, dd) {
-  font-size: 0.975rem;
-  line-height: 1.65;
-  color: color-mix(in srgb, var(--om-ink) 88%, transparent);
+::selection {
+  background: var(--copper-500);
+  color: #ffffff;
 }
 
-#content-area :is(p, li) a {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--om-ink) 28%, transparent);
-  text-underline-offset: 2px;
-  transition:
-    text-decoration-color 120ms ease,
-    color 120ms ease;
+:is(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--copper-500);
+  outline-offset: 2px;
+  border-radius: 0;
 }
 
-#content-area :is(p, li) a:hover {
-  color: var(--om-copper);
-  text-decoration-color: var(--om-copper);
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--stone-600) transparent;
 }
 
-.dark #content-area :is(p, li) a:hover {
-  color: var(--om-orange);
-  text-decoration-color: var(--om-orange);
-}
-
-/* ─── Headings ──────────────────────────────────────────────────────────── */
-
-#content-area :is(h1, h2, h3, h4, h5, h6) {
-  letter-spacing: -0.02em;
-  color: var(--om-ink) !important;
-}
-
-/* Page title — Mondwest is the one brand voice at display size */
-#content-area h1 {
-  font-family: "PP Mondwest", "Geist", ui-serif, serif !important;
-  font-weight: 400 !important;
-  font-size: clamp(2.25rem, 1.6rem + 1.8vw, 3.25rem);
-  letter-spacing: 0;
-  line-height: 1.05;
-  margin-bottom: 1.25rem;
-}
-
-#content-area h2 {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 1.35rem;
-  line-height: 1.25;
-  margin-top: 2.5rem;
-}
-
-#content-area h3 {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 1.1rem;
-  line-height: 1.3;
-}
-
-#content-area :is(h4, h5, h6) {
-  font-family: "Geist", ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.975rem;
-  line-height: 1.35;
-}
-
-#content-area :is(strong, b, th) {
-  font-weight: 600;
-}
-
-/* ─── Code ──────────────────────────────────────────────────────────────── */
-
-#content-area :is(p, li, td, th) code:not(pre code),
-#content-area :not(pre) > code {
-  font-family: "Geist Mono", ui-monospace, monospace !important;
-  font-size: 0.875em;
-  font-weight: 450;
-  letter-spacing: -0.01em;
-  border-radius: 3px;
-  padding: 0.1em 0.35em;
-  background: color-mix(in srgb, var(--om-ink) 5%, transparent) !important;
-  border: 0 !important;
-  color: var(--om-ink) !important;
-}
-
-#content-area pre,
-#content-area pre code,
-#content-area [data-component-part="code-block-root"] code {
-  font-family: "Geist Mono", ui-monospace, monospace !important;
-  font-size: 0.84rem !important;
-  line-height: 1.55 !important;
-  letter-spacing: -0.01em;
-}
-
-/*
- * .code-block is the real bordered/rounded container Mintlify renders (the
- * [data-component-part="code-block-root"] selector this used to target does
- * not exist in the current DOM, so the block was falling through to
- * Mintlify's default rounded-2xl + gray border while `pre` inside it got
- * our flush, square-cornered styling — two roundings on one block). Keep
- * every inner layer flush so the whole component has exactly one border
- * and one radius.
- */
-#content-area .code-block {
-  border: 1px solid var(--om-border) !important;
-  border-radius: 6px !important;
-  box-shadow: none !important;
-  background: var(--om-code-bg) !important;
-  overflow: hidden;
-}
-
-#content-area .code-block pre,
-#content-area pre {
-  border: 0 !important;
+/* No rounding anywhere: the corner language is the 4px notch. */
+#content-area :is(.card, .callout, .code-block, .accordion, .accordion-group, .step, figure, img, video, button, kbd, [class*="rounded"]),
+#navbar [class*="rounded"],
+#footer [class*="rounded"],
+#sidebar [class*="rounded"] {
   border-radius: 0 !important;
-  box-shadow: none !important;
 }
 
-#content-area [style*="--shiki-dark-bg" i],
-#content-area pre {
-  background-color: var(--om-code-bg) !important;
-}
+/* ─── Navbar — the website's header (apps/web/components/layout/header.tsx) ──
+ *
+ * page-container (16/32/64px gutters, 1440 max), pt-3, a pixel-border nav at
+ * 4px in stone-700 over surface-primary, py-3 px-3. Left: the menu items as
+ * PixelButton ghost/menu. Centre: the eye. Right: Talk to the team (ghost md),
+ * Login (solid copper md), then Mintlify's search and assistant on the same
+ * ghost tile. The bar stays 64px tall in total because the sidebar and the
+ * TOC are pinned at top-16 by the theme. */
 
-/*
- * Shiki dual-theme: light colors are inline `color: rgb(...)`, dark colors
- * live in `--shiki-dark`. Mintlify no longer emits hex in the color
- * property, so hex-matching remaps left dark-mode text at light-theme
- * ink on a dark paper (invisible). Use the CSS variable in dark mode.
- */
-.dark #content-area pre span[style*="--shiki-dark"] {
-  color: var(--shiki-dark) !important;
-}
-
-/* Optional warm accents on top of the default dark palette */
-.dark #content-area pre span[style*="--shiki-dark: #C586C0" i],
-.dark #content-area pre span[style*="--shiki-dark:#C586C0" i] {
-  color: #ed670f !important;
-}
-.dark #content-area pre span[style*="--shiki-dark: #569CD6" i],
-.dark #content-area pre span[style*="--shiki-dark:#569CD6" i] {
-  color: #d9822b !important;
-}
-.dark #content-area pre span[style*="--shiki-dark: #CE9178" i],
-.dark #content-area pre span[style*="--shiki-dark:#CE9178" i] {
-  color: #e0a878 !important;
-}
-.dark #content-area pre span[style*="--shiki-dark: #6A9955" i],
-.dark #content-area pre span[style*="--shiki-dark:#6A9955" i] {
-  color: #8a7a68 !important;
-}
-
-/* A plain icon, not a chip — the block itself already carries the one
- * border and radius the component needs. */
-#content-area [data-testid="copy-code-button"] {
-  border-radius: 3px !important;
+#navbar {
   background: transparent !important;
   border: 0 !important;
-  color: var(--om-ink-muted) !important;
+  padding: 12px 16px 0 !important;
 }
-#content-area [data-testid="copy-code-button"]:hover {
-  background: color-mix(in srgb, var(--om-ink) 8%, transparent) !important;
-  color: var(--om-copper) !important;
+@media (min-width: 768px) {
+  #navbar {
+    padding: 12px 32px 0 !important;
+  }
 }
-.dark #content-area [data-testid="copy-code-button"]:hover {
-  color: var(--om-orange) !important;
+@media (min-width: 1280px) {
+  #navbar {
+    padding: 12px 64px 0 !important;
+  }
+  #navbar > div.max-w-8xl {
+    max-width: calc(1440px - 128px) !important;
+  }
 }
-/*
- * The scrim behind the copy button: flat, our own code background, and
- * rounded to match .code-block's own top-right corner (6px) instead of
- * Mintlify's default 16px, which read as a mismatched corner poking out
- * once the block itself was retargeted above.
- */
-#content-area [data-fade-overlay] {
-  background: var(--om-code-bg) !important;
-  background-image: none !important;
-  border-radius: 0 6px 0 0 !important;
-}
-
-/* ─── Navbar ────────────────────────────────────────────────────────────── */
-
-#navbar img,
-#navbar a:hover img {
-  opacity: 1 !important;
-  filter: none !important;
-}
-
-/* Eye + Mondwest wordmark lockup */
-#navbar a[href="/"] {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0.7rem !important;
-  text-decoration: none !important;
-}
-
-#navbar a[href="/"] img,
-#navbar a[href="/"] img.nav-logo {
-  height: 28px !important;
-  width: 28px !important;
-  max-width: 28px !important;
-  flex-shrink: 0;
-}
-
-#navbar a[href="/"]::after {
-  content: "Overmind";
-  font-family: "PP Mondwest", ui-serif, serif;
-  font-weight: 700 !important;
-  font-synthesis-weight: auto;
-  font-size: 1.25rem;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: none;
-  color: var(--om-ink);
-  white-space: nowrap;
-  -webkit-font-smoothing: antialiased;
-}
-
-.dark #navbar a[href="/"]::after {
-  color: #f5f3ee;
-}
-
-#navbar > div.z-0 {
-  background: rgb(from var(--om-stone) r g b / 0.85) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.dark #navbar > div.z-0 {
-  background: rgb(from var(--om-stone-dark) r g b / 0.85) !important;
-}
-#navbar > div.z-10.absolute {
-  border-color: var(--om-border) !important;
-}
-
-#navbar a[href*="console.overmindlab.ai"] {
-  border-radius: 3px !important;
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  text-transform: none;
-}
-#navbar a[href*="console.overmindlab.ai"]:hover {
-  opacity: 1 !important;
-  background: var(--om-rust) !important;
-}
-
-#navbar button[class*="group/search"] {
-  border: 1px solid var(--om-border) !important;
-  border-radius: 3px !important;
-  background: transparent !important;
-  color: var(--om-ink-muted) !important;
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-size: 13px;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-/* ─── Footer ────────────────────────────────────────────────────────────── */
-
-#footer {
+#navbar-transition {
   display: none !important;
 }
-#content-area {
-  padding-bottom: 3rem;
+
+#navbar > div.max-w-8xl {
+  position: relative;
+  isolation: isolate;
+  clip-path: var(--notch);
+  color: var(--text);
+}
+#navbar > div.max-w-8xl::before,
+#navbar > div.max-w-8xl::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  clip-path: var(--notch);
+}
+#navbar > div.max-w-8xl::before {
+  inset: 0;
+  z-index: -2;
+  background: var(--stone-700);
+}
+#navbar > div.max-w-8xl::after {
+  inset: 4px;
+  z-index: -1;
+  background: var(--surface);
 }
 
-@media (min-width: 1024px) {
-  #content-area {
-    max-width: 720px !important;
-    margin-left: max(0px, calc(50vw - 360px - 14rem)) !important;
+#navbar > div.max-w-8xl > div.relative > div.flex {
+  height: 52px !important;
+  padding: 0 12px !important;
+  position: relative;
+}
+#navbar > div.max-w-8xl > div.relative > div.flex > div.h-full {
+  border: 0 !important;
+}
+
+/* Eye, centred, 32px; eye-blink.js swaps the src to the GIF. */
+#navbar a[href="/"] {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex !important;
+  z-index: 1;
+}
+#navbar a[href="/"] img {
+  height: 32px !important;
+  width: 32px !important;
+  max-width: 32px !important;
+  opacity: 1 !important;
+  filter: none !important;
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#navbar a[href="/"] img.nav-logo.block {
+  display: none !important;
+}
+#navbar a[href="/"] img.nav-logo.hidden {
+  display: block !important;
+}
+
+/* The logo wrapper gives up its width so the link row owns the whole bar. */
+#navbar > div.max-w-8xl div.flex-1.lg\:flex-none {
+  flex: none !important;
+  width: 0;
+  position: static;
+}
+#navbar > div.max-w-8xl div.flex-1.relative.hidden {
+  flex: 1 !important;
+  justify-content: flex-start !important;
+}
+#navbar > div.max-w-8xl div.flex-1.relative.hidden > div.gap-x-6 {
+  flex: 1;
+  gap: 0 !important;
+}
+#navbar > div.max-w-8xl div.flex-1.relative.hidden > div.gap-x-6 > div.h-16 {
+  display: none;
+}
+#navbar nav[aria-label="Main"] {
+  flex: 1;
+}
+#navbar nav[aria-label="Main"] > ul {
+  width: 100%;
+  gap: 8px !important;
+  align-items: center;
+}
+#navbar li.navbar-link {
+  position: relative;
+}
+
+/* The right cluster starts at Talk to the team. */
+#navbar li.navbar-link:has(a[href*="overmindlab.ai/contact"]) {
+  margin-left: auto;
+}
+#navbar > div.max-w-8xl div.flex-1.relative.hidden > div.gap-x-2 {
+  flex: none;
+  margin-left: 8px;
+  gap: 8px !important;
+}
+
+/* PixelButton — one tile for every control in the bar. */
+#navbar li.navbar-link a,
+#navbar #topbar-cta-button a,
+#navbar div.gap-x-2 button,
+#navbar div.gap-x-2 a,
+#navbar div.gap-x-2 [role="button"] {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 30px;
+  padding: 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  clip-path: var(--notch);
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-family: var(--font-caption) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: none !important;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+#navbar li.navbar-link a:hover,
+#navbar div.gap-x-2 button:hover,
+#navbar div.gap-x-2 a:hover,
+#navbar div.gap-x-2 [role="button"]:hover {
+  background: var(--stone-700) !important;
+  color: var(--text) !important;
+}
+
+/* Docs is this site: the tile reads as pressed, not as a link out. */
+#navbar li.navbar-link a[href*="docs.overmindlab.ai"] {
+  background: var(--stone-700) !important;
+}
+
+/* size md for the two right-hand text buttons. */
+#navbar li.navbar-link a[href*="overmindlab.ai/contact"],
+#navbar #topbar-cta-button a {
+  padding: 8px 16px !important;
+}
+
+/* Login: solid copper. */
+#navbar #topbar-cta-button {
+  position: relative;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin-left: 0;
+}
+#navbar #topbar-cta-button a {
+  background: var(--copper-500) !important;
+}
+#navbar #topbar-cta-button a:hover {
+  background: var(--copper-400) !important;
+  color: var(--text) !important;
+  opacity: 1 !important;
+}
+#navbar #topbar-cta-button a svg,
+#navbar #topbar-cta-button a::before,
+#navbar #topbar-cta-button a::after {
+  display: none !important;
+}
+
+/* Search and assistant: icon tiles at the same height; the mask icon takes
+ * the tile's text colour. */
+#navbar div.gap-x-2 button,
+#navbar div.gap-x-2 [role="button"] {
+  width: 30px;
+  color: var(--stone-300) !important;
+}
+#navbar div.gap-x-2 button:hover {
+  color: var(--text) !important;
+}
+#navbar div.gap-x-2 button:has(> span:not(.sr-only)),
+#navbar div.gap-x-2 button:has(> div) {
+  width: auto;
+}
+#navbar [style*="mask-image"] {
+  background-color: currentColor !important;
+}
+#navbar div.gap-x-2 svg {
+  width: 14px;
+  height: 14px;
+}
+#navbar kbd {
+  display: none;
+}
+
+/* The website's PixelFrame: a 4px pixel outline 12px out on hover, solid on press. */
+#navbar li.navbar-link::after,
+#navbar #topbar-cta-button::after,
+#navbar div.gap-x-2 > button::after,
+#navbar div.gap-x-2 > a::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  pointer-events: none;
+  border: 4px solid var(--text);
+  clip-path: var(--notch);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+#navbar li.navbar-link:hover::after,
+#navbar #topbar-cta-button:hover::after,
+#navbar div.gap-x-2 > button:hover::after,
+#navbar div.gap-x-2 > a:hover::after {
+  opacity: 0.5;
+}
+#navbar li.navbar-link:active::after,
+#navbar #topbar-cta-button:active::after,
+#navbar div.gap-x-2 > button:active::after,
+#navbar div.gap-x-2 > a:active::after {
+  opacity: 1;
+}
+/* The icon tiles carry their own ring, so the notch moves to a fill layer
+ * and the element itself stays unclipped. */
+#navbar div.gap-x-2 > button,
+#navbar div.gap-x-2 > a,
+#navbar div.gap-x-2 > button:hover,
+#navbar div.gap-x-2 > a:hover {
+  clip-path: none;
+  isolation: isolate;
+  background: transparent !important;
+}
+#navbar div.gap-x-2 > button::before,
+#navbar div.gap-x-2 > a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--notch);
+  background: var(--surface);
+  transition: background-color 150ms ease;
+}
+#navbar div.gap-x-2 > button:hover::before,
+#navbar div.gap-x-2 > a:hover::before {
+  background: var(--stone-700);
+}
+
+/* Four left-hand items plus Talk to the team clear the centred eye at lg. */
+
+/* Below lg the theme keeps the eye at the left and a search + menu pair at
+ * the right, which is the website's mobile chrome (eye left-4, Menu button). */
+#navbar div.lg\:hidden.items-center.gap-3 {
+  gap: 8px !important;
+  margin-left: auto;
+}
+#navbar div.lg\:hidden.items-center.gap-3 > button {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 30px !important;
+  height: 30px !important;
+  padding: 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--surface) !important;
+  color: var(--stone-300) !important;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+#navbar div.lg\:hidden.items-center.gap-3 > button:hover {
+  background: var(--stone-700) !important;
+  color: var(--text) !important;
+}
+#navbar div.lg\:hidden.items-center.gap-3 > button::after {
+  display: none;
+}
+@media (max-width: 1023px) {
+  #navbar a[href="/"] {
+    left: 12px;
+    transform: translate(0, -50%);
   }
 }
 
-/* ─── Sidebar — quiet rail, copper only on current ──────────────────────── */
+/* "More actions" opens the theme's mobile menu, a popup dialog carrying the
+ * navbar links and Login. It takes the website MobileMenu's order: Talk to
+ * the team and Login first, then the list, each row a full-width PixelButton. */
+[role="dialog"]:has(> nav > ul > li.navbar-link) {
+  padding: 4px !important;
+  border-radius: 0 !important;
+  background: var(--stone-700) !important;
+  clip-path: var(--notch);
+}
+[role="dialog"]:has(> nav > ul > li.navbar-link) > nav {
+  background: var(--surface);
+  clip-path: var(--notch);
+  padding: 12px !important;
+}
+[role="dialog"]:has(> nav > ul > li.navbar-link) > button {
+  display: none !important;
+}
+[role="dialog"] > nav > ul:has(> li.navbar-link) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px !important;
+}
+[role="dialog"] > nav > ul > li.navbar-link:has(a[href*="overmindlab.ai/contact"]) {
+  order: -2;
+}
+[role="dialog"] > nav > ul > li.block.lg\:hidden {
+  order: -1;
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+  border-bottom: 4px solid var(--stone-700);
+}
+[role="dialog"] > nav > ul > li.navbar-link a,
+[role="dialog"] > nav > ul > li.block.lg\:hidden a {
+  display: flex !important;
+  align-items: center;
+  height: auto !important;
+  padding: 12px 16px !important;
+  clip-path: var(--notch);
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-family: var(--font-caption) !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+[role="dialog"] > nav > ul > li.navbar-link a:hover {
+  background: var(--stone-700) !important;
+}
+[role="dialog"] > nav > ul > li.navbar-link a[href*="docs.overmindlab.ai"] {
+  background: var(--stone-700) !important;
+}
+[role="dialog"] > nav > ul > li.block.lg\:hidden a {
+  background: var(--copper-500) !important;
+}
+[role="dialog"] > nav > ul > li.block.lg\:hidden a:hover {
+  background: var(--copper-400) !important;
+}
+[role="dialog"] > nav > ul > li.navbar-link a span,
+[role="dialog"] > nav > ul > li.block.lg\:hidden a span {
+  overflow: visible;
+}
 
-div:has(> #navigation-items) {
-  background: transparent;
-  border-right: 1px solid var(--om-border);
+/* Mobile row: the sidebar toggle, labelled with the page only (the group
+ * label is the same eyebrow the desktop header drops). */
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden {
+  height: auto !important;
+  padding: 0 12px 12px !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-3);
+  clip-path: none;
+}
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden:hover {
+  background: transparent !important;
+}
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden div.space-x-3.shrink-0 {
+  display: none !important;
+}
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden div.font-semibold {
+  font-weight: 400 !important;
+  color: var(--text) !important;
+}
+
+/* ─── Sidebar — plain rail, current row inverted ────────────────────────── */
+
+#sidebar,
+#sidebar-content {
+  background: var(--page) !important;
+  border-right: 1px solid var(--frame);
 }
 
 #navigation-items {
-  padding: 16px 12px 24px 16px !important;
-  scrollbar-gutter: auto !important;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-#navigation-items:hover {
-  scrollbar-color: color-mix(in srgb, var(--om-ink) 20%, transparent)
-    transparent;
+  padding: 20px 12px 32px 12px !important;
 }
 
 #navigation-items div:has(> .sidebar-group-header) {
   margin-top: 0 !important;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
+}
+
+#navigation-items .sidebar-group-header {
+  font-family: var(--font-nav) !important;
+  font-weight: 400 !important;
+  /* NeueBit caps are half the declared size: 24px reads as a 12px label. */
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--text) !important;
+  margin: 0 0 6px 0 !important;
+  padding: 0 8px !important;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 #navigation-items ul.sidebar-group {
   border-left: 0;
   margin-left: 0;
+  padding-left: 0;
 }
 
-/* Section eyebrows — pixel face, copper, uppercase (chrome only) */
-#navigation-items .sidebar-group-header {
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
+#navigation-items .sidebar-group li a,
+#navigation-items .sidebar-group li button {
+  font-family: var(--font-body) !important;
   font-weight: 400 !important;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  line-height: 1;
-  text-transform: uppercase;
-  color: var(--om-rust) !important;
-  margin-bottom: 8px !important;
-  padding: 0 8px !important;
-  -webkit-font-smoothing: auto;
-  -moz-osx-font-smoothing: auto;
-}
-.dark #navigation-items .sidebar-group-header {
-  color: rgb(from var(--om-orange) r g b / 0.8) !important;
-}
-
-#navigation-items .sidebar-group li a {
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-weight: 450 !important;
-  font-size: 13.5px;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
+  font-size: 14px;
+  letter-spacing: var(--tracking-cell);
+  line-height: 1.25;
   padding: 5px 8px !important;
-  border-radius: 3px;
-  color: var(--om-ink-muted) !important;
-  transition:
-    color 120ms ease,
-    background-color 120ms ease;
+  color: var(--text-3) !important;
+  border: 0 !important;
+  clip-path: var(--notch);
+  transition: color 150ms ease, background-color 150ms ease;
 }
-
-#navigation-items .sidebar-group li a:hover {
-  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
-  color: var(--om-ink) !important;
-}
-
-#navigation-items .sidebar-group li a[aria-current="page"] {
-  text-shadow: none !important;
-  color: var(--om-ink) !important;
-  background: color-mix(in srgb, var(--om-copper) 10%, transparent);
-  font-weight: 500 !important;
-}
-.dark #navigation-items .sidebar-group li a[aria-current="page"] {
-  background: color-mix(in srgb, var(--om-orange) 12%, transparent);
-}
-
-/* Remove the old square marker pseudo-elements if any linger via specificity */
-#navigation-items .sidebar-group li a::before {
+#navigation-items .sidebar-group li a::before,
+#navigation-items .sidebar-group li a::after,
+#navigation-items .sidebar-group li a > div.absolute {
   display: none !important;
 }
 
-/* ─── In-page TOC ───────────────────────────────────────────────────────── */
-
-h2:has(#table-of-contents-content) span,
-button:has(+ #table-of-contents-content) span {
-  font-family: "Geist Pixel", ui-monospace, monospace !important;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--om-rust);
-  -webkit-font-smoothing: auto;
-}
-.dark h2:has(#table-of-contents-content) span {
-  color: rgb(from var(--om-orange) r g b / 0.75);
+#navigation-items .sidebar-group li a:hover,
+#navigation-items .sidebar-group li button:hover {
+  background: var(--surface);
+  color: var(--text) !important;
 }
 
-ul.toc .toc-item a {
-  font-family: "Geist", ui-sans-serif, sans-serif !important;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
-  padding-top: 0.2rem;
-  padding-bottom: 0.2rem;
-  color: var(--om-ink-muted);
+#navigation-items .sidebar-group li a[aria-current="page"],
+#navigation-items .sidebar-group li a[aria-current="page"]:hover {
+  background: var(--stone-100) !important;
+  color: var(--stone-900) !important;
+  text-shadow: none !important;
+}
+#navigation-items .sidebar-group li a[aria-current="page"] * {
+  color: inherit !important;
 }
 
-/* ─── Copy-page controls ────────────────────────────────────────────────── */
+#navigation-items svg {
+  color: var(--text-disabled);
+}
 
-/*
- * A split button: "rounded-l-xl"/"rounded-r-xl" mean round-on-the-left-only
- * and round-on-the-right-only, meant to sit flush as one pill. Rounding
- * every corner on both halves gave the two inner corners their own curve
- * right next to each other, reading as a collision instead of a seam.
- */
-#content-area button[class*="rounded-l-xl"],
-#content-area button[class*="rounded-r-xl"] {
-  border-color: var(--om-border) !important;
-  color: var(--om-ink-muted) !important;
+/* ─── Content column ────────────────────────────────────────────────────── */
+
+#content-area {
+  max-width: 46rem;
+}
+html[data-page-mode="wide"] #content-area {
+  max-width: none;
+  width: 100% !important;
+}
+
+/* The group label above the h1 repeats the sidebar; the h1 is the label. */
+#content-area .eyebrow,
+#header .eyebrow {
+  display: none !important;
+}
+
+#content-area #page-title,
+#content-area h1 {
+  font-family: var(--font-display) !important;
+  font-weight: 400 !important;
+  font-size: 2.5rem;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--text) !important;
+  margin: 0 0 0.5rem 0;
+}
+
+#header p,
+#content-area header p {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--text-3) !important;
+  margin: 0.25rem 0 0 0;
+}
+
+/* One hairline between the header and the body. */
+#header,
+#content-area > header {
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--frame);
+}
+#header > div {
+  margin-top: 0 !important;
+}
+
+#content-area h2 {
+  font-family: var(--font-display) !important;
+  font-weight: 400 !important;
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--text) !important;
+  margin-top: 2.75rem;
+  margin-bottom: 0.75rem;
+}
+
+#content-area h3 {
+  font-family: var(--font-display) !important;
+  font-weight: 400 !important;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--text) !important;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+#content-area :is(h4, h5, h6) {
+  font-family: var(--font-body) !important;
+  font-weight: 400 !important;
+  font-size: 15px;
+  letter-spacing: var(--tracking-cell);
+  color: var(--text) !important;
+  margin-top: 1.5rem;
+}
+
+#content-area :is(h2, h3) a,
+#content-area :is(h2, h3) a:hover {
+  color: inherit !important;
+  text-decoration: none;
+}
+
+#content-area :is(p, li, dd, td) {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+#content-area p {
+  margin: 0.9rem 0;
+}
+#content-area li {
+  margin: 0.2rem 0;
+}
+#content-area ul > li::marker {
+  color: var(--text-disabled);
+}
+
+#content-area :is(strong, b) {
+  color: var(--text);
+  font-weight: 700;
+}
+
+#content-area :is(p, li, td) a:not(.card) {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--stone-500);
+  text-underline-offset: 3px;
+  transition: color 150ms ease, text-decoration-color 150ms ease, background-color 150ms ease;
+}
+#content-area :is(p, li, td) a:not(.card):hover {
+  color: var(--copper-400);
+  text-decoration-color: var(--copper-500);
+}
+
+#content-area hr {
+  border: 0;
+  border-top: 1px solid var(--frame);
+  margin: 2rem 0;
+}
+
+#content-area blockquote {
+  border-left: 4px solid var(--stone-600);
+  padding-left: 1rem;
+  color: var(--text-3);
+  font-style: normal;
+}
+
+/* Block rhythm: every block element takes the same vertical margin. */
+#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-ascii) {
+  margin-top: 1.25rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+/* ─── Code ──────────────────────────────────────────────────────────────── */
+
+#content-area :not(pre) > code {
+  font-family: var(--font-mono) !important;
+  font-size: 0.86em;
+  font-weight: 400;
+  letter-spacing: 0;
+  padding: 0.1em 0.35em;
+  background: var(--surface-2) !important;
+  border: 0 !important;
+  color: var(--stone-100) !important;
+}
+
+/* A heading that is a command reads as a heading in mono, not as a chip. */
+#content-area :is(h1, h2, h3, h4) code {
+  font-family: var(--font-mono) !important;
+  font-size: 0.85em !important;
+  font-weight: 500;
+  padding: 0 !important;
   background: transparent !important;
-}
-#content-area button[class*="rounded-l-xl"] {
-  border-radius: 6px 0 0 6px !important;
-  border-right-width: 0 !important;
-}
-#content-area button[class*="rounded-r-xl"] {
-  border-radius: 0 6px 6px 0 !important;
-}
-#content-area button[class*="rounded-l-xl"]:hover,
-#content-area button[class*="rounded-r-xl"]:hover {
-  background: color-mix(in srgb, var(--om-copper) 8%, transparent) !important;
-  color: var(--om-copper) !important;
+  color: inherit !important;
 }
 
-[data-radix-menu-content] {
-  background: var(--om-stone) !important;
-  border: 1px solid var(--om-border) !important;
-  border-radius: 4px !important;
-  box-shadow: var(--om-shadow) !important;
-  color: var(--om-ink);
-}
-.dark [data-radix-menu-content] {
-  background: #201c19 !important;
-  border-color: var(--om-border) !important;
-  color: var(--om-ink);
-}
-[data-radix-menu-content]
-  :is([role="menuitem"], a, button):is(:hover, [data-highlighted]) {
-  background: color-mix(in srgb, var(--om-copper) 10%, transparent) !important;
-  color: var(--om-copper) !important;
-}
-
-/* ─── Cards ─────────────────────────────────────────────────────────────── */
-
-#content-area .card {
-  border-color: var(--om-border) !important;
+/* .pixel-border at 1px: notched frame drawn by two clipped layers under the content. */
+#content-area :is(.code-block, .code-group) {
+  position: relative;
+  isolation: isolate;
+  clip-path: var(--notch);
+  border: 0 !important;
+  box-shadow: none !important;
   background: transparent !important;
-  border-radius: 4px !important;
+  overflow: hidden;
+}
+#content-area :is(.code-block, .code-group)::before,
+#content-area :is(.code-block, .code-group)::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  clip-path: var(--notch);
+}
+#content-area :is(.code-block, .code-group)::before {
+  inset: 0;
+  z-index: -2;
+  background: var(--frame);
+}
+#content-area :is(.code-block, .code-group)::after {
+  inset: 1px;
+  z-index: -1;
+  background: var(--code-bg);
+}
+
+#content-area :is(.code-block, .code-group) pre,
+#content-area :is(.code-block, .code-group) [class*="bg-codeblock"],
+#content-area pre {
+  border: 0 !important;
   box-shadow: none !important;
-  transition: border-color 120ms ease;
-}
-#content-area .card:hover {
-  border-color: rgb(from var(--om-copper) r g b / 0.45) !important;
-}
-.dark #content-area .card:hover {
-  border-color: rgb(from var(--om-orange) r g b / 0.4) !important;
-}
-
-/* ─── Callouts ──────────────────────────────────────────────────────────── */
-
-#content-area .callout {
-  --om-acc: var(--om-copper);
-  border-color: rgb(from var(--om-acc) r g b / 0.22) !important;
-  background: rgb(from var(--om-acc) r g b / 0.04) !important;
-  border-radius: 4px !important;
-  box-shadow: none !important;
-}
-#content-area .callout[class*="border-neutral"] {
-  --om-acc: var(--om-rust);
-}
-#content-area .callout[class*="border-green"] {
-  --om-acc: #4e7a45;
-}
-#content-area .callout[class*="border-yellow"] {
-  --om-acc: #a97a10;
-}
-#content-area .callout[class*="border-red"] {
-  --om-acc: #a83a1c;
-}
-#content-area .callout [data-component-part="callout-icon"],
-#content-area .callout [data-component-part="callout-icon"] svg {
-  color: var(--om-acc) !important;
-  fill: var(--om-acc) !important;
-}
-#content-area .callout [data-component-part="callout-content"],
-#content-area
-  .callout
-  [data-component-part="callout-content"]
-  :is(p, li, strong, em) {
-  color: var(--om-ink) !important;
-}
-
-/* ─── Steps ─────────────────────────────────────────────────────────────── */
-
-#content-area .step div[class*="step-indicator"] {
-  background: color-mix(in srgb, var(--om-copper) 10%, transparent) !important;
-  color: var(--om-copper) !important;
-}
-.dark #content-area .step div[class*="step-indicator"] {
-  background: color-mix(in srgb, var(--om-orange) 14%, transparent) !important;
-  color: var(--om-orange) !important;
-}
-#content-area .step [data-component-part="step-line"],
-#content-area .step > div > div[class*="w-px"] {
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--om-ink) 18%, transparent),
-    transparent
-  ) !important;
-}
-
-/* ─── Accordions ────────────────────────────────────────────────────────── */
-
-#content-area :is(.accordion, .accordion-group) {
-  border-color: var(--om-border) !important;
   background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 4px !important;
-}
-#content-area [data-component-part="accordion-title"] {
-  color: var(--om-ink-muted) !important;
-}
-#content-area details[open] > summary [data-component-part="accordion-title"] {
-  color: var(--om-ink) !important;
+  margin: 0;
 }
 
-/* ─── Tabs ──────────────────────────────────────────────────────────────── */
-
-#content-area [data-component-part="tabs-list"] {
-  border-bottom-color: var(--om-border) !important;
+#content-area pre,
+#content-area pre code,
+#content-area :is(.code-block, .code-group) code {
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0;
+  color: var(--stone-100);
 }
 
-/* ─── Tables ────────────────────────────────────────────────────────────── */
+/* Code-block header (filename / language tabs) as a strip on the same panel. */
+#content-area :is(.code-block, .code-group) > div:first-child:not(:has(pre)) {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--frame) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  color: var(--text-3) !important;
+}
+#content-area :is(.code-block, .code-group) [role="tab"] {
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  text-transform: none;
+  color: var(--text-3) !important;
+  border-bottom: 2px solid transparent !important;
+}
+#content-area :is(.code-block, .code-group) [role="tab"][aria-selected="true"],
+#content-area :is(.code-block, .code-group) [role="tab"][data-state="active"] {
+  color: var(--text) !important;
+  border-bottom-color: var(--copper-500) !important;
+}
+
+#content-area [data-testid="copy-code-button"] {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--text-3) !important;
+  clip-path: var(--notch);
+  transition: color 150ms ease, background-color 150ms ease;
+}
+#content-area [data-testid="copy-code-button"]:hover {
+  color: var(--text) !important;
+  background: var(--surface-2) !important;
+}
+#content-area [data-fade-overlay] {
+  background: var(--code-bg) !important;
+  background-image: none !important;
+}
+
+/* ─── Tables — hairlines only ───────────────────────────────────────────── */
 
 #content-area table,
 #content-area [data-table-wrapper] {
   border: 0 !important;
-  border-radius: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
+  overflow-x: auto;
+}
+#content-area [data-table-wrapper] table,
+#content-area [data-table-wrapper] > div {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 #content-area table th {
-  padding: 8px 12px !important;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  background: transparent;
-  border-bottom: 1px solid color-mix(in srgb, var(--om-ink) 22%, transparent) !important;
-  color: var(--om-ink) !important;
+  padding: 6px 10px 8px 0 !important;
+  text-align: left;
+  font-family: var(--font-caption);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  background: transparent !important;
+  border-bottom: 1px solid var(--stone-500) !important;
+  color: var(--text-3) !important;
 }
 
 #content-area table td {
-  padding: 9px 12px !important;
+  padding: 8px 10px 8px 0 !important;
   vertical-align: top;
-  border-color: color-mix(in srgb, var(--om-ink) 10%, transparent) !important;
+  font-size: 14px;
+  border-bottom: 1px solid var(--frame) !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  background: transparent !important;
 }
-
-#content-area table tbody tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--om-ink) 2.5%, transparent);
+#content-area table tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+/* An identifier in a cell wraps at a break opportunity, never mid-word. */
+#content-area table code {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 #content-area table tbody tr:hover td {
-  background: color-mix(in srgb, var(--om-copper) 5%, transparent);
+  background: var(--surface) !important;
+}
+
+/* Console model chip: provider mark + short name. */
+#content-area .om-model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 1px solid var(--frame);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: var(--tracking-cell);
+  white-space: nowrap;
+  clip-path: var(--notch);
+}
+#content-area .om-model-chip-logo,
+#content-area .om-model-chip-mono {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+#content-area .om-model-chip-logo {
+  background: currentColor;
+}
+#content-area .om-model-chip-logo[data-logo="cisco"] {
+  mask: url("/images/models/cisco.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/cisco.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="google"] {
+  mask: url("/images/models/google.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/google.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="liquid"] {
+  mask: url("/images/models/liquid.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/liquid.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="meta"] {
+  mask: url("/images/models/meta.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/meta.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="nvidia"] {
+  mask: url("/images/models/nvidia.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/nvidia.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="openai"] {
+  mask: url("/images/models/openai.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/openai.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="qwen"] {
+  mask: url("/images/models/qwen.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/qwen.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-mono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+
+/* Trainable-models catalog: search + provider/tier chips. */
+#content-area .om-model-catalog-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px 0 !important;
+}
+#content-area .om-model-catalog-search {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--frame);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: var(--tracking-cell);
+  box-shadow: none;
+  clip-path: var(--notch);
+}
+#content-area .om-model-catalog-search::placeholder {
+  color: var(--text-3);
+}
+#content-area .om-model-catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#content-area button.om-filter-chip {
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 0;
+  box-shadow: none;
+}
+#content-area button.om-filter-chip:hover {
+  background: var(--surface-2);
+  border-color: var(--frame-strong);
+}
+#content-area button.om-filter-chip[aria-pressed="true"] {
+  background: var(--stone-100);
+  border-color: var(--stone-100);
+  color: var(--stone-900);
+}
+#content-area table tbody tr.om-model-catalog-empty:hover td,
+#content-area table tbody tr.om-model-catalog-empty td {
+  background: transparent !important;
+  color: var(--text-3);
+  border-bottom: 0 !important;
+}
+
+/* ─── Cards — PixelButton ghost tiles: notched, framed at 1px, fill on hover ── */
+
+#content-area .card {
+  position: relative;
+  isolation: isolate;
+  clip-path: var(--notch);
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 16px 18px !important;
+  transition: color 150ms ease;
+}
+#content-area .card::before,
+#content-area .card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  clip-path: var(--notch);
+  transition: background-color 150ms ease;
+}
+#content-area .card::before {
+  inset: 0;
+  z-index: -2;
+  background: var(--frame);
+}
+#content-area .card::after {
+  inset: 1px;
+  z-index: -1;
+  background: var(--surface);
+}
+#content-area .card:hover::before {
+  background: var(--frame-strong);
+}
+#content-area .card:hover::after {
+  background: var(--surface-2);
+}
+#content-area .card:active::after {
+  background: var(--surface-hover);
+}
+
+#content-area .card [class*="card-title"],
+#content-area .card h2,
+#content-area .card h3 {
+  font-family: var(--font-caption) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--text) !important;
+  margin: 0 0 6px 0 !important;
+}
+#content-area .card p,
+#content-area .card span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+#content-area .card svg,
+#content-area .card [class*="card-icon"] {
+  display: none !important;
+}
+
+/* ─── Callouts — notched, a 4px bar in the state colour ─────────────────── */
+
+#content-area .callout {
+  --acc: var(--stone-400);
+  position: relative;
+  isolation: isolate;
+  clip-path: var(--notch);
+  border: 0 !important;
+  box-shadow: none !important;
+  background: var(--surface) !important;
+  padding: 12px 14px 12px 18px !important;
+}
+#content-area .callout::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--acc);
+}
+#content-area .callout[class*="border-green"],
+#content-area .callout[class*="green"] {
+  --acc: #16daaa;
+}
+#content-area .callout[class*="border-yellow"],
+#content-area .callout[class*="amber"],
+#content-area .callout[class*="orange"] {
+  --acc: var(--copper-500);
+}
+#content-area .callout[class*="border-red"],
+#content-area .callout[class*="red"] {
+  --acc: #f65d57;
+}
+#content-area .callout[class*="blue"],
+#content-area .callout[class*="sky"] {
+  --acc: #48e0f1;
+}
+#content-area .callout [data-component-part="callout-icon"],
+#content-area .callout [data-component-part="callout-icon"] svg {
+  color: var(--acc) !important;
+  fill: var(--acc) !important;
+}
+#content-area .callout [data-component-part="callout-content"],
+#content-area .callout [data-component-part="callout-content"] :is(p, li, strong, em) {
+  color: var(--text-2) !important;
+  font-size: 14px;
+}
+#content-area .callout p {
+  margin: 0;
+}
+
+/* ─── Steps ─────────────────────────────────────────────────────────────── */
+
+#content-area .steps {
+  margin-left: 0.875rem;
+}
+#content-area .step [data-component-part="step-number"] {
+  background: transparent !important;
+}
+#content-area .step [data-component-part="step-indicator"] {
+  background: var(--stone-100) !important;
+  color: var(--stone-900) !important;
+  clip-path: var(--notch);
+  font-family: var(--font-mono) !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  border: 0 !important;
+}
+#content-area .step [data-component-part="step-indicator"] * {
+  color: inherit !important;
+}
+#content-area .step [data-component-part="step-line"],
+#content-area .step > div > div[class*="w-px"] {
+  background: var(--frame) !important;
+}
+#content-area .step [data-component-part="step-title"],
+#content-area .step h3 {
+  font-family: var(--font-body) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--tracking-cell);
+  color: var(--text) !important;
+  margin-top: 0 !important;
+}
+
+/* ─── Accordions / tabs ─────────────────────────────────────────────────── */
+
+#content-area :is(.accordion, .accordion-group) {
+  border: 1px solid var(--frame) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#content-area .accordion summary:hover {
+  background: var(--surface) !important;
+}
+#content-area [data-component-part="accordion-title"] {
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  color: var(--text) !important;
+}
+
+#content-area [data-component-part="tabs-list"],
+#content-area [role="tablist"] {
+  border-bottom: 1px solid var(--frame) !important;
+  gap: 0 !important;
+}
+#content-area [role="tab"] {
+  font-family: var(--font-caption) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: var(--text-3) !important;
+  padding: 8px 12px !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -1px;
+}
+#content-area [role="tab"]:hover {
+  color: var(--text) !important;
+  background: var(--surface) !important;
+}
+#content-area [role="tab"][aria-selected="true"],
+#content-area [role="tab"][data-state="active"] {
+  color: var(--text) !important;
+  border-bottom-color: var(--copper-500) !important;
 }
 
 /* ─── kbd ───────────────────────────────────────────────────────────────── */
 
 #content-area kbd {
   padding: 1px 5px;
-  border: 1px solid var(--om-border);
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--om-ink) 4%, transparent);
-  color: var(--om-ink-muted);
-  font-family: "Geist Mono", ui-monospace, monospace;
+  border: 1px solid var(--stone-600);
+  border-bottom-width: 2px;
+  background: transparent;
+  color: var(--text-3);
+  font-family: var(--font-mono);
   font-size: 0.85em;
 }
 
-/* ─── Selection / focus ─────────────────────────────────────────────────── */
+/* ─── Frames / screenshots ──────────────────────────────────────────────── */
 
-::selection {
-  background-color: rgb(from var(--om-copper) r g b / 0.22);
-  color: var(--om-ink);
-}
-
-:is(
-  a,
-  button,
-  [role="button"],
-  input,
-  select,
-  textarea,
-  [tabindex]
-):focus-visible {
-  outline: 2px solid var(--om-orange);
-  outline-offset: 2px;
-}
-
-* {
-  scrollbar-color: color-mix(in srgb, var(--om-ink) 22%, transparent)
-    transparent;
-}
-
-/* ─── Flow diagrams ─────────────────────────────────────────────────────── */
-
-#content-area .om-flow {
-  --f-node-fill: color-mix(in srgb, var(--om-ink) 3%, transparent);
-  --f-node-stroke: color-mix(in srgb, var(--om-ink) 22%, transparent);
-  --f-edge: color-mix(in srgb, var(--om-ink) 38%, transparent);
-  --f-accent: var(--om-copper);
-  --f-canvas: var(--om-stone);
-
-  margin: 2rem 0;
-  display: flex;
-  justify-content: center;
-}
-.dark #content-area .om-flow {
-  --f-node-fill: color-mix(in srgb, var(--om-ink) 6%, transparent);
-  --f-node-stroke: color-mix(in srgb, var(--om-ink) 20%, transparent);
-  --f-accent: var(--om-orange);
-  --f-canvas: var(--om-stone-dark);
-}
-
-#content-area .om-flow-svg {
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-
-#content-area .om-flow-shape {
-  fill: var(--f-node-fill);
-  stroke: var(--f-node-stroke);
-  stroke-width: 1;
-}
-#content-area .om-flow-node.is-decision .om-flow-shape {
-  fill: color-mix(in srgb, var(--f-accent) 7%, transparent);
-  stroke: color-mix(in srgb, var(--f-accent) 40%, transparent);
-}
-
-#content-area .om-flow-title,
-#content-area .om-flow-sub,
-#content-area .om-flow-chip-text {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-weight: 400;
-  text-anchor: middle;
-}
-#content-area .om-flow-title {
-  font-size: 13px;
-  fill: var(--om-ink);
-}
-#content-area .om-flow-sub {
-  font-size: 11px;
-  fill: var(--om-ink-muted);
-}
-
-#content-area .om-flow-edge {
-  stroke: var(--f-edge);
-  stroke-width: 1.25;
-  stroke-linecap: round;
-  fill: none;
-}
-#content-area .om-flow-edge.is-dashed {
-  stroke-dasharray: 4 4;
-  stroke: color-mix(in srgb, var(--om-ink) 28%, transparent);
-}
-#content-area .om-flow-head {
-  fill: var(--f-edge);
-  stroke: none;
-}
-
-#content-area .om-flow-chip[data-pending] {
-  opacity: 0;
-}
-#content-area .om-flow-chip-bg {
-  fill: var(--f-canvas);
-}
-#content-area .om-flow-chip-text {
-  font-size: 11px;
-  fill: var(--om-ink-muted);
-}
-
-/* ─── Frame / screenshots — one wrapper, one rounding ───────────────────── */
-
-/*
- * Mintlify's <Frame> is figure.frame > (grid backdrop, the clipping
- * div.overflow-hidden that actually holds the image, a border-ring overlay,
- * figcaption). `#content-area figure` only reached the outer figure, so its
- * card padding/background/radius stayed live while the inner clipping div
- * kept its own separate (larger) radius underneath — rounded and square at
- * once. Strip the figure down to a plain box and put the one visible
- * border+radius on the div that actually clips the image.
- */
 #content-area figure.frame {
   padding: 0 !important;
   background: transparent !important;
-  border-radius: 0 !important;
   box-shadow: none !important;
 }
-
 #content-area figure.frame > div[class*="bg-grid"],
-#content-area
-  figure.frame
-  > div[class*="pointer-events-none"][class*="border"] {
+#content-area figure.frame > div[class*="pointer-events-none"][class*="border"] {
+  display: none !important;
+}
+#content-area figure.frame > div.overflow-hidden {
+  clip-path: var(--notch);
+  border: 0 !important;
+  outline: 1px solid var(--frame);
+  outline-offset: -1px;
+}
+#content-area figure.frame figcaption {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: var(--tracking-cell);
+  color: var(--text-3);
+  margin-top: 0.6rem;
+}
+#content-area img {
+  border-radius: 0;
+}
+
+/* ─── Copy-page control ─────────────────────────────────────────────────── */
+
+#page-context-menu button {
+  border: 1px solid var(--frame) !important;
+  color: var(--text-3) !important;
+  background: transparent !important;
+  font-family: var(--font-caption) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  box-shadow: none !important;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+#page-context-menu button[class*="rounded-l"] {
+  border-right-width: 0 !important;
+}
+#page-context-menu button:hover {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--frame-strong) !important;
+}
+
+[role="menu"] {
+  background: var(--surface) !important;
+  border: 1px solid var(--frame-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  clip-path: var(--notch);
+  color: var(--text);
+  font-family: var(--font-body);
+}
+[role="menu"] [role="menuitem"] {
+  border-radius: 0 !important;
+  color: var(--text) !important;
+}
+[role="menu"] [role="menuitem"] :is(p, span, div) {
+  font-family: var(--font-body);
+}
+[role="menu"] [role="menuitem"]:is(:hover, [data-highlighted], :focus-visible) {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+}
+
+/* ─── Table of contents ─────────────────────────────────────────────────── */
+
+#table-of-contents {
+  font-family: var(--font-body);
+}
+/* Caption: type-caption-md, uppercase, tertiary — same as tabs and footer heads. */
+#table-of-contents nav > h2,
+#table-of-contents nav > h2 button,
+#table-of-contents nav > h2 span {
+  font-family: var(--font-caption) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase !important;
+  color: var(--text-3) !important;
+  -webkit-font-smoothing: auto;
+}
+#table-of-contents nav > h2 {
+  margin-bottom: 10px !important;
+  padding-left: 14px; /* aligns with the h2 items, right of the rail */
+}
+#table-of-contents svg {
+  display: none;
+}
+
+/* One rail on the left of the whole list; the active item's segment is
+ * copper. Linden indents each li (pl-4) and every link again via
+ * --toc-padding-left, so both are zeroed and depth is re-applied on the
+ * link alone: h2 flush, h3 one step in. */
+ul.toc {
+  border-left: 1px solid var(--frame);
+  margin-left: 0;
+  padding-left: 0;
+}
+ul.toc ul {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+ul.toc .toc-item {
+  padding-left: 0 !important;
+}
+ul.toc .toc-item > div.absolute {
+  display: none !important;
+}
+ul.toc .toc-item > a {
+  display: block;
+  font-family: var(--font-body) !important;
+  font-size: 13px;
+  font-weight: 400 !important;
+  letter-spacing: var(--tracking-cell);
+  line-height: 1.35;
+  padding: 4px 0 4px 14px !important;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--text-2) !important;
+  text-shadow: none !important;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+ul.toc .toc-item[data-depth="2"] > a {
+  padding-left: 28px !important;
+  color: var(--stone-400) !important;
+}
+ul.toc .toc-item > a:hover {
+  color: var(--text) !important;
+}
+ul.toc .toc-item[data-active] > a {
+  color: var(--text) !important;
+}
+ul.toc .toc-item[data-active-deepest] > a {
+  border-left-color: var(--copper-500);
+}
+
+/* ─── Pagination duplicates the sidebar ─────────────────────────────────── */
+
+#pagination {
   display: none !important;
 }
 
-#content-area figure.frame > div.overflow-hidden {
-  border-radius: 8px !important;
-  border: 1px solid var(--om-border) !important;
+/* ─── Footer — the website's four columns and socials ───────────────────── */
+
+#footer {
+  border-top: 1px solid var(--frame) !important;
+  background: var(--page);
+  font-family: var(--font-body);
+}
+#footer > div {
+  padding: 48px 32px 56px !important;
+  gap: 40px !important;
+}
+#footer img.nav-logo {
+  height: 40px !important;
+  width: 40px !important;
+  max-width: 40px !important;
+  image-rendering: pixelated;
+}
+#footer img.nav-logo.block {
+  display: none !important;
+}
+#footer img.nav-logo.hidden {
+  display: block !important;
 }
 
-#content-area figure.frame figcaption {
-  color: var(--om-ink-muted);
-  font-size: 0.85rem;
+/* Column header: type-caption-md text-text-tertiary */
+#footer h3,
+#footer [class*="font-semibold"]:not(a) {
+  font-family: var(--font-caption) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: var(--text-3) !important;
+  margin-bottom: 12px !important;
+}
+/* Column links: type-body-lg NeueBit, white, hover stone-300 */
+#footer div.flex-col > a.text-sm {
+  font-family: var(--font-nav) !important;
+  font-size: 26px !important;
+  line-height: 0.9 !important;
+  letter-spacing: 0;
+  color: var(--text) !important;
+  text-decoration: none;
+  transition: color 150ms ease;
+  -webkit-font-smoothing: auto;
+}
+#footer div.flex-col > a.text-sm:hover {
+  color: var(--stone-300) !important;
+}
+#footer div.flex-col:has(> a.text-sm) {
+  gap: 14px !important;
+}
+#footer a[href*="mintlify.com"] {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--text-disabled) !important;
 }
 
-#content-area img {
+/* Socials: 40% at rest, full on hover, pixel frame around the hovered one. */
+#footer a[target="_blank"]:has(> svg[style*="mask-image"]) {
+  position: relative;
+  display: inline-flex;
+  opacity: 0.4;
+  transition: opacity 150ms ease;
+}
+#footer a[target="_blank"]:has(> svg[style*="mask-image"]):hover {
+  opacity: 1;
+}
+#footer a[target="_blank"] > svg[style*="mask-image"] {
+  width: 24px !important;
+  height: 24px !important;
+  background-color: var(--text) !important;
+}
+#footer a[target="_blank"]:has(> svg[style*="mask-image"])::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  pointer-events: none;
+  border: 4px solid var(--text);
+  clip-path: var(--notch);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+#footer a[target="_blank"]:has(> svg[style*="mask-image"]):hover::after {
+  opacity: 0.5;
+}
+#footer a[target="_blank"]:has(> svg[style*="mask-image"]):active::after {
+  opacity: 1;
+}
+
+/* Everything else in the footer strip (Mintlify attribution) stays quiet. */
+#footer p,
+#footer span:not(.sr-only) {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+/* ─── Diagrams — box-drawing art (snippets/ascii.jsx) ───────────────────
+ * The boxes carry their own frame and hatched shadow, so the pre is bare:
+ * body mono, no wrap, stone-100 on the canvas. Two stacked diagrams read as
+ * one figure. */
+
+#content-area .om-ascii {
+  margin: 1.25rem 0;
+  padding: 0 !important;
+  overflow-x: auto;
+  background: transparent !important;
+  border: 0;
   border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 13px !important;
+  line-height: 17px !important; /* Geist Mono ascent+descent at 13px: the box glyphs meet */
+  letter-spacing: 0;
+  color: var(--stone-100) !important;
+  white-space: pre;
+  tab-size: 4;
+  font-variant-ligatures: none;
+  scrollbar-width: thin;
+}
+#content-area .om-ascii + .om-ascii {
+  margin-top: 0.75rem !important;
+}
+
+/* ─── Search and assistant sheets stay on the same materials ────────────── */
+
+[role="dialog"] {
+  border-radius: 0 !important;
+  border-color: var(--frame-strong) !important;
+  box-shadow: none !important;
+  clip-path: var(--notch);
+}
+#chat-assistant-sheet,
+[class*="assistant"] textarea,
+#search-input {
+  font-family: var(--font-body);
 }

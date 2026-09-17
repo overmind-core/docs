@@ -18,75 +18,76 @@ Three ways to authenticate; the first is right for almost all programmatic use:
 
 | Method | How | Use for |
 | --- | --- | --- |
-| **API key** | `X-Api-Key: ovr_...`, `Authorization: Bearer ovr_...`, or `Authorization: Api-Key ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, MCP, inference |
-| **JWT** | `POST /api/auth/token/` with credentials → short-lived access + refresh tokens (`POST /api/auth/token/refresh/`) | User-context integrations |
-| **Console session** | Handled by the Console's sign-in | Browser only |
+| **API key** | `X-Api-Key: ovr_...`, `Authorization: Bearer ovr_...`, or `Authorization: Api-Key ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, MCP, inference, `overmind scan push` |
+| **JWT** | `POST /api/auth/token/` with `email` and `password` → access token (1 day) + refresh token (7 days, `POST /api/auth/token/refresh/`) | Accounts created with `POST /api/auth/register/`; guest sessions |
+| **Clerk session** | `Authorization: Bearer <Clerk session token>` | The Console |
 
-A key has a **scope**: `project` pins it to one project, `account` reaches every project the user is a member of. MCP requires a project-scoped key. Keys are created and revoked under **Projects → your project → API keys** or via the API:
+A key has a **scope**: `project` pins it to one project, `account` reaches every project the user is a member of. MCP and `.overmind/credentials.toml` use a project-scoped key; of the two, only an account-scoped key can `POST /api/projects/`. Keys are created and revoked under **Projects → your project → API keys** or via the API:
 
 ```bash
 # Create (the key is returned once), inspect the calling key, list, revoke
 curl -X POST -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
-  -d '{"name": "ci-key", "project": "<project-uuid>", "scope": "project"}' \
+  -d '{"name": "ci-key", "project": "<project-uuid>"}' \
   "https://api.overmindlab.ai/api/auth/api-keys/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/auth/api-keys/current/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/auth/api-keys/"
 curl -X DELETE -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/auth/api-keys/{id}/"
 ```
 
-Keys do not expire; revoke what you no longer need.
+The create body takes `name` (optional) and either `project` (a project id → project-scoped) or `scope` (`{"scope": "account"}`, or `{"scope": "project", "resourceIds": ["<project-uuid>"]}`); the response carries the plaintext `key` once. The list returns metadata only: `id`, `name`, `prefix`, `project`, `scope`, `is_active`, `expires_at`, `last_used_at`, `created_at`. `current/` returns the calling key's scope document. Keys do not expire unless `expires_at` is set on the row; revoke what you no longer need.
 
 ## Endpoint map
 
-Standard REST resources follow Django REST Framework conventions: `GET` list with query-param filtering, `POST` create, `GET/PATCH/DELETE` on `/{id}/`, plus the custom actions listed here.
+Standard REST resources follow Django REST Framework conventions: `GET` list with query-param filtering (paged, 25 per page), `POST` create, `GET/PATCH/DELETE` on `/{id}/`, plus the custom actions listed here.
 
 ### Core resources
 
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
-| Projects | `/api/projects/` | `/{project_id}/memberships/` (list, add, remove), `/{project_id}/invites/` |
-| Capabilities | `/api/capabilities/` | `GET .../eval_spec/`, `GET .../prompts/`, `DELETE .../` (soft delete) |
-| Agent graph | `/api/agent/` | one call: current capabilities and edges |
-| Sync | `/api/v1/sync` | `GET` the project's `overmind.toml` snapshot, `POST` a local one — what `overmind sync` speaks |
-| Traces | `/api/traces/` | list returns root spans with `trace_status` (`live`, `completed`, `interrupted`) and the composed score markers in `feedback_score.trace_scoring`; `GET /{trace_id}/` returns all of a trace's spans; `GET services/`, `GET models/` |
-| Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with session scores |
-| Task executions | `/api/task-executions/` | one row per scored unit — see [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api) for the filters; `GET /{id}/` adds the observed route, step results and intent; `GET conversation-turns/?conversation_id=` (one row per turn, with scores, task state, and tool calls) |
-| Tasks | `/api/behaviours/` | list (execution counts, mean score); `GET coverage/?capability=` (eval-set coverage per task); `GET /{id}/evaluators/`; `GET /{id}/authoring-context/` (the task's contract for task-scoped judge authoring) |
-| Datasets | `/api/datasets/` | create (`intent`, `capability` optional; `source` = `upload_id`, `rows`, `text`, or `traces`), `POST split/` (one source as a train + eval pair), read (cells with versions, chat), patch (`name`, `intent`, `capability`, `active`; intent and capability freeze once a version is used), delete; `GET .../rows/` (paged, `?cell=`, `?diff=1` for marks, sort/filter/search), `GET .../rows/{index}/`, `GET .../columns/`, `POST .../cells/` (add), `PATCH .../cells/{id}/`, `POST .../cells/{id}/accept/` (run a proposal), `POST .../run/`, `POST .../chat/`, `GET .../export/?fmt=jsonl|csv&cell=` (a raw stream, not a use), `GET .../events/` (SSE) — see [Building a dataset](#building-a-dataset) |
-| Uploads | `/api/uploads/` | chunked file upload that a dataset `source.upload_id` refers to |
-| Feedback | `/api/feedback/` | Console feedback |
+| Projects | `/api/projects/` | `GET/POST /{project_id}/memberships/` (add by `email`), `DELETE .../memberships/{id}/` (not yourself), `GET/POST /{project_id}/invites/` (an email with no account; sent through Clerk), `DELETE .../invites/{id}/`; `POST` needs an account-scoped key |
+| Capabilities | `/api/capabilities/` | list is `status=current` unless `?status=leftover`; `PATCH` any field but `slug` (`name`, `description`, `model`, `active_model` — a `ready` deployment in the same project — the eval-spec fields); `DELETE` sets `status=deleted` and keeps traces, datasets and runs; `GET .../eval_spec/`; `GET .../prompts/` (selectable system prompts, paged) |
+| Agent graph | `GET /api/agent/?project=` | current capabilities plus `invokes` / `shares_tool` edges weighted by observed transitions |
+| Scan | `POST /api/v1/scan/` | what `overmind scan push` sends: `{skeleton, manifest, report, cards}`; API key only; `413` over 20 MB, `400 invalid_scan` when the skeleton hash, manifest or a card fails validation, `400` when `manifest.project.id` is missing and the key sees more than one project, `403` when the key does not match it; returns `{project_id, snapshot_id, capabilities: [{key, id, status, created}]}` |
+| Latest scan | `GET /api/projects/{project_id}/scan/latest/` | the last push: report, skeleton counts and one row per cluster with the capability it carried; `404 no_scan` until a push lands |
+| Traces | `/api/traces/` | list returns one head span per trace (the root once it arrives) with `trace_status` (`live`, `completed`, `interrupted`), per-trace `total_tokens`/`total_cost`/`model`, `scoring_pending` and `feedback_score`; `?all_spans=true` lists spans instead; `GET /{trace_id}/` returns `root`, `span_count`, `trace_status`, `usage` and every span; `GET services/`, `GET models/` |
+| Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score`; `GET /{id}/` |
+| Task executions | `/api/task-executions/` | read-only; one row per unit bound to a behaviour — filters in [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api); `GET /{id}/` adds `observed_route`, `step_results`, `user_intent`, `execution_score` and `flow`; `GET conversation-turns/?conversation_id=` (one row per turn) |
+| Behaviours | `/api/behaviours/` | list only (`execution_count`, `avg_success_score`); `GET coverage/?capability=`; `GET /{id}/evaluators/` (the compiled step and outcome judges); `GET /{id}/authoring-context/` (the latest contract's steps, tool set and terminal). The Console labels this column "Task" |
+| Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, read (cells with versions, chat), patch (`name`, `intent`, `capability`, `active`; intent and capability are fixed once a version is used), delete (refused while a version is referenced); `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `POST .../cells/`, `PATCH/DELETE .../cells/{id}/`, `POST .../cells/{id}/accept/`, `POST .../run/`, `POST .../chat/`, `GET .../export/`, `GET .../events/` — see [Building a dataset](#building-a-dataset) |
+| Uploads | `/api/uploads/` | `POST` with `filename` reserves an upload → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; the id goes into a dataset `source.upload_id` |
+| Feedback | `POST /api/feedback/` | Console feedback |
+| Connectors | `/api/connector-credentials/` | Langfuse, LangSmith, Braintrust, Galileo; list hides inactive rows and unfinished drafts (`?include_inactive=true`, `?include_drafts=true`); `POST .../verify/`, `GET .../source-projects/`, `POST .../preview/`, `GET .../discover-capabilities/`, `PUT .../capability-mapping/`, `POST .../config/`, `POST .../sync/` (202), `GET .../runs/`; `DELETE` disconnects and keeps imported traces |
 
 ### Evaluation
 
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
-| Evaluators | `/api/evaluators/` | `GET catalog/`, `GET score-history/`, `POST author/` (a judge from a prompt, optionally task-bound), `PUT /{id}/author/`, `POST generate-prompt/` |
-| Eval sets | `/api/eval-sets/` | `POST .../members/`, `DELETE .../members/{member_id}/`, `POST .../activate/` |
-| Eval runs | `/api/eval-runs/` | `GET datasets/` (the eval datasets a run may take), `POST .../run/` (re-launch: deletes the run's samples and scores first), `POST .../cancel/`, `GET .../comparison/` |
-| Verdicts | `/api/verdicts/` | read surface for score detail — one row per evaluator per trace unit; filter by `trace_id`, `target_id`, `evaluator_name`, `outcome` |
-| Samples / scores | `/api/eval-samples/`, `/api/eval-scores/` | |
+| Evaluators | `/api/evaluators/` | `GET catalog/?project=&capability=&search=` (unpaged), `GET score-history/?capability=`, `POST author/` (an `llm_judge` from a prompt; optionally attached to an eval set), `PUT /{id}/author/` (edit in place), `POST generate-prompt/` (credit-gated) |
+| Eval sets | `/api/eval-sets/` | `POST .../members/` (`role` plus `evaluator_ids` and/or `specs`), `PATCH/DELETE .../members/{member_id}/`, `POST .../activate/` |
+| Eval runs | `/api/eval-runs/` | create launches (credit-gated); `GET datasets/` (datasets that have runs), `POST .../run/` (re-launch: deletes the run's samples and scores first), `POST .../cancel/`, `GET .../comparison/` |
+| Verdicts | `/api/verdicts/` | list only — one row per evaluator per target; filter by `trace_id`, `target_id`, `target_id__in`, `target_kind`, `evaluator_name`, `outcome` |
+| Samples / scores | `/api/eval-samples/`, `/api/eval-scores/` | read |
 
 ### Optimisation, training, serving
 
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
-| Optimiser runs | `/api/optimizer-experiments/` | `GET .../iterations/`, `GET .../commands/`, `POST .../cancel/`, and the client-loop actions the CLI posts: `POST .../template/`, `POST .../add-iteration/`, `POST .../results/`, `POST .../evaluate/`, `POST .../complete/` |
-| Optimiser candidates | `/api/optimizer-candidates/` | read |
-| Training runs | `/api/finetuning-jobs/` | `GET models/`, `POST model-defaults/`, `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `GET dataset-overlap/`, `GET .../loss-curves/`, `GET .../events/`, `POST .../cancel/`, `POST .../retry/`, `GET .../model-swap-prompt/` |
-| Deployed models | `/api/deployed-models/` | `POST .../deploy/`, `POST .../undeploy/`, `POST .../retry/`, `GET .../metrics/`, `GET .../activity/`, `GET .../live/`, `GET .../checkpoints/` (a presigned download link) |
+| Optimisation runs | `/api/optimizer-experiments/` | `GET`, `POST` (credit-gated), `DELETE`; `?capability=`; `GET .../iterations/`, `GET .../commands/?status=`, `POST .../cancel/`, and the client-loop actions the CLI posts: `POST .../template/`, `POST .../add-iteration/`, `POST .../results/`, `POST .../evaluate/`, `POST .../complete/` |
+| Candidates | `/api/optimizer-candidates/` | read |
+| Training runs | `/api/finetuning-jobs/` | create launches (credit-gated); `GET runs/` (jobs grouped by `group_id`, whole runs per page), `GET datasets/`, `GET base-models/`, `GET models/` (the catalog by tier), `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `POST model-defaults/`, `GET dataset-overlap/?dataset=&eval_dataset=`, `GET .../events/`, `GET .../loss-curves/`, `POST .../cancel/`, `POST .../retry/`, `GET .../model-swap-prompt/?pin=` |
+| Deployed models | `/api/deployed-models/` | `GET`, `DELETE`; `POST .../deploy/`, `POST .../retry/` (both credit-gated), `POST .../undeploy/`, `GET .../metrics/`, `GET .../activity/`, `GET .../live/`, `GET .../checkpoints/` (a presigned download link) |
 
 ### Special endpoints
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /api/v1/traces` (alias `/v1/traces`) | [OTLP trace ingest](/core/observability#the-otlp-endpoint) — protobuf, not JSON |
+| `POST /api/v1/traces` (alias `/v1/traces`) | [OTLP trace ingest](/core/observability#the-otlp-endpoint) — protobuf, not JSON; never credit-gated |
 | `POST /api/mcp/` | The [MCP server](/platform/mcp) — Streamable HTTP |
-| `POST /api/v1/chat/completions`, `GET /api/v1/models`, `GET|DELETE /api/v1/models/{model_id}` | [OpenAI-compatible inference](/models/inference#endpoints) |
-| `GET /api/models/catalog/` | The frontier-model catalogue used for judges and run variants |
-| `GET /api/public/models/` | The public model library, unauthenticated |
+| `POST /api/v1/chat/completions`, `GET /api/v1/models`, `GET|DELETE /api/v1/models/{model_id}` | [OpenAI-compatible inference](/models/inference#calling-your-model) |
+| `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run variants |
+| `GET /api/public/models/`, `GET /api/public/models/{slug}/` | The public model library, unauthenticated |
 | `GET /health` | Health check (no auth) |
-| `/api/connector-credentials/` | Tracing connectors; `POST .../sync/` |
-| `/api/auth/register/`, `/api/auth/me/`, `/api/auth/onboarding/`, `/api/auth/guest/`, `/api/auth/guest/claim/` | Account, onboarding state, guest workspaces |
+| `/api/auth/register/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Account, onboarding state, guest workspaces |
 | `/api/billing/subscription/`, `ledger/`, `checkout/`, `topup/`, `cancel/`, `renew/`, `webhook/` | Plans, the credits ledger, Stripe |
 
 ## Building a dataset
@@ -99,43 +100,48 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     `POST /api/datasets/` with `project`, `name`, optional `intent` (`train` or `eval`) and
     `capability`, and exactly one `source`: `upload_id` (+ `filename`), `rows` or `text` for
     pasted data, or `traces` (`trace_ids`, or a trace-list selection of `filters` and/or
-    `search`; one row lands per trace, and an interrupted trace with no root span lands like any
-    other). The selection is validated and counted first: an unknown filter key or a selection
-    that matches no trace is a 400, so a dataset never lands empty. `POST /api/datasets/split/`
-    takes the same body plus `eval_percent` and `position` and returns `{train, eval}`. The response is
-    the dataset; landing runs in the background, `state` moves from `landing` to `diagnosing`
-    while the agent runs its preparation turn, then `idle`. Landing proposes `capability_rank` and
-    the `intent` when they were left out.
+    `search`; one row lands per trace). The selection is validated and counted first: an
+    unknown filter key or a selection that matches no trace is a 400, so a dataset never lands
+    empty. The response is the dataset; landing runs in the background and `state` moves from
+    `landing` to `diagnosing` while the agent runs its preparation turn, then `idle` (`error`
+    on failure). Landing proposes `capability_rank` and the `intent` when they were left out.
   </Step>
   <Step title="Shape it">
     `POST /api/datasets/{id}/cells/` adds a cell (`title`, `script`, `note`) at the end of the
-    chain; `PATCH .../cells/{id}/` edits it and queues every cell after it; `POST .../run/`
-    executes the queued cells in order (an unchanged cell keeps its frame). `POST .../chat/`
-    sends a message to the dataset's agent, which lands cells itself. `GET .../events/` streams
-    `cell_started`, `cell_done`, `cell_failed`, `run_done`, `run_failed`, `chat_turn`,
-    `chat_step`, `chat_delta` and `chat_cell` as server-sent events.
+    chain; `PATCH .../cells/{id}/` edits it and a script change queues it and every cell after
+    it; `DELETE .../cells/{id}/` removes it unless it is frozen; `POST .../run/` executes the
+    queued cells in order (an unchanged cell keeps its frame). `POST .../chat/` sends a message
+    to the dataset's agent, which lands cells itself; `POST .../cells/{id}/accept/` runs a cell
+    the agent proposed. Writes are refused with `409` while the agent is working.
+    `GET .../events/` streams `land_started`, `land_progress`, `land_done`, `land_failed`,
+    `run_started`, `cell_started`, `cell_done`, `cell_failed`, `run_done`, `run_failed`,
+    `chat_turn`, `chat_thinking`, `chat_step`, `chat_delta`, `chat_cell`, `chat_failed`,
+    `cells_changed` and `dataset_changed` as server-sent events, replaying what you missed first.
   </Step>
   <Step title="Read a version">
     The dataset's `cells` carry every version: `version`, `state`, `rows`, `columns`,
-    `intent_report` and `capability_report`, `fits` against the intent, `stats`, and `frozen`. `GET .../rows/?cell=&diff=1` pages a frame with
-    `marks` (rows added, values changed with the old value).
+    `intent_report` and `capability_report`, `fits` against the intent, `stats`, and `frozen`.
+    `GET .../rows/?cell=&offset=&limit=&sort=&dir=&filters=&search=&diff=1` pages a frame (up to
+    500 rows) with `marks` (rows added, values changed with the old value) against the cell
+    before it; `GET .../columns/?cell=` returns per-column stats.
   </Step>
   <Step title="Use it">
-    Eval runs, optimiser experiments and finetuning jobs take `dataset` and, optionally,
-    `cell`; without it the active version is used. A version whose contracts do not fit the
-    intent, a dataset of the other intent, or a cell of another dataset, is refused with the
-    reason. A use freezes the version and starts a new major number.
+    Eval runs, optimisation runs and training runs take `dataset` and, optionally, `cell`;
+    without it the active version is used. A version whose contracts do not fit the intent, a
+    dataset of the other intent, or a cell of another dataset, is refused with the reason. A
+    use freezes the version and starts a new major number.
   </Step>
   <Step title="Pull it">
-    A local loop reads the used version, never the dataset: `GET .../export/?fmt=jsonl&cell={id}`.
-    The response carries `X-Overmind-Cell`, `X-Overmind-Version` and `X-Overmind-Fingerprint`;
-    the SDK caches the file as `.overmind/datasets/{cell}.jsonl` with the fingerprint beside it
-    and fetches again when it no longer matches.
+    A local loop reads the used version, never the dataset: `GET .../export/?fmt=jsonl&cell={id}`
+    (`fmt=csv` for CSV; a raw stream, not a use). The response carries `X-Overmind-Cell`,
+    `X-Overmind-Version` and `X-Overmind-Fingerprint`; the CLI caches the file as
+    `.overmind/datasets/{cell}.jsonl` with the fingerprint beside it and fetches again when it
+    no longer matches.
   </Step>
 </Steps>
 
 ## Conventions
 
-- **Filtering** uses django-filter query parameters on list endpoints (the Console's filter bar builds exactly these URLs — copy them from your browser).
-- **Errors**: `401` unauthenticated, `402` insufficient credits for compute-consuming actions when the credit gate is on (hosted; trace ingest is never credit-gated), `403` plan limits, `404` wrong project or missing resource.
+- **Filtering** uses django-filter query parameters on list endpoints (the Console's filter bar builds exactly these URLs — copy them from your browser). List responses are paged: `count`, `next`, `previous`, `results`.
+- **Errors** are JSON with `detail` and, when the client needs to tell cases apart, `code`: `401` unauthenticated, `402 insufficient_credits` on launching paid work when the credit gate is on (hosted; a positive balance passes), `403 plan_limit_exceeded` / `seat_limit_exceeded` on Free-plan caps, `403 guest_upgrade_required` when a guest writes, `404` wrong project or missing resource, `409 conflict` on a uniqueness race, `500 internal_error` with an `error_id` to quote.
 - **IDs** are UUIDs except spans (16-hex `span_id`) and traces (32-hex `trace_id`).
