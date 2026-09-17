@@ -5,7 +5,7 @@
  * tokens (apps/web/app/tokens.css): stone-900 page, stone-800 surfaces,
  * stone-700 frames. Chrome is the website's pixel language: 4px notched
  * clip-path frames, PixelButton fills, the pixel outline that appears
- * around a control on hover, the eye that blinks, scanlines over the page.
+ * around a control on hover, the eye that blinks. The canvas itself is flat.
  * Type is Mondwest for titles, NeueBit for navigation, Pixelify Sans for
  * button captions, Geist Pixel for prose, Geist Mono for code. The pointer
  * is the website's four-state pixel cursor.
@@ -207,21 +207,6 @@ body,
 #footer [class*="rounded"],
 #sidebar [class*="rounded"] {
   border-radius: 0 !important;
-}
-
-/* ─── CRT scanlines (website crt-overlay.tsx: 1px lines every 6px at .08,
- *     vignette .35, whole layer at .5). Below the navbar and any modal. ── */
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 29;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image:
-    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%),
-    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.08) 1px, transparent 1px, transparent 6px);
 }
 
 /* ─── Navbar — the website's floating pixel-border header ───────────────── */
