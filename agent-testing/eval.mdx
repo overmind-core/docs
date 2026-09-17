@@ -1,35 +1,35 @@
 ---
 title: Eval
-description: Evaluator kinds and their configuration, claims and task bindings, eval sets, live trace scoring, and eval runs — with the endpoints behind them.
+description: Evaluator kinds and their configuration, claims and behaviour bindings, eval sets, live trace scoring, and eval runs — with the endpoints behind them.
 ---
 
-Eval is where you define what "good" means for an agent and measure it — in batch runs that compare models and prompts side by side, and continuously on production traces as they arrive. The same evaluators serve both, so an improvement measured offline is directly comparable to live scores.
+Eval is where you define what "good" means for a capability and measure it — in batch runs that compare models and prompts side by side, and continuously on production traces as they arrive. The same evaluators serve both.
 
 The **Evaluations** area of the Console has three surfaces: **Runs**, **Eval sets**, and the **Eval library**.
 
 ## Evaluators
 
-An evaluator is one reusable, versioned scorer — editing one creates a new version, so past runs keep meaning what they meant. Five kinds exist:
+An evaluator is one reusable, versioned scorer — editing one writes a new `version` row, so past runs keep meaning what they meant. Five kinds exist:
 
-<AccordionGroup>
-  <Accordion title="LLM judge (llm_judge)">
-    A model grades the response against a rubric you write in plain language. The rubric is compiled into a checklist of atomic, weighted questions; items can be **gates** that force a fail regardless of the rest of the score. Judges return reasoning and per-item sub-scores. The managed Correctness, Faithfulness, and Hallucination judges use a **proportional** mode instead: they enumerate the output's claims and score the share that holds. Judge responses are cached content-addressed, so re-scoring identical inputs is free.
-  </Accordion>
-  <Accordion title="Deterministic (deterministic)">
-    A fixed rule, no model involved. Available checks: `exact_match`, `contains`, `regex`, `json_schema_valid`, `schema_field_conformance`, `field_present`, `reference_field_compare`, `canonical_fields`, `tool_selection` (precision/recall/F1 over called tools), `tool_args_match`, `goal_state_match`, `card_constraints`, `latency`, `cost`, and `turn_count`. Fast, free, unambiguous — use these wherever the question has a mechanical answer.
-  </Accordion>
-  <Accordion title="Trajectory (trajectory)">
+<Tabs>
+  <Tab title="LLM judge (llm_judge)">
+    A model grades the response against a rubric you write in plain language. The rubric is compiled into a checklist of atomic, weighted yes/no questions; on a boolean evaluator an item can be a **gate** that fails the verdict regardless of the rest. Judges return reasoning and per-item sub-scores. The managed Correctness and Faithfulness judges use a **proportional** mode instead: they enumerate the output's claims and score the share that holds. Judge responses are cached content-addressed, so re-scoring identical inputs is free.
+  </Tab>
+  <Tab title="Deterministic (deterministic)">
+    A fixed rule, no model involved. Checks: `exact_match`, `contains`, `regex`, `json_schema_valid`, `schema_field_conformance`, `field_present`, `reference_field_compare`, `canonical_fields`, `tool_selection` (precision/recall/F1 over called tools), `tool_args_match`, `goal_state_match`, `card_constraints`, `latency`, `cost`, and `turn_count`.
+  </Tab>
+  <Tab title="Trajectory (trajectory)">
     Judges the path the agent took, not just the output. Two modes: **match** compares the tool-call sequence against a reference with `strict`, `unordered`, `subset`, `superset`, or `subsequence` semantics (with per-tool argument-match overrides), or **judge** hands the trajectory to an LLM.
-  </Accordion>
-  <Accordion title="Agentic (agentic)">
-    An LLM judge built for long, multi-step agent runs where there is a lot of trajectory to read and summarise before scoring; on live traces the summarising cascade keeps the judge under its context budget.
-  </Accordion>
-  <Accordion title="Statistical (statistical)">
-    Scores a whole dataset at once rather than one example at a time: `accuracy`, `precision`, `recall`, `f1` (macro/micro/weighted), `calibration` (expected calibration error with a bootstrap interval), `exact_match`, `bleu`, `rouge_l`, `embedding_cosine`, `chrf`, and `duplicate_rate`, with configurable prediction normalisation (`strip`, `first_word`, `last_word`, `first_line`, `last_line`, or a custom `regex:` extractor). When the references are labels, the run also reports per-class precision, recall, F1 and a confusion matrix.
-  </Accordion>
-</AccordionGroup>
+  </Tab>
+  <Tab title="Agentic (agentic)">
+    An LLM judge for long, multi-step runs; on live traces the summarising cascade keeps the judge under its context budget.
+  </Tab>
+  <Tab title="Statistical (statistical)">
+    Scores a whole dataset at once rather than one example at a time: `accuracy`, `precision`, `recall`, `f1` (macro/micro/weighted), `calibration` (expected calibration error with a bootstrap interval), `exact_match`, `bleu`, `rouge_l`, `embedding_cosine`, `chrf`, and `duplicate_rate`, with `output_normalize` set to `strip` (default), `first_word`, `last_word`, `first_line`, `last_line`, or a `regex:<pattern>` extractor. When the references are labels, the run also reports per-class precision, recall, F1 and a confusion matrix.
+  </Tab>
+</Tabs>
 
-Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajectory`, `sample`, or `dataset`), a **score type** (numeric, categorical, or boolean) with a **pass threshold**, an **evidence requirement** (the model output, a harness artifact, the trajectory, or a reference answer), and a **surface** — `model`, `harness`, or `any` — that says which eval-set roles it may serve: a model grader never runs on live trace scoring, a harness grader never runs in generate mode. If a run can't supply the required evidence, the evaluator abstains or is marked not-applicable instead of producing a meaningless number.
+Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajectory`, `sample`, or `dataset`), a **score type** (`numeric`, `categorical`, or `boolean`) with a `pass_threshold`, an **evidence requirement** (`model_output`, `harness_artifact`, `trajectory`, or `reference`), and a **surface** — `model`, `harness`, or `any` — that says where it may run: a `model` grader never runs on live trace scoring, a `harness` grader never runs on a generate variant. If a run cannot supply the required evidence, the evaluator abstains or is marked not-applicable instead of producing a number.
 
 ### Claims
 
@@ -39,49 +39,49 @@ Every evaluator also carries a **claim**: what it asserts and at which grain. Th
 | --- | --- | --- |
 | `conformance` | The output has the required shape (a schema, a field, a format) | A scoring leaf whose own `passed` flips on failure |
 | `verification` | A fact in the output checks out against evidence | A scoring leaf whose own `passed` flips on failure |
-| `progress` | A step of the task was taken | A weighted leaf |
+| `progress` | A step of the behaviour was taken | A weighted leaf |
 | `quality` | The delivered result is good | A weighted leaf |
 | `grounding` | The deliverable rests on the evidence gathered | A weighted leaf |
 | `safety` | Nothing harmful or forbidden happened | A cap on the score |
 
-The **grain** is the slice a claim is judged on: `unit` (one turn or step), `trajectory` (the path through the task), `terminal` (the deliverable), or `session` (the whole conversation). Grains land in three weighted phases — steps, trajectory, output — and no single evaluator vetoes the composite.
+The **grain** is the slice a claim is judged on: `unit` (one turn or step), `trajectory` (the path through the behaviour), `terminal` (the deliverable), or `session` (the whole conversation). Grains land in three weighted phases — steps, trajectory, output — and no single evaluator vetoes the composite.
 
-### Task bindings
+### Behaviour bindings
 
-An evaluator can be bound to one of the capability's [tasks](/core/capabilities#local-discovery) with a role: an **outcome** evaluator judges the task's deliverable, a **step** evaluator judges one anchor segment of its route. The Eval library groups evaluators by task, shows each task's coverage (outcome plus every step), and lists the rest under **Unassigned**. `GET /api/behaviours/coverage/?capability={id}` returns the same rollup.
+An evaluator can be bound to one of the capability's [behaviours](/core/capabilities#the-scan) with a role: an **outcome** evaluator judges the behaviour's deliverable, a **step** evaluator judges one anchor segment of its route. The Eval library groups evaluators by behaviour (the Console labels it "Task"), shows each behaviour's coverage (outcome plus every step), and lists the rest under **Unassigned**. `GET /api/behaviours/coverage/?capability={id}` returns the same rollup.
 
-Judges are authored task-scoped from the task's group in the Eval library or through the `upsert_evaluator` MCP tool: `POST /api/evaluators/author/` takes `behaviour`, `behaviour_role` (`outcome` or `step`), and — for a step judge — the `anchor_segment`, validated against the task's contract. `GET /api/behaviours/{id}/authoring-context/` grounds the authoring with the task's latest contract: anchor sequence, steps, tool set, and terminal. A judge with the `trace_scoring` role must be bound to a task, and `eval_set` plus `eval_set_role` attach the new judge to an eval set in the same call.
+Judges are authored behaviour-scoped from the behaviour's group in the Eval library or through the `upsert_evaluator` MCP tool: `POST /api/evaluators/author/` takes `behaviour`, `behaviour_role` (`outcome` or `step`), and — for a step judge — the `anchor_segment`, validated against the behaviour's contract. `GET /api/behaviours/{id}/authoring-context/` grounds the authoring with the behaviour's latest contract: anchor sequence, steps, tool set, and terminal. A judge whose `applicable_roles` include `trace_scoring` must be bound to a behaviour, and `eval_set` plus `eval_set_role` attach the new judge to an eval set in the same call. `PUT /api/evaluators/{id}/author/` re-authors an existing judge.
 
 ### Authoring
 
-Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator. The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
+Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
 
-A local `overmind sync` also preloads a starter set per capability in two tiers: rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call), then AI-authored judges grounded in the card, the prompt, and the task map. Authoring reads the capability's **evidence profile** — what its telemetry actually carries (declared tasks, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
+`overmind scan push` preloads the capability's Default eval set for every capability it created, remounted, or whose card changed, in tiers: Tier 0, rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call); Tier 1, generative LLM judges grounded in the card, the prompt, and the behaviour map; and the behaviour outcome and step judges for trace scoring. When Tier 1 authors nothing for the generative role, one floor judge fills the role until a later push covers it. Authoring reads the capability's **evidence profile** — what its telemetry carries (declared behaviours, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
 
-<Frame caption="The Eval library grouped by task, with each task's outcome and step coverage.">
-  <img src="/images/platform/eval-library.jpg" alt="Eval library grouped by task" />
+<Frame caption="The Eval library grouped by behaviour, with each behaviour's outcome and step coverage.">
+  <img src="/images/platform/eval-library.jpg" alt="Eval library grouped by behaviour" />
 </Frame>
 
-Evaluators are platform-managed templates, project-wide, or scoped to a single capability — a triage capability and a planner never accidentally share criteria.
+Evaluators are platform-managed templates, project-wide, or scoped to a single capability.
 
 ## Eval sets
 
-An eval set is a named group of a capability's evaluators — the working definition of "good" for that capability. Each member carries a **role**:
+An eval set is a named group of a capability's evaluators. Each member carries a **role**:
 
-- **Generative** members score outputs produced during eval runs and experiments.
-- **Trace scoring** members run on every production trace, per task execution, writing verdicts and the execution score into [Observability](/core/observability#scores-on-arrival). The mechanics are on [Trace scoring](/agent-testing/trace-scoring).
+- `generative` members score outputs produced during eval runs and optimisation runs.
+- `trace_scoring` members run on every production trace, per task execution, writing verdicts and the execution score into [Observability](/core/observability#scores-on-arrival). The mechanics are on [Trace scoring](/agent-testing/trace-scoring).
 
-The same evaluator can hold both roles. One set per capability is **active** — it's what optimisation runs and benchmarks default to.
+The same evaluator can hold both roles. One set per capability is **active** (`POST /api/eval-sets/{id}/activate/`); it is what trace scoring, optimisation runs and training runs default to. `POST /api/eval-sets/{id}/members/` adds members.
 
 ## Eval runs
 
-An eval run is a controlled experiment: **one data source × N variants × M evaluators.**
+An eval run is one experiment: **one data source × N variants × M evaluators.**
 
-- **Data source** — a dataset (the exact version is used and frozen, so the run stays reproducible as the dataset evolves) or a trace filter drawing directly from captured traffic. `max_items` caps how many rows are drawn.
-- **Variants** — the columns of the experiment. A variant either **generates** fresh outputs by re-running a model over each row, or grades **existing** traces as-is. Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the **baseline** that every other is measured against.
-- **Evaluators** — attached as frozen snapshots at creation, so later library edits can't change what a completed run measured.
+- **Data source** — `dataset` (the version is used and frozen, so the run stays reproducible as the dataset evolves) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
+- **Variants** — the columns of the experiment. A variant's `mode` is `generate` (re-run a model over each row) or `existing` (grade the recorded output as-is). Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the baseline (`is_baseline`) every other is measured against.
+- **Evaluators** — attached as frozen snapshots at creation, so later library edits cannot change what a completed run measured.
 
-Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels — both would return numbers that mean nothing. In the Console, an eval dataset version feeds two consumers from its cell: **Run the optimiser**, and **Use in a training job**, where it scores the job before and after training. Eval runs themselves are created through the API and the `run_evaluation` MCP tool, not from a dataset by hand.
+Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, an eval dataset version feeds two consumers from its cell: **Run the optimiser**, and **Use in a training job**, where it scores the job before and after training. Eval runs themselves are created through the API and the `run_evaluation` MCP tool.
 
 ```bash
 # Create (which also launches), follow, and compare a run
@@ -100,14 +100,16 @@ curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/jso
   "https://api.overmindlab.ai/api/eval-runs/"
 
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/comparison/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/run/"   # re-launch: drops samples and scores first
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/run/"     # re-launch: deletes samples and scores first
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/cancel/"  # revokes in-flight tasks
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/datasets/"             # datasets that have runs
 ```
 
-Execution fans out server-side: sample preparation (generation), then one scoring task per sample × evaluator, then aggregation into the run summary. Runs move through pending → running → completed (or failed/cancelled) and can be cancelled mid-flight.
+Execution fans out server-side: sample preparation (generation), then one scoring task per sample × evaluator, then aggregation into the run summary. A run's `status` moves `pending` → `running` → `completed`, or ends `failed` or `cancelled`.
 
 For recorded conversations, a generated variant can set `params.generation_strategy` to `per_assistant_turn`. The model produces one decision for each recorded assistant turn, using the conversation recorded before that turn as context. Tool calls are evaluated as decisions without executing their tools. Each subsequent turn uses the recorded history, keeping its context independent of the candidate's previous decisions. Such a run attaches a per-turn judge automatically, and `params.replay_dimensions` names what it grades. This also applies to conversations containing a single recorded assistant turn; a tool-only decision does not require a final answer.
 
-Generation activity keeps the run's activity timestamp current. A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
+A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
 
 ### Reading the report
 
@@ -115,23 +117,17 @@ Generation activity keeps the run's activity timestamp current. A sample that ex
   <img src="/images/platform/eval-run-results.jpg" alt="Eval run report with results, distributions and operations" />
 </Frame>
 
-The report shows per-variant rollups (mean score, pass rate) per evaluator, the score distribution per evaluator and variant, cost and latency per model — generation cost and eval cost separated — and a per-datapoint table. Opening a datapoint shows each evaluator's verdict with its reasoning; **Compare runs** lays one run's results next to another's.
+The report shows per-variant rollups (mean score, pass rate) per evaluator, the score distribution per evaluator and variant, cost and latency per model — generation cost and eval cost separated — and a per-datapoint table. Opening a datapoint shows each evaluator's score with its reasoning; the **Compare runs** tab lays one run's results next to another's.
 
-<Frame caption="Datapoint drill-down: each evaluator's verdict with reasoning. A check that couldn't be fairly applied is not-applicable and doesn't drag the averages.">
+<Frame caption="Datapoint drill-down: each evaluator's score with reasoning. A check that could not be applied is not-applicable and does not enter the averages.">
   <img src="/images/platform/eval-datapoint.jpg" alt="Per-datapoint evaluator scores with reasoning" />
 </Frame>
 
-Two details in the scoring model are worth understanding:
+- **Outcomes are typed.** Every score's `outcome` is `scored`, `abstained`, `not_applicable`, `skipped`, or `error` — and only `scored` results feed averages and pass rates.
+- **Samples can be degraded.** Each trace is normalised into a canonical transcript before scoring; if it cannot be reconstructed, the sample is marked `degraded` with a `degraded_reason` and excluded from aggregates. Failure scores also carry a `failure_role` — `root_cause` or `propagated` — so one upstream failure does not read as five independent ones.
 
-- **Outcomes are typed.** Every score is `scored`, `abstained`, `not_applicable`, `skipped`, or `error` — and only `scored` results feed averages and pass rates.
-- **Samples can be degraded.** Each trace is normalised into a canonical transcript before scoring; if it can't be faithfully reconstructed, the sample is marked degraded and excluded from aggregates rather than silently polluting them. Failure scores also carry a role — root cause vs. propagated — so one upstream failure doesn't read as five independent ones.
-
-Scores accumulate into a per-capability history that powers the trend chart on the capability page.
+Scores accumulate into a per-capability history (`GET /api/evaluators/score-history/`) that powers the trend chart on the capability page.
 
 ## Calibrating judges
 
-Samples accept **annotations** — human labels with an optional note, written through the `annotate_evaluation_sample` MCP tool — giving you ground truth to compare judge behaviour against. When a judge and your annotations disagree consistently, tighten the rubric; the checklist compilation makes it easy to see which specific criterion is drifting.
-
-## Getting started sensibly
-
-Begin with three to five metrics: a deterministic check or two for your output contract (`json_schema_valid`, `tool_selection`), one judged metric for the quality dimension you care about, and a reference-based check if you have labelled data. Run them against a small real dataset, read the per-example reasoning, fix the rubric where the judge misunderstood you — then scale up.
+Samples accept **annotations** — human labels with an optional note, written through the `annotate_evaluation_sample` MCP tool — giving you ground truth to compare judge behaviour against. When a judge and your annotations disagree consistently, tighten the rubric; the compiled checklist shows which criterion is drifting.
