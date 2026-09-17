@@ -1264,49 +1264,72 @@ body,
 #table-of-contents {
   font-family: var(--font-body);
 }
+/* Caption: type-caption-md, uppercase, tertiary — same as tabs and footer heads. */
 #table-of-contents nav > h2,
 #table-of-contents nav > h2 button,
 #table-of-contents nav > h2 span {
-  font-family: var(--font-nav) !important;
-  font-size: 24px !important;
+  font-family: var(--font-caption) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
   line-height: 1;
-  letter-spacing: 0.05em;
-  text-transform: none !important;
-  color: var(--text) !important;
+  letter-spacing: 0;
+  text-transform: uppercase !important;
+  color: var(--text-3) !important;
   -webkit-font-smoothing: auto;
+}
+#table-of-contents nav > h2 {
+  margin-bottom: 10px !important;
+  padding-left: 14px; /* aligns with the h2 items, right of the rail */
 }
 #table-of-contents svg {
   display: none;
 }
 
+/* One rail on the left of the whole list; the active item's segment is
+ * copper. Linden indents each li (pl-4) and every link again via
+ * --toc-padding-left, so both are zeroed and depth is re-applied on the
+ * link alone: h2 flush, h3 one step in. */
 ul.toc {
   border-left: 1px solid var(--frame);
   margin-left: 0;
+  padding-left: 0;
 }
-ul.toc .toc-item a {
-  font-family: var(--font-body) !important;
-  font-size: 13px;
-  letter-spacing: var(--tracking-cell);
-  line-height: 1.35;
-  padding: 3px 0 3px 12px;
-  margin-left: -1px;
-  border-left: 1px solid transparent;
-  color: var(--text-3) !important;
-  transition: color 150ms ease, border-color 150ms ease;
+ul.toc ul {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }
-ul.toc .toc-item a::before,
+ul.toc .toc-item {
+  padding-left: 0 !important;
+}
 ul.toc .toc-item > div.absolute {
   display: none !important;
 }
-ul.toc .toc-item a:hover {
-  color: var(--text) !important;
-  border-left-color: var(--stone-500);
+ul.toc .toc-item > a {
+  display: block;
+  font-family: var(--font-body) !important;
+  font-size: 13px;
+  font-weight: 400 !important;
+  letter-spacing: var(--tracking-cell);
+  line-height: 1.35;
+  padding: 4px 0 4px 14px !important;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--text-2) !important;
+  text-shadow: none !important;
+  transition: color 150ms ease, border-color 150ms ease;
 }
-ul.toc .toc-item a[class*="active"],
-ul.toc .toc-item.active a,
-ul.toc .toc-item a[aria-current="true"] {
+ul.toc .toc-item[data-depth="2"] > a {
+  padding-left: 28px !important;
+  color: var(--stone-400) !important;
+}
+ul.toc .toc-item > a:hover {
   color: var(--text) !important;
-  border-left-color: var(--stone-100);
+}
+ul.toc .toc-item[data-active] > a {
+  color: var(--text) !important;
+}
+ul.toc .toc-item[data-active-deepest] > a {
+  border-left-color: var(--copper-500);
 }
 
 /* ─── Pagination duplicates the sidebar ─────────────────────────────────── */
