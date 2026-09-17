@@ -5,6 +5,8 @@ description: Bring rows, let the dataset's agent make them fit training or evalu
 
 A dataset is the data your eval runs, optimiser runs, and training runs read. You bring the rows. The dataset's agent shapes them until they fit, and tells you plainly when they cannot.
 
+Every dataset has a purpose — **training** or **evaluation** — and usually a [capability](/core/capabilities) it belongs to. The purpose decides what a valid row looks like and which runs can read the dataset. You can set both when you create it, or leave them for the agent to work out from the rows.
+
 <Steps>
   <Step title="Create">
     Upload a file, paste rows, or select traces.
@@ -22,7 +24,7 @@ A dataset is the data your eval runs, optimiser runs, and training runs read. Yo
 
 ## Create
 
-Open **New dataset** on the Datasets page, choose a source, and pick what the data is for.
+Open **New dataset** on the Datasets page, choose a source, give it a name, and pick what the data is for.
 
 <Frame caption="The New dataset dialog with Train + eval selected.">
   <img src="/images/platform/new-dataset-dialog.jpg" alt="New dataset dialog with the Train + eval purpose selected" />
@@ -32,10 +34,14 @@ Open **New dataset** on the Datasets page, choose a source, and pick what the da
   <Tab title="Upload or paste">
     Drop a **CSV, TSV, JSON, JSONL, or Parquet** file on the Datasets page, or paste rows into the dialog. Text files may be gzipped.
 
-    Your values land as they are. A file that cannot be read faithfully is refused with the reason, never silently changed.
+    Nested JSON stays nested, and a CSV column is treated as numbers only when every value in it is one — ids such as `007` stay text.
+
+    Your values land as they are. A file that cannot be read faithfully, such as a CSV row with more cells than the header, is refused with the reason, never silently changed.
   </Tab>
   <Tab title="From traces">
-    Select traces in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or choose **From traces** in the dialog to land every trace that matches the current filters. Each trace becomes one row with its input, output, full conversation, and score.
+    Select traces in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or choose **From traces** in the dialog to land every trace that matches the current filters. Each trace becomes one row with its input, output, full conversation, tools, model, cost, and score.
+
+    Trace rows already hold a full conversation, so they are valid training data as they land. For evaluation data the agent turns the delivered output into the expected answer.
   </Tab>
 </Tabs>
 
@@ -48,13 +54,13 @@ Open **New dataset** on the Datasets page, choose a source, and pick what the da
 
 ## First scan
 
-When the source has landed, the agent takes one turn by itself:
+A new dataset shows **Landing** while the source is read, then the agent takes one turn by itself. The dataset is ready when that turn ends; edits wait until then.
 
 1. It decides what the data is for, if you left that open.
 2. It makes the rows valid — for example by building conversations from `prompt` and `completion` columns, or renaming `question` and `answer`, and dropping rows that cannot be used.
 3. It runs quality checks — duplicates, empty answers, outliers, broken tool calls — and fixes what it finds.
 
-Each change is one **cell**, and you can read every one. A fix that would remove half your rows or more is never applied for you: it waits in the chat as a proposal with **Run** and **Discard**.
+Each change is one **cell** with a title, a short script, and a note that says how many rows it touched, and you can read every one. A fix that would remove half your rows or more is never applied for you: it waits in the chat as a proposal with **Run** and **Discard**.
 
 If the rows cannot be used at all — a table of numbers and ids with no text — the agent says so and changes nothing.
 
@@ -66,7 +72,10 @@ If the rows cannot be used at all — a table of numbers and ids with no text �
 
 - Every cell that ran is a **version**: the source is 1.0, then 1.1, 1.2, and so on. Nothing is edited in place, so you can always compare a version with the one before it.
 - To change the data, ask in the chat: "drop answers under ten words", "keep only billing tickets". The agent adds a cell and runs it. You can also rename the dataset or change what it is for from the chat.
-- You can write and edit cells yourself. A cell is a short Python script over a pandas frame named `df`.
+- You can write and edit cells yourself. A cell is a short Python script over a pandas frame named `df`. **Run** executes every cell that changed.
+- Under each cell, the table highlights the rows and values that changed against the version before it.
+- If a cell fails, it shows the error, the cells after it wait, and the last good version stays active. Fix the cell, or ask the agent to, and run again.
+- The newest version that ran is the **active** one: the one a run reads. **Set active** on any other version changes that.
 - The chip under the active version reads **Fits** when it is ready to use. When it does not, the chip says why and offers **Ask Overmind to fix it**.
 
 ## What valid rows look like
@@ -102,7 +111,9 @@ Your file does not need to arrive in this shape. Getting it there is the first s
 
 The active version offers **Train a model** for training data, and **Run the optimiser** or **Use in a training job** for evaluation data. You can also export any version as JSONL or CSV.
 
-A run locks the version it read, so its results always point at the exact data behind them. Later changes become new versions. Checking readiness or a launch that is refused locks nothing.
+A run locks the version it read, so its results always point at the exact data behind them. A locked version cannot be edited or deleted, and the dataset's purpose is fixed from then on. To keep working, add a cell after it: later changes become new versions. Checking readiness, or a launch that is refused, locks nothing.
+
+A training job and its evaluation dataset must not share traces, or the benchmark would score data the model has seen. Creating both with **Train + eval** guarantees that.
 
 ## When something is refused
 
@@ -142,7 +153,9 @@ overmind dataset upload tickets.jsonl --split 20 --wait
 overmind dataset export <dataset-id> --cell 1.2 --output rows.jsonl
 ```
 
-See the [CLI](/platform/cli#overmind-dataset). Coding agents get the same workflow through [MCP](/platform/mcp), and every endpoint is in the [API reference](/platform/api#building-a-dataset).
+Add `--json` for machine-readable output. See the [CLI](/platform/cli#overmind-dataset). Coding agents get the same workflow through [MCP](/platform/mcp), and every endpoint is in the [API reference](/platform/api#building-a-dataset).
+
+Self-hosting? The dataset's agent needs one model provider key on the server; see [Self-hosting](/platform/self-hosting#the-data-workshop-agent). Without one the page still works, and the chat tells you which key to set.
 
 <Tip>
 Start small and real: 10–50 representative rows from your traces beat a thousand synthetic ones.
