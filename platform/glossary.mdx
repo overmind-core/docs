@@ -11,11 +11,19 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/core/capabilities).
 
-**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from local sync joined with runtime behaviour from telemetry. A capability the snapshot no longer includes becomes a **leftover** and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/core/capabilities).
+**Capability** — one purpose the agent serves, and Overmind's record of it: code structure from the scan joined with runtime behaviour from telemetry. Status is `current`, `leftover` (the latest push did not reproduce it; it returns when the code does) or `deleted` (a hand delete, which keeps its data). Ingest never creates one. See [Agent & Capabilities](/core/capabilities).
 
-**Capability card** — the structured description `/overmind setup` writes for a capability: task, input schema, output fields, tool spec, anchors, modes, and the trajectory map. Synced in `overmind.toml`.
+**Scan** — the deterministic local pass `overmind scan` runs over a repository: functions, call edges, model calls, prompts, tools and entry points, clustered into one candidate capability per distinct set of system prompts an entry reaches. Its output is `.overmind/skeleton.json` (content-hashed wire document), `worksheet.json` (the file the coding agent names) and `report.json`. `overmind scan finalize` writes the worksheet into `overmind.toml`; `overmind scan push` sends it all to `POST /api/v1/scan/`. See [Agent & Capabilities](/core/capabilities#the-scan).
 
-**`overmind.toml`** — the repository's snapshot of its capabilities and their ids, kept in the repo and synced both ways with `overmind sync`. `.overmind/credentials.toml` beside it holds the project key and stays ignored.
+**Scan snapshot** — the server's record of one push: skeleton, manifest, report, cards, hash, SDK version and git sha. `overmind://scan/latest` and the project's Scan tab read the latest one.
+
+**Cluster** — one group of functions the scan found reachable from an entry point with the same prompt set; the unit the worksheet names and the identity the server carries across pushes (`cluster_id`, `cluster.version`).
+
+**Mode** — one distinct model call inside a cluster, with its own system prompt: the roles inside an orchestration. Each mode becomes one behaviour on push.
+
+**Card** — the agent-authored description of a capability at `.overmind/cards/<key>.json`: task, modality, input schema, output fields, expected output, success criteria, failure modes, constraints, tool protocol, one purpose per tool and, per mode, its purpose, model, prompt quote, terminal and ordered steps — each with source provenance. Stubbed by `scan finalize`, filled by the coding agent from source, merged onto the capability and its behaviours on push; `Capability.card_version` records the cluster version it was written for.
+
+**`overmind.toml`** — the repository's manifest: `[project]` (`id`, `name`, `base-url`) plus one `[[capability]]` row per declared capability (`key`, `name`, `description`, `id`, `entries`, `merged`) and `[[ignore]]` rows. `key` is the server identity; `scan push` writes ids back. `.overmind/credentials.toml` beside it holds the project key and stays ignored.
 
 **API key** — an `ovr_...` credential (stored hashed, shown once at creation) that authenticates the SDK, OTLP ingest, the REST API, MCP, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`. **Project-scoped** keys see one project; **account-scoped** keys reach every project the user is in.
 
@@ -27,31 +35,33 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Trace** — one end-to-end run of an agent: the set of spans sharing a `trace_id`. There is no separate trace record; the root span (the one with no parent) represents the trace in lists.
 
-**Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`.
+**Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed by `overmind.span_type`: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`; an untyped span is classified from its attributes and name and defaults to `llm_call`.
 
 **Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` or `run(conversation_id=...)` in the SDK. Carries a **session score** folded from the conversation ledger. See [Trace scoring](/agent-testing/trace-scoring#session-scores).
 
 **Trace status** — `live` while spans are arriving or the root is missing, `completed` once the root has landed, `interrupted` when no root arrives inside the settle window.
 
-**OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`; JSON and gRPC are not accepted. See [Observability](/core/observability#the-otlp-endpoint).
+**Unbound span** — a span whose `overmind.capability.id` names no capability the project knows. It is stored and browsable, and binds retroactively when a later push makes the identity resolvable.
 
-**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Keys are added with `overmind connector add` or in the Console; the source project, capability mapping, and sync are MCP tools. Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
+**OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`. See [Observability](/core/observability#the-otlp-endpoint).
 
-**Task** — one behaviour a capability performs, minted by capability sync from its trajectory map: an entry anchor, the anchor segments after it, its tool set, and its terminal. API resource: `behaviours`. See [Trace scoring](/agent-testing/trace-scoring#tasks-and-bindings).
+**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Created with its provider credentials in the Console; the source project, capability mapping, and sync are MCP tools (`inspect_connectors`, `configure_connector`, `sync_connector`). Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
+
+**Behaviour** — one thing a capability does, minted on scan push from one mode of its cluster: an entry anchor, the anchor sequence to the mode's model call, its tool set, and — from the card — its steps and terminal. Versioned as `BehaviourVersion`; status `active` or `retired`. API resource: `behaviours`. The Console labels the column **Task**. See [Trace scoring](/agent-testing/trace-scoring#behaviours-and-bindings).
 
 **Unit** — the slice of a trace that gets its own verdicts: a turn span, an entry-point invocation, a key segment, or the whole trace, in that order of precedence.
 
-**Task execution** — one unit bound to a task, with its verdicts, execution score, route flags, and session score. The default row of Observability.
+**Task execution** — one unit bound to a behaviour, with its verdicts, execution score, route flags, and session score. Binding source is `declared` (the span carried the identity), `anchor_join` (matched on anchors) or `unbound`. Status `completed`, `error` or `interrupted`. The default row of Observability.
 
-**Instrumentation plan** — the exact placement tickets (file, line, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or task; `verify_instrumentation` grades a fresh trace against them.
+**Instrumentation plan** — the placement tickets (file, qualname, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or behaviour; `verify_instrumentation` grades a supplied span list against them.
 
 ## Data
 
-**Dataset** — a source table (a file, pasted rows, or traces, landed as-is) and a linear chain of Python cells; every cell that ran is a **version**. It carries an **intent** (`train`, `eval`, or `pending` until decided) and a **capability**, both proposed at landing and frozen by the first use. See [Datasets](/core/datasets).
+**Dataset** — a source table (a file, pasted rows, or traces, landed as-is) and a linear chain of Python cells; every cell that ran is a **version**. It carries an **intent** (`train`, `eval`, or `pending` until decided) and a **capability**, both proposed at landing and frozen by the first use. State: `landing`, `diagnosing`, `idle`, `running`, `error`. See [Datasets](/core/datasets).
 
-**Version** — one cell that ran: its frame, column manifest, both contract reports and fingerprint. The source is 1.0, each cell adds a minor (1.1, 1.2), a use starts a new major (2.0) and freezes the version with every cell before it. Runs use the version they read.
+**Cell** — one Python step in a dataset's chain. State: `proposed`, `queued`, `running`, `ok`, `failed`.
 
-**Train + eval split** — one source landed as two datasets with disjoint rows, `<name> train` and `<name> eval`, cut by an eval share and a position (`head`, `tail`, `random`). From the New dataset dialog, `overmind dataset upload --split`, or `POST /api/datasets/split/`.
+**Dataset version** — one cell that ran: its frame, column manifest, both contract reports and fingerprint. The source is 1.0, each cell adds a minor (1.1, 1.2), a use starts a new major (2.0) and freezes the version with every cell before it. Runs use the version they read.
 
 **Data Workshop** — the dataset page: the source, Python cells with a value-level diff against the cell before, the active version with its actions, and the dataset's own agent beside it, which shapes the chain in one preparation turn and then on request.
 
@@ -59,13 +69,13 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 ## Evaluation
 
-**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`. See [Eval](/agent-testing/eval#evaluators).
+**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`. Scope: `final_output`, `turn`, `step`, `trajectory`, `sample`. Surface: `model`, `harness`, or `any`. See [Eval](/agent-testing/eval#evaluators).
 
 **Claim** — what an evaluator asserts: a **type** (`grounding`, `verification`, `quality`, `conformance`, `progress`, `safety`) and a **grain** (`unit`, `trajectory`, `terminal`, `session`). The claim decides how the verdict composes into the execution score. See [Eval](/agent-testing/eval#claims).
 
 **Rubric / checklist** — an LLM judge's plain-language criteria, compiled into weighted atomic checklist items; items can be hard **gates**.
 
-**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, per task execution). One set per capability is **active**.
+**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, per task execution). One set per capability is **active**; the scan push preloads the **Default** set.
 
 **Eval run** — a controlled experiment: one data source × N variants × M evaluators, with evaluator snapshots frozen at creation. See [Eval](/agent-testing/eval#eval-runs).
 
@@ -79,7 +89,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Execution score** — the composite of a unit's verdicts (0–1): safety claims cap it, gates flip their own verdict, the rest are weighted over three phases. Shown as the Score column.
 
-**Trace scoring** — carving each trace into units, binding them to tasks, and judging them with the eval set's trace-scoring members. See [Trace scoring](/agent-testing/trace-scoring).
+**Trace scoring** — carving each trace into units, binding them to behaviours, and judging them with the eval set's trace-scoring members. See [Trace scoring](/agent-testing/trace-scoring).
 
 **Runtime expectation** — evidence the SDK declares during a run (`intent`, `expect`, `checkpoint`, `eval_context`) and the platform evaluates server-side.
 
@@ -87,7 +97,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 ## Optimisation
 
-**Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated and replayed in your checkout by the CLI, scored on the platform with a pinned eval set, and the winning diff stays on the candidate for you to apply. Modes: **optimize** (harness), **model_comparison** (backtest), **hybrid**. See [Optimisers](/agent-testing/optimisers).
+**Optimisation run** — an experiment that edits an agent's code: candidate diffs are generated and replayed in your checkout by the CLI, scored on the platform with a pinned eval set, and the winning diff stays on the candidate for you to apply. Modes: `optimize` (harness), `model_comparison` (backtest), `hybrid`. See [Optimisers](/agent-testing/optimisers).
 
 **Iteration** — one loop cycle producing a batch of candidates. Iteration 0 is the **baseline** — the unmodified capability.
 
@@ -95,7 +105,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Executioner** — the local side of the loop: `overmind optimise` in your repository, which renders the command template, runs datapoints, applies candidate diffs, and posts outputs for scoring.
 
-**Patience** — how many consecutive non-improving iterations a run tolerates before stopping early (3).
+**Patience** — how many consecutive non-improving iterations a run tolerates before stopping early (`max_iterations_without_improvement`, default 3).
 
 ## Models
 
@@ -103,7 +113,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Baseline (training)** — the capability's production model, scored on the eval dataset at submit time; the reference every trained model's delta is measured against.
 
-**Deployed model** — a served trained model with a copyable reference (`ft-...`) callable via the OpenAI-compatible API. Statuses: queued, deploying, warming, ready, failed, deleting, deleted. See [Inference](/models/inference).
+**Deployed model** — a served trained model with a copyable reference (`ft-...`) callable via the OpenAI-compatible API. Status: `queued`, `deploying`, `warming`, `ready`, `failed`, `deleting`, `deleted`. See [Inference](/models/inference).
 
 **Capability alias** — `overmind/<capability-uuid>`, a model id that resolves to whichever deployment the capability has made live, so a switch never touches the calling code.
 
