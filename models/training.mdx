@@ -1,21 +1,21 @@
 ---
 title: Training
-description: Training runs — dataset validation, the model catalog, live loss curves, classification metrics, and the benchmark against your production model.
+description: Training runs — dataset validation, the model catalog, live loss curves, classification metrics, and the benchmark against the capability's production model.
 ---
 
-Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch one or several experiments in parallel on GPU infrastructure — Modal or Baseten, whichever the platform is configured for. Loss curves stream live, and every finished model is judged with your own evaluators against the model the capability runs today — before anything changes in production.
+A training run fine-tunes an open-weight model on a train dataset. One run launches one or more experiments, each a `FinetuningJob` with its own base model and hyperparameters, on the configured GPU backend (`FINETUNING_BACKEND`, default `modal`). Loss curves stream while a job runs, and every finished model is scored with the eval set you picked against the model the capability runs today.
 
 ## What a run needs
 
 | Choice | Requirement |
 | --- | --- |
-| **Capability** | The capability whose job the model is learning; its production model becomes the benchmark baseline |
-| **Training dataset** | A **train** dataset whose active version fits (chat transcripts with an assistant turn, the capability's own). See [Datasets](/core/datasets#contracts) |
-| **Eval dataset** | A separate **eval** dataset whose active version fits; the finished model is measured on it. Land it from other traces, or cut both from one source with **Train + eval** |
-| **Graders** | The eval set that does the measuring, chosen from the capability's sets |
-| **Name** | What the run is called on the Training page |
+| **Capability** | The capability the model is trained for; its production model becomes the benchmark baseline |
+| **Training Dataset** | A **train** dataset of the capability whose active version fits the [train contract](/core/datasets#contracts). The job splits it by source trace into training and validation rows |
+| **Eval Dataset** | An **eval** dataset of the capability whose active version fits the eval contract; the baseline and the trained model are scored on it |
+| **Graders** | An eval set of the capability with at least one enabled generative evaluator |
+| **Name** | The run's name on the Training page |
 
-The train/eval separation is checked, not assumed: an overlap check compares the two datasets' source traces (`GET /api/finetuning-jobs/dataset-overlap/`), the wizard shows the count, and any row of the training set that also appears in the eval set is excluded from training and logged on the job, so the benchmark never scores data the model saw. The job uses and freezes the exact version it trains on, and validation runs before launch with the same rules the [contract](/core/datasets#contracts) applies, so problems surface as fixable findings up front instead of a failed run an hour in.
+Train and eval must not share source traces. `GET /api/finetuning-jobs/dataset-overlap/?dataset=&eval_dataset=` counts rows whose `trace_id` appears in both active versions, and the wizard shows the count under **Eval Dataset**. Submitting a job whose train and eval versions share a trace is rejected (`400`, "Split them before training"). When the job runs, it recomputes the overlap against the eval dataset's active version at that moment and drops any overlapping rows from training, logging the count as a job event. The job uses and freezes the exact version it trains on, and `POST /api/finetuning-jobs/validate-dataset/` runs the validator before launch.
 
 <Frame caption="The training wizard: datasets and graders on the left, the recommended models with their estimates on the right.">
   <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
@@ -23,23 +23,27 @@ The train/eval separation is checked, not assumed: an overlap check compares the
 
 ## Configuring experiments
 
-The wizard recommends configurations from your dataset's statistics and cost/duration estimates, via the same endpoints you can call directly:
+The wizard ranks the catalog for your dataset and estimates cost and duration through the same endpoints you can call directly:
 
 ```bash
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/models/"          # the base-model catalog
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/model-defaults/"  # one model's default hyperparameters
+curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/models/"                # catalog by tier; ?has_tool_calling=true
+curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/model-defaults/"  # one model's recommended hyperparameters
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/validate-dataset/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/recommend/"
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/estimate/"
 ```
 
-A single run trains multiple experiments in parallel — each with its own base model and settings — and the benchmark decides between them. Every recommended setting stays editable per experiment: epochs, learning rate, and batch size, plus the training method — **adapter training (LoRA)** with rank, alpha, and dropout exposed, or **full fine-tuning** where the model supports it. The context length is derived from your longest row and shown, not edited. Over MCP the same steps are `get_model_catalog`, `check_finetune_readiness`, `estimate_finetune`, and `start_finetune`.
+A run launches its experiments together; they share a `group_id` and the Training page lists them as one run (`GET /api/finetuning-jobs/runs/`). Each experiment has its own **Epochs**, **Learning rate** and **Batch**, and where the model supports both methods a **LoRA adapters** switch; with LoRA on, **Rank**, **Alpha** and **Dropout** are exposed. The panel header states the dataset's task type, row count, token total, longest row and whether it contains tool calls. Over MCP the same steps are `get_model_catalog`, `check_finetune_readiness`, `estimate_finetune` and `start_finetune`.
 
 ## Supported models
 
-The catalog holds about forty open-weight instruct models across the Qwen 3.5, 3.8, 3.6, 3 and 2.5 families, Llama 3, Gemma 4, LFM2.5, Antares, GPT-OSS, Muse Glimmer, and Nemotron 3.5 — from a 230M-parameter compact model up to large mixture-of-experts. Every one serves through the same [OpenAI-compatible API](/models/inference#calling-your-model) and produces downloadable weights. Not every model takes both training methods: the 27B-and-up dense models and every mixture-of-experts train as LoRA adapters only, and the picker hides the method toggle where full fine-tuning is unavailable.
+The catalog (`overbae/modal/models.json`) holds 38 trainable open-weight chat models in twelve groups — Qwen 3.5, Qwen 3.8, Qwen 3.6, Qwen 3, Qwen 2.5, Llama 3, Gemma 4, LFM2.5, Antares, GPT-OSS, Muse Glimmer and Nemotron 3.5 — from LFM2.5 230M up to 70B and 72B dense models and a 35B mixture-of-experts. Four tiers order the list: compact, small, mid, large. Every trained model serves through the same [OpenAI-compatible API](/models/inference#calling-your-model) and its weights are downloadable. Dense models of 27B and above and every mixture-of-experts model train as LoRA adapters only; the picker shows "LoRA fine-tuning" with no switch for them.
 
-Three things the list doesn't show, all enforced at launch. A model's **max training context** is often shorter than its inference context window, so a model whose context is shorter than your longest row is dropped from the recommendation and refused at submission. **Tool calling** varies by model, so if your agent calls tools, only the models that support them are offered. And a **backend** must be configured — Modal or Baseten — or the launch fails at submission with the reason. The in-product picker is the live source of truth for exactly what's available to your project.
+Three constraints are enforced at launch, not shown in the list:
+
+- **Training context.** A model's maximum fine-tuning context (`finetuning.context_length`, per training method where the catalog splits it) is often shorter than its inference window. A model whose context does not cover the dataset's longest row plus 256 tokens of headroom is dropped from the recommendation and refused at submission.
+- **Tool calling.** When the dataset contains tool calls, only models with `supports_tool_calling` are offered.
+- **Backend.** `FINETUNING_BACKEND` is `modal` by default; `baseten` and `together` remain configurable. Modal trains the same catalog rows as Baseten.
 
 ## Watching a run
 
@@ -47,29 +51,29 @@ Three things the list doesn't show, all enforced at launch. A model's **max trai
   <img src="/images/platform/training-monitor.jpg" alt="Training run monitor with loss curves and configuration" />
 </Frame>
 
-The monitor streams per-step metrics for every experiment — train loss, validation loss, the learning-rate schedule, token accuracy (train and validation), and gradient norm — with progress, ETA, tokens processed, and credits used. The same data is available raw:
+A job moves through `queued → preparing → running → deploying → succeeded`, or ends `failed` or `cancelled`. The monitor polls per-step metrics — train loss, validation loss, learning rate, token accuracy (train and validation) and gradient norm — with trained steps, ETA, tokens processed and credits used:
 
 ```bash
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/{id}/loss-curves/"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/finetuning-jobs/{id}/events/"
 ```
 
-A run going wrong is visible in the curves long before it ends — validation loss climbing away from train loss — and any experiment can be cancelled individually and retried later (`POST .../cancel/`, `POST .../retry/`).
+`POST /api/finetuning-jobs/{id}/cancel/` stops a running job and its judge evals. `POST .../retry/` re-queues a `failed` or `cancelled` job.
 
-## The benchmark: your trained model vs. your production model
+## The benchmark
 
-Each run spawns judge evaluations at two points, both scored on your chosen eval dataset with your chosen graders, over up to 100 rows:
+Each job with an eval dataset and graders runs two judge evals on that dataset, capped at 100 rows by default (`hyperparameters.eval_max_items`, at most 200):
 
-1. **Baseline** — the capability's production model, snapshotted at submit time. When the capability has no resolvable production model, the untouched base model is deployed and scored instead, so there is always a reference.
-2. **Final** — your newly trained model.
+1. **Baseline** — the capability's production model, snapshotted on the job as `baseline_model` at submit time. A model that is one of your ready deployments is scored through the Overmind gateway; a model OpenRouter serves goes through OpenRouter; a catalog base OpenRouter does not list is deployed on Modal for the eval. When the capability has no resolvable model, the untouched base model is scored instead. A model with no route lands an `unavailable` row.
+2. **Final** — the trained model, scored through its own deployment once it is ready.
 
-The headline number is the delta of the aggregate score — the mean over the graders — with the per-grader rows underneath. The comparison is deliberately against the model the capability actually runs, because that's the comparison a switch decision needs.
+The headline is `baseline_delta`: the final aggregate score (the mean over the graders, gate-only evaluators excluded) minus the baseline's, with per-grader scores underneath. Each row links to its eval run.
 
 <Frame caption="The Evals table under the metrics: Baseline and Final rows per experiment, scored with the same graders.">
   <img src="/images/platform/training-evals.jpg" alt="Training evals table with baseline and final scores" />
 </Frame>
 
-When the eval dataset's references are labels — a classifier, a router — the benchmark also reports per-class precision, recall, and F1 with their macro, micro, and weighted aggregates, and a confusion matrix for the final model:
+When the eval dataset's `expected_output` values are labels, each row also carries `class_metrics`: per-class precision, recall, F1 and support, accuracy with macro, micro and weighted aggregates, and a confusion matrix. The Console shows the per-class table with macro and weighted rows and the matrix.
 
 <Frame caption="Classification metrics for a routing capability: per-class F1 and the confusion matrix.">
   <img src="/images/platform/training-class-metrics.jpg" alt="Per-class metrics and confusion matrix on the training page" />
@@ -77,15 +81,15 @@ When the eval dataset's references are labels — a classifier, a router — the
 
 ## After training
 
-A succeeded experiment deploys its model automatically — there is no separate publish step. The model appears in [Inference](/models/inference) with a copyable reference (shaped like `ft-<job>-<base>`) and in the capability's **Models** section, and its weights are downloadable (`overmind model download-checkpoint <deployment-id>`). Everything stays linked: a served model traces back to its training run, dataset, and the eval scores that justified it.
+A job that finishes training enters `deploying` and registers its model automatically; it reads `succeeded` once the deployment is ready. On the Free plan a deploy past the plan's limit is skipped and the job records why. The deployed model appears on [Inference](/models/inference) with the reference `ft-<first 8 chars of the job id>-<base model, lower-cased>` (for example `ft-9635f347-qwen3-4b`) and in the capability's **Models** tab. Its weights are downloadable from the model page or with `overmind model download-checkpoint <deployment-id>`.
 
-When the benchmark says the trained model wins, there are two ways to switch:
+Two ways to switch the capability to the new model:
 
-- **Make live** on the model sets it as the capability's `active_model`. Anything that calls the capability alias `overmind/<capability-uuid>` gets the new model on its next request, with no repository change.
-- **Copy prompt** on the training run (`GET /api/finetuning-jobs/{id}/model-swap-prompt/`, or the `get_model_swap_prompt` MCP tool) hands your coding agent the edit that retargets the capability's code at the new model reference; `?pin=true` writes the concrete model id instead of the alias. The switch stays in your normal review flow, never automatic on the server.
+- **Make live** on the deployed model sets it as the capability's `active_model`. Calls to the capability alias `overmind/<capability-uuid>` reach the new model on the next request, with no code change.
+- **Copy** on the training run (`GET /api/finetuning-jobs/{id}/model-swap-prompt/`, or the `get_model_swap_prompt` MCP tool) returns a prompt for your coding agent that retargets the capability's LLM client at the alias; `?pin=true` writes the deployment's concrete model id instead. Available once the job is `succeeded` and its deployment is ready. The edit lands in your repository through your normal review.
 
 ## Good to know
 
-- Model quality comes almost entirely from the data. Get the active version to fit the **train** contract with a clean capability report before spending on a run; a few hundred clean, trace-sourced rows beat thousands of noisy ones.
-- The run uses a [version](/core/datasets#versions-and-uses); keep curating in the workshop and the next run picks up the new active version.
-- Each experiment reports its final credit cost; estimates are shown before you commit.
+- Model quality comes from the data. The active version must fit the **train** contract before a run can start.
+- A run freezes the version it trains on; keep curating in the workshop and the next run picks up the new active version.
+- Each experiment reports its credit cost when it completes; estimates are shown before launch.
