@@ -209,23 +209,37 @@ body,
   border-radius: 0 !important;
 }
 
-/* ─── Navbar — the website's floating pixel-border header ───────────────── */
+/* ─── Navbar — the website's header (apps/web/components/layout/header.tsx) ──
+ *
+ * page-container (16/32/64px gutters, 1440 max), pt-3, a pixel-border nav at
+ * 4px in stone-700 over surface-primary, py-3 px-3. Left: the menu items as
+ * PixelButton ghost/menu. Centre: the eye. Right: Talk to the team (ghost md),
+ * Login (solid copper md), then Mintlify's search and assistant on the same
+ * ghost tile. The bar stays 64px tall in total because the sidebar and the
+ * TOC are pinned at top-16 by the theme. */
 
 #navbar {
   background: transparent !important;
   border: 0 !important;
   padding: 12px 16px 0 !important;
 }
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   #navbar {
-    padding: 12px 48px 0 !important;
+    padding: 12px 32px 0 !important;
+  }
+}
+@media (min-width: 1280px) {
+  #navbar {
+    padding: 12px 64px 0 !important;
+  }
+  #navbar > div.max-w-8xl {
+    max-width: calc(1440px - 128px) !important;
   }
 }
 #navbar-transition {
   display: none !important;
 }
 
-/* .pixel-border with --pixel-border-width:4px, text-stone-700, after:bg-surface-primary */
 #navbar > div.max-w-8xl {
   position: relative;
   isolation: isolate;
@@ -252,14 +266,14 @@ body,
 
 #navbar > div.max-w-8xl > div.relative > div.flex {
   height: 52px !important;
-  padding: 0 16px !important;
+  padding: 0 12px !important;
   position: relative;
 }
 #navbar > div.max-w-8xl > div.relative > div.flex > div.h-full {
   border: 0 !important;
 }
 
-/* Eye, centred, 32px, blinks (custom.js swaps the src to the GIF). */
+/* Eye, centred, 32px; eye-blink.js swaps the src to the GIF. */
 #navbar a[href="/"] {
   position: absolute;
   left: 50%;
@@ -285,21 +299,11 @@ body,
   display: block !important;
 }
 
-/* Logo wrapper gives up its width so the link row can own the whole bar. */
+/* The logo wrapper gives up its width so the link row owns the whole bar. */
 #navbar > div.max-w-8xl div.flex-1.lg\:flex-none {
   flex: none !important;
   width: 0;
   position: static;
-}
-#navbar nav[aria-label="Main"] {
-  flex: 1;
-}
-#navbar nav[aria-label="Main"] > ul {
-  width: 100%;
-  gap: 8px !important;
-}
-#navbar #topbar-cta-button {
-  margin-left: auto;
 }
 #navbar > div.max-w-8xl div.flex-1.relative.hidden {
   flex: 1 !important;
@@ -312,17 +316,43 @@ body,
 #navbar > div.max-w-8xl div.flex-1.relative.hidden > div.gap-x-6 > div.h-16 {
   display: none;
 }
+#navbar nav[aria-label="Main"] {
+  flex: 1;
+}
+#navbar nav[aria-label="Main"] > ul {
+  width: 100%;
+  gap: 8px !important;
+  align-items: center;
+}
+#navbar li.navbar-link {
+  position: relative;
+}
+
+/* The right cluster starts at Talk to the team. */
+#navbar li.navbar-link:has(a[href*="overmindlab.ai/contact"]) {
+  margin-left: auto;
+}
 #navbar > div.max-w-8xl div.flex-1.relative.hidden > div.gap-x-2 {
   flex: none;
   margin-left: 8px;
+  gap: 8px !important;
 }
 
-/* Menu links: PixelButton ghost/menu (p-2, type-caption-md, bg-stone-800). */
-#navbar li.navbar-link a {
+/* PixelButton — one tile for every control in the bar. */
+#navbar li.navbar-link a,
+#navbar #topbar-cta-button a,
+#navbar div.gap-x-2 button,
+#navbar div.gap-x-2 a,
+#navbar div.gap-x-2 [role="button"] {
   position: relative;
   display: inline-flex !important;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 30px;
   padding: 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
   clip-path: var(--notch);
   background: var(--surface) !important;
   color: var(--text) !important;
@@ -333,59 +363,41 @@ body,
   letter-spacing: 0;
   text-transform: uppercase;
   text-decoration: none;
-  transition: background-color 150ms ease;
+  white-space: nowrap;
+  box-shadow: none !important;
+  transition: background-color 150ms ease, color 150ms ease;
 }
-#navbar li.navbar-link a:hover {
+#navbar li.navbar-link a:hover,
+#navbar div.gap-x-2 button:hover,
+#navbar div.gap-x-2 a:hover,
+#navbar div.gap-x-2 [role="button"]:hover {
   background: var(--stone-700) !important;
   color: var(--text) !important;
 }
-#navbar li.navbar-link {
-  position: relative;
-}
-#navbar li.navbar-link::after {
-  content: "";
-  position: absolute;
-  inset: -12px;
-  pointer-events: none;
-  border: 4px solid var(--text);
-  clip-path: var(--notch);
-  opacity: 0;
-  transition: opacity 150ms ease;
-}
-#navbar li.navbar-link:hover::after {
-  opacity: 0.5;
-}
-#navbar li.navbar-link:active::after {
-  opacity: 1;
+
+/* Docs is this site: the tile reads as pressed, not as a link out. */
+#navbar li.navbar-link a[href*="docs.overmindlab.ai"] {
+  background: var(--stone-700) !important;
 }
 
-/* Login: PixelButton solid copper, size md (px-4 py-2). */
+/* size md for the two right-hand text buttons. */
+#navbar li.navbar-link a[href*="overmindlab.ai/contact"],
+#navbar #topbar-cta-button a {
+  padding: 8px 16px !important;
+}
+
+/* Login: solid copper. */
 #navbar #topbar-cta-button {
   position: relative;
   background: transparent !important;
   border: 0 !important;
   padding: 0 !important;
+  margin-left: 0;
 }
-#navbar #topbar-cta-button a,
-#navbar a[href*="console.overmindlab.ai"] {
-  display: inline-flex !important;
-  align-items: center;
-  padding: 8px 16px !important;
-  border: 0 !important;
-  clip-path: var(--notch);
+#navbar #topbar-cta-button a {
   background: var(--copper-500) !important;
-  color: var(--text) !important;
-  font-family: var(--font-caption) !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  line-height: 1 !important;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  box-shadow: none !important;
-  transition: background-color 150ms ease;
 }
-#navbar #topbar-cta-button a:hover,
-#navbar a[href*="console.overmindlab.ai"]:hover {
+#navbar #topbar-cta-button a:hover {
   background: var(--copper-400) !important;
   color: var(--text) !important;
   opacity: 1 !important;
@@ -395,7 +407,37 @@ body,
 #navbar #topbar-cta-button a::after {
   display: none !important;
 }
-#navbar #topbar-cta-button::after {
+
+/* Search and assistant: icon tiles at the same height; the mask icon takes
+ * the tile's text colour. */
+#navbar div.gap-x-2 button,
+#navbar div.gap-x-2 [role="button"] {
+  width: 30px;
+  color: var(--stone-300) !important;
+}
+#navbar div.gap-x-2 button:hover {
+  color: var(--text) !important;
+}
+#navbar div.gap-x-2 button:has(> span:not(.sr-only)),
+#navbar div.gap-x-2 button:has(> div) {
+  width: auto;
+}
+#navbar [style*="mask-image"] {
+  background-color: currentColor !important;
+}
+#navbar div.gap-x-2 svg {
+  width: 14px;
+  height: 14px;
+}
+#navbar kbd {
+  display: none;
+}
+
+/* The website's PixelFrame: a 4px pixel outline 12px out on hover, solid on press. */
+#navbar li.navbar-link::after,
+#navbar #topbar-cta-button::after,
+#navbar div.gap-x-2 > button::after,
+#navbar div.gap-x-2 > a::after {
   content: "";
   position: absolute;
   inset: -12px;
@@ -405,55 +447,161 @@ body,
   opacity: 0;
   transition: opacity 150ms ease;
 }
-#navbar #topbar-cta-button:hover::after {
+#navbar li.navbar-link:hover::after,
+#navbar #topbar-cta-button:hover::after,
+#navbar div.gap-x-2 > button:hover::after,
+#navbar div.gap-x-2 > a:hover::after {
   opacity: 0.5;
 }
-#navbar #topbar-cta-button:active::after {
+#navbar li.navbar-link:active::after,
+#navbar #topbar-cta-button:active::after,
+#navbar div.gap-x-2 > button:active::after,
+#navbar div.gap-x-2 > a:active::after {
   opacity: 1;
 }
-
-/* Search and any other icon control in the bar: ghost tile. */
-#navbar button,
-#navbar [role="button"] {
-  color: var(--stone-300) !important;
+/* The icon tiles carry their own ring, so the notch moves to a fill layer
+ * and the element itself stays unclipped. */
+#navbar div.gap-x-2 > button,
+#navbar div.gap-x-2 > a,
+#navbar div.gap-x-2 > button:hover,
+#navbar div.gap-x-2 > a:hover {
+  clip-path: none;
+  isolation: isolate;
   background: transparent !important;
-  border: 0 !important;
+}
+#navbar div.gap-x-2 > button::before,
+#navbar div.gap-x-2 > a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   clip-path: var(--notch);
+  background: var(--surface);
+  transition: background-color 150ms ease;
+}
+#navbar div.gap-x-2 > button:hover::before,
+#navbar div.gap-x-2 > a:hover::before {
+  background: var(--stone-700);
+}
+
+/* Between lg and xl the six menu items would reach the centred eye, so the
+ * bar keeps the tablet gutter and the items lose their outer gap. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  #navbar nav[aria-label="Main"] > ul {
+    gap: 2px !important;
+  }
+  #navbar li.navbar-link a:not([href*="overmindlab.ai/contact"]) {
+    padding: 8px 6px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* Below lg the theme keeps the eye at the left and a search + menu pair at
+ * the right, which is the website's mobile chrome (eye left-4, Menu button). */
+#navbar div.lg\:hidden.items-center.gap-3 {
+  gap: 8px !important;
+  margin-left: auto;
+}
+#navbar div.lg\:hidden.items-center.gap-3 > button {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 30px !important;
+  height: 30px !important;
+  padding: 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--surface) !important;
+  color: var(--stone-300) !important;
   transition: background-color 150ms ease, color 150ms ease;
 }
-#navbar button:hover,
-#navbar [role="button"]:hover {
+#navbar div.lg\:hidden.items-center.gap-3 > button:hover {
   background: var(--stone-700) !important;
   color: var(--text) !important;
 }
-#navbar button [style*="mask-image"] {
-  background-color: currentColor !important;
+#navbar div.lg\:hidden.items-center.gap-3 > button::after {
+  display: none;
 }
-#navbar #search-bar-entry {
+@media (max-width: 1023px) {
+  #navbar a[href="/"] {
+    left: 12px;
+    transform: translate(0, -50%);
+  }
+}
+
+/* "More actions" opens the theme's mobile menu, a popup dialog carrying the
+ * navbar links and Login. It takes the website MobileMenu's order: Talk to
+ * the team and Login first, then the list, each row a full-width PixelButton. */
+[role="dialog"]:has(> nav > ul > li.navbar-link) {
+  padding: 4px !important;
+  border-radius: 0 !important;
   background: var(--stone-700) !important;
-  color: var(--stone-300) !important;
+  clip-path: var(--notch);
+}
+[role="dialog"]:has(> nav > ul > li.navbar-link) > nav {
+  background: var(--surface);
+  clip-path: var(--notch);
+  padding: 12px !important;
+}
+[role="dialog"]:has(> nav > ul > li.navbar-link) > button {
+  display: none !important;
+}
+[role="dialog"] > nav > ul:has(> li.navbar-link) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px !important;
+}
+[role="dialog"] > nav > ul > li.navbar-link:has(a[href*="overmindlab.ai/contact"]) {
+  order: -2;
+}
+[role="dialog"] > nav > ul > li.block.lg\:hidden {
+  order: -1;
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+  border-bottom: 4px solid var(--stone-700);
+}
+[role="dialog"] > nav > ul > li.navbar-link a,
+[role="dialog"] > nav > ul > li.block.lg\:hidden a {
+  display: flex !important;
+  align-items: center;
+  height: auto !important;
+  padding: 12px 16px !important;
+  clip-path: var(--notch);
+  background: var(--surface) !important;
+  color: var(--text) !important;
   font-family: var(--font-caption) !important;
-  font-size: 14px;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
   text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color 150ms ease;
 }
-#navbar #search-bar-entry:hover {
-  background: var(--stone-600) !important;
-  color: var(--text) !important;
+[role="dialog"] > nav > ul > li.navbar-link a:hover {
+  background: var(--stone-700) !important;
 }
-#navbar kbd {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  border: 1px solid var(--stone-500);
-  background: transparent;
-  color: var(--stone-400);
+[role="dialog"] > nav > ul > li.navbar-link a[href*="docs.overmindlab.ai"] {
+  background: var(--stone-700) !important;
+}
+[role="dialog"] > nav > ul > li.block.lg\:hidden a {
+  background: var(--copper-500) !important;
+}
+[role="dialog"] > nav > ul > li.block.lg\:hidden a:hover {
+  background: var(--copper-400) !important;
+}
+[role="dialog"] > nav > ul > li.navbar-link a span,
+[role="dialog"] > nav > ul > li.block.lg\:hidden a span {
+  overflow: visible;
 }
 
 /* Mobile row: the sidebar toggle, labelled with the page only (the group
  * label is the same eyebrow the desktop header drops). */
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden {
   height: auto !important;
-  padding: 0 16px 12px !important;
+  padding: 0 12px 12px !important;
   border: 0 !important;
+  background: transparent !important;
   font-family: var(--font-body);
   font-size: 14px;
   color: var(--text-3);
