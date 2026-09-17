@@ -66,7 +66,7 @@ Every version is measured against two contracts, and the page reports whether th
 
 | Intent | Shape | Capability, row by row | Feeds |
 | --- | --- | --- | --- |
-| **Train** | A `messages` column whose every row is a chat transcript with an assistant turn (`tools` optional) | The system turn is the capability's scanned system prompt; every tool call names a declared tool | [Training](/models/training) |
+| **Train** | A `messages` column whose every row is a chat transcript with an assistant turn (`tools` optional) | The system turn is the capability's scanned system prompt; every tool call names a declared tool | [Models](/models/training) |
 | **Eval** | An `input` on every row and an `expected_output` column with at least one reference | Every `input` carries the capability's required input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
 
 The capability contract is vacuous when the capability declares nothing. Rows that fail are counted with the reason; a row that cannot meet a contract is a finding for the agent, never a default value. A training run whose eval dataset shares `trace_id`s with the train version excludes those rows from training and says so in its log; the wizard shows the overlap before you launch.

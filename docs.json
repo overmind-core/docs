@@ -350,7 +350,7 @@
         ]
       },
       {
-        "group": "Models",
+        "group": "Model training",
         "pages": [
           "models/training",
           "models/inference"
