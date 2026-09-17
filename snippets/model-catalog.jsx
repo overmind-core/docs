@@ -1,13 +1,14 @@
 export const ModelCatalog = () => {
-  const logos = {
-    cisco: "/images/models/cisco.svg",
-    google: "/images/models/google.svg",
-    liquid: "/images/models/liquid.svg",
-    meta: "/images/models/meta.svg",
-    nvidia: "/images/models/nvidia.svg",
-    openai: "/images/models/openai.svg",
-    qwen: "/images/models/qwen.svg",
+  const labels = {
+    cisco: "Cisco",
+    google: "Google",
+    liquid: "Liquid",
+    meta: "Meta",
+    nvidia: "NVIDIA",
+    openai: "OpenAI",
+    qwen: "Qwen",
   };
+  const tiers = ["compact", "small", "mid", "large"];
   const rows = [
     ["qwen", "Qwen 3.5 4B", "Qwen/Qwen3.5-4B", "yes", "compact", "262144 inference, 131072 train, tool calling"],
     ["qwen", "Qwen 3.5 2B", "Qwen/Qwen3.5-2B", "yes", "compact", "262144 inference, 131072 train, tool calling"],
@@ -48,8 +49,70 @@ export const ModelCatalog = () => {
     ["meta", "Muse Glimmer 30B", "unsloth/Muse-Glimmer-30B", "LoRA-only", "large", "131072 context, tool calling"],
     ["nvidia", "Nemotron 3.5 Lightning 30B-A3B", "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B", "LoRA-only", "large", "262144 context, tool calling"],
   ];
+  const providers = ["qwen", "meta", "liquid", "cisco", "google", "openai", "nvidia"];
+  const [query, setQuery] = useState("");
+  const [providerFilter, setProviderFilter] = useState([]);
+  const [tierFilter, setTierFilter] = useState([]);
+  const toggle = (list, value) =>
+    list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+  const needle = query.trim().toLowerCase();
+  const visible = rows.filter(([provider, name, id, trainable, tier, notes]) => {
+    if (providerFilter.length && !providerFilter.includes(provider)) return false;
+    if (tierFilter.length && !tierFilter.includes(tier)) return false;
+    if (!needle) return true;
+    return [labels[provider], name, id, trainable, tier, notes].join(" ").toLowerCase().includes(needle);
+  });
+  const chipLogo = (provider) => (
+    <span aria-hidden="true" className="om-model-chip-logo" data-logo={provider} />
+  );
   return (
-    <div data-table-wrapper="">
+    <div className="om-model-catalog" data-table-wrapper="">
+      <div className="om-model-catalog-toolbar">
+        <input
+          type="search"
+          className="om-model-catalog-search"
+          value={query}
+          placeholder="Search"
+          aria-label="Search models"
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setQuery("");
+          }}
+        />
+        <div className="om-model-catalog-filters" role="group" aria-label="Provider">
+          {providers.map((provider) => {
+            const on = providerFilter.includes(provider);
+            return (
+              <button
+                key={provider}
+                type="button"
+                className="om-model-chip om-filter-chip"
+                aria-pressed={on}
+                onClick={() => setProviderFilter(toggle(providerFilter, provider))}
+              >
+                {chipLogo(provider)}
+                <span>{labels[provider]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="om-model-catalog-filters" role="group" aria-label="Tier">
+          {tiers.map((tier) => {
+            const on = tierFilter.includes(tier);
+            return (
+              <button
+                key={tier}
+                type="button"
+                className="om-model-chip om-filter-chip"
+                aria-pressed={on}
+                onClick={() => setTierFilter(toggle(tierFilter, tier))}
+              >
+                <span>{tier}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <table>
         <thead>
           <tr>
@@ -61,20 +124,16 @@ export const ModelCatalog = () => {
           </tr>
         </thead>
         <tbody>
-          {rows.map(([provider, name, id, trainable, tier, notes]) => {
-            const src = logos[provider];
-            return (
+          {visible.length === 0 ? (
+            <tr className="om-model-catalog-empty">
+              <td colSpan={5}>No models match.</td>
+            </tr>
+          ) : (
+            visible.map(([provider, name, id, trainable, tier, notes]) => (
               <tr key={id}>
                 <td>
                   <span className="om-model-chip" title={name}>
-                    <span
-                      aria-hidden="true"
-                      className="om-model-chip-logo"
-                      style={{
-                        mask: `url("${src}") center / contain no-repeat`,
-                        WebkitMask: `url("${src}") center / contain no-repeat`,
-                      }}
-                    />
+                    {chipLogo(provider)}
                     <span>{name}</span>
                   </span>
                 </td>
@@ -85,8 +144,8 @@ export const ModelCatalog = () => {
                 <td>{tier}</td>
                 <td>{notes}</td>
               </tr>
-            );
-          })}
+            ))
+          )}
         </tbody>
       </table>
     </div>

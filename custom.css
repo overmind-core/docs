@@ -1007,11 +1007,90 @@ html[data-page-mode="wide"] #content-area {
 #content-area .om-model-chip-logo {
   background: currentColor;
 }
+#content-area .om-model-chip-logo[data-logo="cisco"] {
+  mask: url("/images/models/cisco.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/cisco.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="google"] {
+  mask: url("/images/models/google.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/google.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="liquid"] {
+  mask: url("/images/models/liquid.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/liquid.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="meta"] {
+  mask: url("/images/models/meta.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/meta.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="nvidia"] {
+  mask: url("/images/models/nvidia.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/nvidia.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="openai"] {
+  mask: url("/images/models/openai.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/openai.svg") center / contain no-repeat;
+}
+#content-area .om-model-chip-logo[data-logo="qwen"] {
+  mask: url("/images/models/qwen.svg") center / contain no-repeat;
+  -webkit-mask: url("/images/models/qwen.svg") center / contain no-repeat;
+}
 #content-area .om-model-chip-mono {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
+}
+
+/* Trainable-models catalog: search + provider/tier chips. */
+#content-area .om-model-catalog-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 12px 0 !important;
+}
+#content-area .om-model-catalog-search {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--frame);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  letter-spacing: var(--tracking-cell);
+  box-shadow: none;
+  clip-path: var(--notch);
+}
+#content-area .om-model-catalog-search::placeholder {
+  color: var(--text-3);
+}
+#content-area .om-model-catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+#content-area button.om-filter-chip {
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 0;
+  box-shadow: none;
+}
+#content-area button.om-filter-chip:hover {
+  background: var(--surface-2);
+  border-color: var(--frame-strong);
+}
+#content-area button.om-filter-chip[aria-pressed="true"] {
+  background: var(--stone-100);
+  border-color: var(--stone-100);
+  color: var(--stone-900);
+}
+#content-area table tbody tr.om-model-catalog-empty:hover td,
+#content-area table tbody tr.om-model-catalog-empty td {
+  background: transparent !important;
+  color: var(--text-3);
+  border-bottom: 0 !important;
 }
 
 /* ─── Cards — PixelButton ghost tiles: notched, framed at 1px, fill on hover ── */
