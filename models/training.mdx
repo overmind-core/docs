@@ -3,7 +3,7 @@ title: Training
 description: Training runs — dataset validation, the model catalog, live loss curves, classification metrics, and the benchmark against your production model.
 ---
 
-Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch one or several experiments in parallel on GPU infrastructure — Modal or Baseten, whichever the platform is configured for. Loss curves stream live, and every finished model is judged with your own evaluators against the model the capability runs today — before anything changes in production.
+Training turns an agent's accumulated data into a model of your own. You pick a training dataset and launch one or several experiments in parallel on managed GPU infrastructure. Loss curves stream live, and every finished model is judged with your own evaluators against the model the capability runs today — before anything changes in production.
 
 ## What a run needs
 
@@ -39,7 +39,7 @@ A single run trains multiple experiments in parallel — each with its own base 
 
 The catalog holds about forty open-weight instruct models across the Qwen 3.5, 3.8, 3.6, 3 and 2.5 families, Llama 3, Gemma 4, LFM2.5, Antares, GPT-OSS, Muse Glimmer, and Nemotron 3.5 — from a 230M-parameter compact model up to large mixture-of-experts. Every one serves through the same [OpenAI-compatible API](/models/inference#calling-your-model) and produces downloadable weights. Not every model takes both training methods: the 27B-and-up dense models and every mixture-of-experts train as LoRA adapters only, and the picker hides the method toggle where full fine-tuning is unavailable.
 
-Three things the list doesn't show, all enforced at launch. A model's **max training context** is often shorter than its inference context window, so a model whose context is shorter than your longest row is dropped from the recommendation and refused at submission. **Tool calling** varies by model, so if your agent calls tools, only the models that support them are offered. And a **backend** must be configured — Modal or Baseten — or the launch fails at submission with the reason. The in-product picker is the live source of truth for exactly what's available to your project.
+Three things the list doesn't show, all enforced at launch. A model's **max training context** is often shorter than its inference context window, so a model whose context is shorter than your longest row is dropped from the recommendation and refused at submission. **Tool calling** varies by model, so if your agent calls tools, only the models that support them are offered. And on a self-hosted stack a [training backend](/platform/self-hosting#training-and-serving) must be configured, or the launch fails at submission with the reason. The in-product picker is the live source of truth for exactly what's available to your project.
 
 ## Watching a run
 

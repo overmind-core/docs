@@ -38,7 +38,7 @@ Keys do not expire; revoke what you no longer need.
 
 ## Endpoint map
 
-Standard REST resources follow Django REST Framework conventions: `GET` list with query-param filtering, `POST` create, `GET/PATCH/DELETE` on `/{id}/`, plus the custom actions listed here.
+Standard REST resources follow the conventions you would expect: `GET` list with query-param filtering, `POST` create, `GET/PATCH/DELETE` on `/{id}/`, plus the custom actions listed here.
 
 ### Core resources
 
@@ -136,6 +136,6 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
 
 ## Conventions
 
-- **Filtering** uses django-filter query parameters on list endpoints (the Console's filter bar builds exactly these URLs — copy them from your browser).
+- **Filtering** uses query parameters on list endpoints, with `__gte` / `__lte` suffixes on ranges (the Console's filter bar builds exactly these URLs — copy them from your browser).
 - **Errors**: `401` unauthenticated, `402` insufficient credits for compute-consuming actions when the credit gate is on (hosted; trace ingest is never credit-gated), `403` plan limits, `404` wrong project or missing resource.
 - **IDs** are UUIDs except spans (16-hex `span_id`) and traces (32-hex `trace_id`).

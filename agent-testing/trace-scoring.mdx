@@ -18,13 +18,13 @@ F -> G[Session score | folded over the conversation ledger]
 
 ## When a trace is scored
 
-Scoring is queued the moment a trace's root span lands. A trace is **live** while spans are still arriving or while it has no root span yet, **completed** once the root span has landed, and **interrupted** when no root arrives within the settle window (`TRACE_SETTLE_SECONDS`, default 600 s — a killed run never exports its root, because the root ends last). A sweep every two minutes re-checks the last two hours for traces the immediate pass missed, including interrupted ones; a finished pass is recorded per trace with its verdict counts and cost, and a pass that left verdicts deferred or errored is retried. The trace list and the trace header show the status.
+Scoring is queued the moment a trace's root span lands. A trace is **live** while spans are still arriving or while it has no root span yet, **completed** once the root span has landed, and **interrupted** when no root arrives within the settle window (`TRACE_SETTLE_SECONDS`, default 600 s — a killed run never exports its root, because the root ends last). Nothing is left unscored: a trace the first pass missed — an interrupted one included — is picked up and retried without you asking. The trace list and the trace header show the status.
 
 A trace whose root span carries an error status is skipped as a whole unless it carved more than one unit; so is a trace with no resolvable capability.
 
 ## Units
 
-A unit is the slice of a trace that gets its own verdicts. The carve is a precedence lattice; the first tier that applies wins:
+A unit is the slice of a trace that gets its own verdicts. The carve follows a precedence order; the first tier that applies wins:
 
 | Tier | Source | What marks it |
 | --- | --- | --- |
@@ -56,9 +56,9 @@ The eval set's **trace scoring** members run per unit. Every evaluator carries a
 - **Safety** claims cap the score.
 - **Conformance** and **verification** claims flip their own verdict's `passed` when they fail; no member vetoes the rest.
 - **Progress**, **quality**, and **grounding** claims are scoring leaves.
-- Every verdict feeds one of three phases by grain — **steps** (unit claims, weight 0.25), **trajectory** (0.25), and **output** (terminal claims, 0.50) — and an empty phase's weight is redistributed to the others. The session fold closes the graph.
+- Every verdict feeds one of three phases by grain — **steps** (unit claims, weight 0.25), **trajectory** (0.25), and **output** (terminal claims, 0.50) — and an empty phase's weight is redistributed to the others. A [session score](#session-scores) then folds a conversation's turns together.
 
-Each verdict is stored as its own `Verdict` row: evaluator, target span, typed outcome, score, rationale, and a flat `metadata` block (`passed`, `scope`, `grain`, `gate`, `surface_area`, `sub_scores`). Verdict rows are the source of truth — every detail surface reads them over `GET /api/verdicts/`. The unit's span keeps only the composed markers, written to `feedback_score.trace_scoring` as a derived cache the list views read:
+Each verdict is stored on its own: evaluator, target span, typed outcome, score, rationale, and a flat `metadata` block (`passed`, `scope`, `grain`, `gate`, `surface_area`, `sub_scores`). Verdicts are the source of truth — every detail surface reads them over `GET /api/verdicts/`. The unit's span keeps only the composed markers, under `feedback_score.trace_scoring`:
 
 ```json
 {
@@ -72,7 +72,7 @@ Each verdict is stored as its own `Verdict` row: evaluator, target span, typed o
 
 `_execution.score` (0–1) is the composite the Console shows as the **Score** column. When a safety cap lowered it, the marker names `cap_evaluator` and `failure_mode_cap`; when two outcome judges land more than 0.5 apart, it carries a `conflict` with both members' values and the Console marks the row instead of averaging silently. A trace with several entry-point invocations scores each unit onto its own span; the root span gets only an `invocations` summary entry (`"2/2 invocations passed"`) and an `_execution` that averages the unit scores.
 
-Outcomes are typed — `scored`, `abstained`, `not_applicable`, `error` — and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing; a member skipped for its grain, a behaviour filter, or an interrupted run persists a retryable `not_applicable` row whose `unmet` list carries a `skip:` clause.
+Outcomes are typed — `scored`, `abstained`, `not_applicable`, `error` — and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing; a member skipped for its grain, a behaviour filter, or an interrupted run records a `not_applicable` verdict whose `unmet` list carries a `skip:` clause.
 
 <Frame caption="An execution in the Console: the intent, the route through the task's anchors, and every verdict with its reasoning.">
   <img src="/images/platform/execution-detail.jpg" alt="Task execution detail with route and evaluator verdicts" />

@@ -5,21 +5,21 @@ description: How traces get from your agent into Overmind — the OTLP endpoint,
 
 Overmind's observability is built on OpenTelemetry end to end. Your process exports standard OTLP spans; the platform ingests them, maps them onto its data model, ties them to a capability, and scores each arriving trace with your evaluators. This page covers the full path a span travels, with the real endpoints, headers, and attribute names the platform reads.
 
-## Architecture
+## The path a span takes
 
-There is no collector, sidecar, or proxy between your agent and the platform. SDKs (and any vanilla OTel exporter) POST OTLP protobuf directly to the API, which writes spans to Postgres and fans out post-processing to background workers:
+There is nothing to run between your agent and Overmind — no collector, sidecar, or proxy. SDKs (and any vanilla OTel exporter) POST OTLP protobuf straight to the API, which stores each span, attributes it, and scores the trace:
 
 ```flow
 flow row
 title: The ingestion pipeline, span by span
 A[Your process | OTel SDK / Overmind SDK] -> B[POST /api/v1/traces | OTLP protobuf + API key]
-B -> C[Bulk upsert | Span rows, idempotent on span_id]
-C -> D[Projection | capability and session attribution]
+B -> C[Stored | idempotent on span_id]
+C -> D[Attributed | capability and session]
 D -> E[Trace scoring | units carved, bound to tasks, judged]
 E -> F[Console | executions, traces, sessions]
 ```
 
-Ingestion is synchronous up to the database write, so a `200` response means your spans are stored. Re-sending the same spans is safe: rows are upserted on the span ID, so retries and duplicate exports never create duplicate data. Trace scoring is queued the moment a root span lands and runs on its own worker queue, isolated so ingest bursts can't starve evaluation.
+A `200` response means your spans are stored. Re-sending the same spans is safe: they are keyed on the span ID, so retries and duplicate exports never create duplicate data. Scoring starts the moment a root span lands and runs apart from ingest, so a burst of traffic never holds up either one.
 
 ## The OTLP endpoint
 
@@ -108,7 +108,7 @@ In a local repository, run `overmind sync` first so the Python SDK can reuse its
 
 ## How spans map to the data model
 
-A trace is not a separate record: it is the set of span rows sharing a `trace_id`, and the root span (the one with no parent) is what the trace list shows. Each stored span keeps the full OTLP payload — timing, status, resource attributes, span attributes, events, and links — plus platform fields computed at ingest: a span type, an operation name, and foreign keys to the project, capability, and conversation it belongs to.
+A trace is the set of spans sharing a `trace_id`, and the root span (the one with no parent) is what the trace list shows. Each stored span keeps the full OTLP payload — timing, status, resource attributes, span attributes, events, and links — plus the fields Overmind computes at ingest: a span type, an operation name, and the project, capability, and conversation it belongs to.
 
 ### Span classification
 
@@ -139,7 +139,7 @@ The pipeline understands three attribute dialects — the Overmind SDK's own key
 | Runtime expectations | span events `overmind.eval.intent`, `overmind.eval.expectation`, `overmind.eval.checkpoint`, `overmind.eval.context`, `overmind.eval.conversation_end` |
 | Project (session-auth ingest only) | `overmind.project.id` resource attribute |
 
-Traceloop instrumentation is normalised on the way in — scope names under `@traceloop/*` are rewritten to `@overmind/*` — so OpenLLMetry-instrumented apps work without changes.
+OpenLLMetry-instrumented apps work without changes: Traceloop instrumentation is normalised on the way in.
 
 ### Capability attribution
 
@@ -166,7 +166,7 @@ A trace is `live` while spans are still arriving or the root span is missing, `c
 
 ## Scores on arrival
 
-When a root span lands, the platform carves the trace into **units**, binds each unit to one of the capability's **tasks** as a **task execution**, and runs the trace-scoring members of the active [eval set](/agent-testing/eval#eval-sets) against each unit. Every verdict is stored as its own row, read over `GET /api/verdicts/`; the unit's span keeps the composed markers in `feedback_score.trace_scoring`, whose `_execution.score` is the composite the Console shows in the **Score** column. Sessions get a score of their own. A trace that never sends its root is picked up by a sweep once it is `interrupted`. The full contract — carve precedence, binding sources, how claims compose, the marker shape — is on [Trace scoring](/agent-testing/trace-scoring).
+When a root span lands, the platform carves the trace into **units**, binds each unit to one of the capability's **tasks** as a **task execution**, and runs the trace-scoring members of the active [eval set](/agent-testing/eval#eval-sets) against each unit. Every verdict is stored as its own row, read over `GET /api/verdicts/`; the unit's span keeps the composed markers in `feedback_score.trace_scoring`, whose `_execution.score` is the composite the Console shows in the **Score** column. Sessions get a score of their own. A trace that never sends its root is scored anyway, once it is marked `interrupted`. The full contract — carve precedence, binding sources, how claims compose, the marker shape — is on [Trace scoring](/agent-testing/trace-scoring).
 
 This makes the executions list a live quality monitor: filter to low scores over the last hour and read exactly which step failed and why.
 
@@ -207,7 +207,7 @@ In the **Root traces** view, select rows (or **Select all** across pages) and **
 Everything the Console shows is available over REST with the same API key:
 
 ```bash
-# List root traces (django-filter query params for time, status, capability, service)
+# List root traces (query params for time, status, capability, service)
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/traces/"
 

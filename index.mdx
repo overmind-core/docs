@@ -2,15 +2,15 @@
 title: Introduction
 ---
 
-Overmind improves production AI agents with their own data. It ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval runs, optimisation runs that score code diffs in your repository, and training runs that produce models benchmarked against the one you ship today.
+Overmind makes the AI in your product improve on its own production traffic. Point your agent's OpenTelemetry traces at it and every run is scored as it arrives; that traffic becomes curated datasets, and the datasets feed three loops: eval runs that measure a change, optimisation runs that rewrite your agent's code in your repository and prove the rewrite is better, and training runs that give you a model of your own, benchmarked against the one you ship today.
 
-The platform is open source — [overmind-core/overmind](https://github.com/overmind-core/overmind) holds the API, the Console, and the SDK — and runs the same way hosted at overmindlab.ai or [self-hosted](/platform/self-hosting) with Docker Compose.
+Overmind is open source. Use it hosted at overmindlab.ai, or [self-host](/platform/self-hosting) it with Docker Compose — the same code, the same workflows either way.
 
 ```flow
 flow row
 title: From your agent's process to a model you own
 A[Your agent | SDK or any OTel exporter] -> B[OTLP ingest | POST /api/v1/traces]
-B -> C[Spans in Postgres | scored per task execution]
+B -> C[Stored spans | scored per task execution]
 C -> D[Datasets | curated from traces]
 D -> E[Eval runs | variants vs baseline]
 E -> OP[Optimiser | code diffs, replayed + scored]
@@ -36,7 +36,7 @@ Overmind gives you:
 - **Datasets from traffic** — convert traces into eval and training data, shaped by the dataset's own agent
 - **Eval runs** — variants measured against a baseline with typed scores
 - **Optimiser** — candidates generated and replayed in your repository by the CLI, scored on the platform, the winning diff on the candidate for you to apply
-- **Training** — GPU runs on Modal or Baseten, loss curves, a benchmark against your production model
+- **Training** — managed GPU runs, loss curves, a benchmark against your production model
 - **Inference** — OpenAI-compatible API for your trained models and frontier models
 - **MCP and CLI** — the same workflows from Cursor, Claude Code, OpenCode, or Codex
 

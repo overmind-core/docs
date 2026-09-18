@@ -3,11 +3,11 @@ title: Self-hosting
 description: Run the open-source platform yourself — Docker Compose, the environment reference, the agent and provider keys, training and serving backends, and billing modes.
 ---
 
-The platform is one repository, [overmind-core/overmind](https://github.com/overmind-core/overmind): the Django API (`overbae/`), the React Console (`frontend/`), the Python SDK and CLI (`overmind/`), and the Modal workers for training and serving. The hosted product at overmindlab.ai runs this same code.
+Overmind is open source, and one repository — [overmind-core/overmind](https://github.com/overmind-core/overmind) — carries everything you need to run it: the API, the Console, the Python SDK and CLI, and the training and serving workers. The hosted product at overmindlab.ai runs this same code, so nothing in the rest of these docs changes when you host it yourself.
 
 ## Requirements
 
-Docker with Compose, [uv](https://docs.astral.sh/uv/) for anything Python outside the containers, and [Bun](https://bun.sh/) for the Console. Training and serving need a Modal or Baseten account and are optional.
+Docker with Compose, and [Bun](https://bun.sh/) for the Console. Training and serving need a Modal or Baseten account and are optional.
 
 ## Start the stack
 
@@ -15,10 +15,10 @@ Docker with Compose, [uv](https://docs.astral.sh/uv/) for anything Python outsid
 git clone https://github.com/overmind-core/overmind.git
 cd overmind
 cp .env.example .env      # fill in at minimum OPENROUTER_API_KEY
-docker compose up -d      # API, Postgres, Redis, four Celery workers, beat, Grafana
+docker compose up -d      # API, Postgres, Redis, background workers, Grafana
 ```
 
-Compose brings up Postgres (pgvector 16), Redis, the API on `http://localhost:8000` with hot reload, four Celery workers and beat, and Grafana on `http://localhost:3001`. The API container runs migrations and seeds the managed evaluators on every start. The Console is a Vite app served separately:
+Compose brings up Postgres (pgvector 16), Redis, the API on `http://localhost:8000`, the background workers with their scheduler, and Grafana on `http://localhost:3001`. The API container runs migrations and seeds the managed evaluators on every start. The Console is a Vite app served separately:
 
 ```bash
 cd frontend && bun install && bun run dev    # http://localhost:5173
@@ -34,7 +34,7 @@ docker compose exec -T api python manage.py shell < seed.py
 
 ## Environment reference
 
-`.env.example` is the operator contract. Every variable is read by `docker-compose.yml` or `overbae/settings.py`.
+`.env.example` is the operator contract: every variable the stack reads.
 
 ### Required
 
@@ -72,20 +72,10 @@ Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: ever
 
 ### Optional
 
-`GRAFANA_ADMIN_PASSWORD` and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel; `TOGETHER_API_KEY` for the retired Together backend that existing job rows still render.
+`GRAFANA_ADMIN_PASSWORD` and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel.
 
-## Topology
+## What runs, and what to back up
 
-The API is Django plus DRF under uvicorn; MCP is mounted on the same ASGI app at `/api/mcp/`. Celery runs four workers over five queues: `control` (default, orchestration and beat), `io` and `io_traces` (one threads worker; trace scoring rides `io_traces`), `batch` (landing datasets, uploads) and `interactive` (dataset runs and agent turns). Workers restart on any `.py` change under `overbae/`, so a running agent turn dies when you edit backend code beneath it. Every dataset frame lives under `MEDIA_ROOT/datasets/<id>/cells/` as Parquet on the `app_data` volume.
+One API process serves the REST API, the Console's calls, and MCP at `/api/mcp/`. Everything slower than a request runs on background workers, split so one kind of load cannot starve another: orchestration, trace ingest and scoring, batch work (landing datasets and uploads), and interactive work (dataset cell runs and agent turns).
 
-## Developing on it
-
-```bash
-make run                   # Django + Vite outside Docker
-make worker                # one local Celery worker over every queue, solo pool
-make test                  # backend tests, parallel
-make lint-format           # ruff + biome
-make generate_api_client   # after any backend API change: regenerates frontend/src/openapi/
-```
-
-`AGENTS.md` at the repo root is the playbook a coding agent reads before touching a subsystem; `.claude/skills/` holds the subsystem maps. Pull requests go against `main`; the SDK publishes to PyPI on `overmind-v*` tags.
+Persistent state is two volumes: `pg_data`, which holds spans, capabilities, runs, verdicts, and everything else the API serves, and `app_data`, which holds every dataset version as a Parquet frame. Back up both.

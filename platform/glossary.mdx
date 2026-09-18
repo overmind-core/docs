@@ -9,7 +9,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Guest workspace** — a project minted for a guest session (`POST /api/auth/guest/`): read-only beyond claiming, deleted after 7 days unless claimed. Creating an account from inside it moves the project to the new account.
 
-**Agent** — your product: one per project, mapped as a graph of capabilities. It has no record of its own; its identity is the project. See [Agent & Capabilities](/core/capabilities).
+**Agent** — your product: one per project, mapped as a graph of capabilities. The project is its identity. See [Agent & Capabilities](/core/capabilities).
 
 **Capability** — one purpose the agent serves, and Overmind's record of it: code structure from local sync joined with runtime behaviour from telemetry. A capability the snapshot no longer includes becomes a **leftover** and returns when the code does; a hand delete hides it and keeps its data. See [Agent & Capabilities](/core/capabilities).
 
@@ -25,7 +25,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 ## Observability
 
-**Trace** — one end-to-end run of an agent: the set of spans sharing a `trace_id`. There is no separate trace record; the root span (the one with no parent) represents the trace in lists.
+**Trace** — one end-to-end run of an agent: the set of spans sharing a `trace_id`. The root span (the one with no parent) represents the trace in lists.
 
 **Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`.
 
@@ -75,7 +75,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Score** — one evaluator's result on one sample, with a typed outcome: `scored`, `abstained`, `not_applicable`, `skipped`, or `error`. Only `scored` results feed averages.
 
-**Verdict** — one evaluator's result on one trace unit, stored as its own row — the source of truth the Console reads over `GET /api/verdicts/`. The unit span's `feedback_score.trace_scoring` block keeps only the composed markers.
+**Verdict** — one evaluator's result on one trace unit, stored on its own — the source of truth the Console reads over `GET /api/verdicts/`. The unit span's `feedback_score.trace_scoring` block keeps only the composed markers.
 
 **Execution score** — the composite of a unit's verdicts (0–1): safety claims cap it, gates flip their own verdict, the rest are weighted over three phases. Shown as the Score column.
 

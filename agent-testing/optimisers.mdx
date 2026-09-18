@@ -47,7 +47,7 @@ P -> W[Winner] : No
 W -> L[Apply winning diff locally]
 ```
 
-The client owns codegen, the smoke test, and every datapoint run; the server holds the dataset version, scores posted outputs, and records the winner. Each step is one CLI verb — `set-template`, `run-smoke`, `run-baseline`, `add-candidate`, `run-iteration`, `complete` — and `overmind optimise next` tells the coding agent which one comes next. See the [CLI](/platform/cli#overmind-optimise).
+Your checkout owns codegen, the smoke test, and every datapoint run; Overmind holds the dataset version, scores the posted outputs, and records the winner. Each step is one CLI verb — `set-template`, `run-smoke`, `run-baseline`, `add-candidate`, `run-iteration`, `complete` — and `overmind optimise next` tells the coding agent which one comes next. See the [CLI](/platform/cli#overmind-optimise).
 
 A run opens with a **smoke test** — before spending anything, the first datapoint runs through the command template to verify the entrypoint can be invoked. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
 
@@ -58,7 +58,7 @@ Each subsequent iteration takes a batch of candidate diffs from the coding agent
 | Mode | Candidates | Stops on |
 | --- | --- | --- |
 | **optimize** (Harness) | Code diffs the coding agent writes | Budget or patience |
-| **model_comparison** (Backtesting) | One to five OpenRouter model ids, replayed with the repository's provider calls rewritten to OpenRouter (`overmind.backtest.rewrite_repo`) | Every model, always — a comparison owes a full table |
+| **model_comparison** (Backtesting) | One to five OpenRouter model ids, replayed with your repository's provider calls rewritten to OpenRouter | Every model, always — a comparison owes a full table |
 | **hybrid** | Diffs and models together | Budget or patience |
 
 A backtest ranks its candidates **coverage-fair**: by score, then by the share of the eval suite's claims the candidate's outputs covered, then by fewest excluded commands — so a model that scored well by skipping hard datapoints does not win. When every candidate ties and the suite left card claims uncovered, no winner is selected and the run says so. Model calls in a backtest can run on Overmind credits through the platform gateway or on your own OpenRouter key.
