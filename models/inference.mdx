@@ -12,7 +12,15 @@ A deployment moves through `queued → quantizing → deploying → warming → 
 - A dense model trained on Modal with LoRA is served as an **adapter on a shared BF16 base**; deployments of the same base share one process and skip the `quantizing` stage.
 - Everything else — full fine-tunes, mixture-of-experts models, models whose family has no adapter support — is **merged and quantised into a private checkpoint** (FP8 where the base supports it) and served from its own vLLM process.
 
-Each process scales to zero when idle: two minutes without traffic for most models, fifteen for the largest. The first request after that cold-boots the model in two to seven minutes; the response is held open with an idle ping every 15 seconds so the connection survives.
+Each process scales to zero when idle: two minutes without traffic for most models, fifteen for the largest. The first request after scale-to-zero waits for GPU startup and model readiness; it can still take minutes. The response is held open with an idle ping every 15 seconds so the connection survives.
+
+### Shared-base LoRA snapshots
+
+Compatible LoRA deployments reuse an adapter-free engine snapshot and inference-format base weights. These assets belong to the base revision and serving profile, including GPU, context length, adapter-rank capacity and serving runtime. A new adapter using the same profile reuses them; it does not require a separate copy of the base weights or a tenant-specific snapshot.
+
+Registration prepares the profile and verifies inference before marking the deployment `ready`. After scale-to-zero, the worker restores the engine, reloads base weights into GPU memory and then attaches the requested adapter. Full fine-tunes and merged checkpoints keep their existing non-snapshot startup path.
+
+Snapshot reuse does not guarantee a fixed cold-start time. GPU scheduling, weight-storage performance and additional hardware-specific snapshot preparation can still delay the first request. A warm request to an already loaded base avoids that startup work. See [Modal's snapshot limitations](https://modal.com/docs/guide/memory-snapshots#limitations) for provider constraints.
 
 ## Calling your model
 
