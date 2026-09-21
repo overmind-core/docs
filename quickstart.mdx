@@ -1,57 +1,46 @@
 ---
 title: Quickstart
-description: Sign up or self-host, paste one prompt into your coding agent — then improve the agent with /overmind commands.
+description: The easiest way to get started with Overmind.
 ---
 
-Overmind onboards through your coding agent. One pasted prompt installs the SDK, configures the MCP server, and scans your repository into capabilities; after that, everything — instrumentation, datasets, training, optimisation — runs as `/overmind` commands from the same chat.
+Overmind has first class integration with cursor, claude code, opencode, and codex through our SKILL `/overmind` and MCP server, after signing up you can pretty much do everything from your coding agent.
+
+> We've built the experince to be as easy and native to your coding agent as possible.
 
 <Steps>
-  <Step title="Get a console">
-    Sign up at [console.overmindlab.ai](https://console.overmindlab.ai), or start the stack locally with `docker compose up` — see [Self-hosting](/platform/self-hosting). A **project** is the scoping unit for capabilities, traces, datasets, runs, models, and keys; the first scan push creates it for you.
+  <Step title="Get on console">
+    Start by signing up at [console.overmindlab.ai](https://console.overmindlab.ai)
   </Step>
   <Step title="Copy the onboarding prompt">
-    The **Agent** page opens empty. Pick your coding agent — **Cursor**, **Claude Code**, **OpenCode**, or **Codex** — and hit **Copy onboarding prompt**. The prompt carries a temporary account-scoped bootstrap key, so paste it only into your local coding agent, never into a shared chat. **Manual setup** shows the same commands for a terminal.
+    Pick your coding agent — **Cursor**, **Claude Code**, **OpenCode**, or **Codex** — and hit **Copy onboarding prompt**.
   </Step>
-  <Step title="Paste it into your coding agent">
-    Open your repository in the coding agent (repo root as the workspace folder) and paste. The agent does the rest:
+  <Step title="Paste the prompt into your coding agent">
+    Paste the prompt into your coding agent (repo root as the workspace folder) and hit enter.
+    - Overmind will now scan your repository for [AI Agents & Capabilities](/core/capabilities#the-scan), you can see them in the [Console](https://console.overmindlab.ai)
+    - If you want any changes in how they are grouped, evals, etc, just ask your coding agent to do it.
+    - Next step is to ensure your codebase is instrumented properly for [tracing using OTLP endpoint](/core/observability#the-otlp-endpoint), just run `/overmind ensure-tracing` in your coding agent.
 
-    - installs the `overmind` package with your repo's own package manager
-    - exports `OVERMIND_API_URL` and the bootstrap key for this shell session only
-    - runs `overmind init --ide <client>` — installs the Overmind skill, the `/overmind` commands (Cursor and Claude Code), and the client's MCP entry
-    - runs `overmind scan` — a deterministic local scan that writes `.overmind/skeleton.json`, `worksheet.json` and `report.json` — then names every cluster in the worksheet from the evidence
-    - runs `overmind scan finalize` — writes the declared capabilities into `overmind.toml` and stubs one card per capability — and fills the cards from your source
-    - runs `overmind scan push` — creates the Console project, saves a project-scoped key to `.overmind/credentials.toml`, and rewrites the MCP entry with it
-    - follows the installed skill's onboard reference for tracing
-
-    Reload the IDE once after the push. The bootstrap key is never written to project files; local runs reuse the saved project credential from then on. Against a self-hosted API, the same prompt exports `OVERMIND_API_URL` first and `overmind init` takes `--env local`. What each scan step produces is on [Agent & Capabilities](/core/capabilities#the-scan).
   </Step>
   <Step title="Improve the agent with /overmind commands">
     The pushed capabilities are the starting point. From the same chat, each command drives one loop end to end:
 
     | Command | What it does |
     | --- | --- |
-    | `/overmind onboard` | Connect this repository to Overmind |
-    | `/overmind setup` | Scan the repository and declare capabilities |
-    | `/overmind ensure-tracing` | Inspect traces and instrument the agent |
+    | `/overmind ensure-tracing` | Inspect codebase and instrument it properly for tracing |
     | `/overmind dataset` | Build, clean, upload, or export a dataset |
     | `/overmind finetune` | Fine-tune, deploy, and smoke-test a model |
     | `/overmind optimise` | Run prompt and code optimisation |
     | `/overmind backtest` | Compare models in the repository |
 
-    Plain `/overmind` routes to the right workflow when you'd rather describe the goal than pick a command. OpenCode and Codex get the same skill and MCP entry but no slash commands; describe the goal instead.
   </Step>
   <Step title="Watch it land in the Console">
-    Once tracing is in, open **Observability**. The default **Task executions** view shows one row per scored unit of work; **Root traces** shows one row per trace and **Sessions** groups traces by session. Click a row for the span tree, timeline, full model-call transcripts, and the verdicts with their reasoning.
+    Once tracing is in, open **Observability**.
 
-    <Frame caption="Task executions: one row per scored unit, with the task it bound to and its execution score.">
+    <Frame caption="default view is Task executions: one row per scored unit, with the task it bound to and its execution score.">
       <img src="/images/platform/observability-executions.jpg" alt="Observability task executions view in the Overmind console" />
     </Frame>
-
-    The **Agent** page fills in as each step lands: capabilities after the first push, traffic and scores once traces arrive, **Confirmed** on a capability once a trace binds to it.
   </Step>
 </Steps>
-
-Deployed processes still need `OVERMIND_API_KEY` in their runtime secret configuration — the saved project credential covers local runs only. Not using Python or a coding agent? Any OpenTelemetry SDK can export straight to the [OTLP endpoint](/core/observability#the-otlp-endpoint).
 
 ## Next steps
 

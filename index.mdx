@@ -1,6 +1,6 @@
 ---
 title: "Introduction"
-description: "Overmind improves production AI agents with their own data: traces in, scored datasets, eval runs, optimisation runs, and trained models out."
+description: "Overmind continuously improves production AI agents with their own data: traces in, trained models out."
 ---
 
 import { Ascii } from "/snippets/ascii.jsx";
@@ -33,31 +33,20 @@ import { Ascii } from "/snippets/ascii.jsx";
   ]}
 />
 
-Overmind ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval runs, optimisation runs that score code diffs in your repository, and training runs that produce models benchmarked against the one you ship today.
+Overmind ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, to be used for evaluations, optimisations and model training benchmarked against what you currently have.
 
-The platform is open source. [overmind-core/overmind](https://github.com/overmind-core/overmind) holds the API, the Console, and the SDK, and runs the same way hosted at overmindlab.ai or [self-hosted](/platform/self-hosting) with Docker Compose.
+The platform can be used as [cloud hosted](https://console.overmindlab.ai) or [self-hosted](/platform/self-hosting) with Docker Compose.
 
-Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, [MCP](/platform/mcp) for coding agents, OpenAI-compatible serving for models. There is no proprietary agent framework. The Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain over OpenTelemetry, and any OTel exporter can POST to the same endpoint.
+Overmind is built on top of standard protocols so no matter what agent you use, you can use Overmind to improve it, with little to no effort.
 
-What the platform does:
-
-- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the capability's eval set
-- [Datasets from traffic](/core/datasets): traces become eval and training data, shaped by the dataset's own agent
-- [Eval runs](/agent-testing/eval): variants measured against a baseline with typed scores
-- [Optimiser](/agent-testing/optimisers): candidates generated and replayed in your repository by the CLI, scored on the platform, the winning diff left for you to apply
-- [Models](/models/training): GPU runs on Modal or Baseten, loss curves, a benchmark against your production model
+What Overmind does:
+- [Capability scan](/core/capabilities): Scanning your codebase for AI agents and different agentic capabilities.
+- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the agent's eval set
+- [Datasets from traces](/core/datasets): traces from real environments become eval and training data, no synthetic data, no data poisoning, no hallucinations.
+- [Evaluations](/agent-testing/eval): your in house quality control loop, measured using a typed score, ensuring the agent is always improving.
+- [Optimiser](/agent-testing/optimisers): An AI Engineer running experiments on your repository, trying to improve the agent's performance while adhering to your quality control loop.
+- [Models](/models/training): Finetuned models that you own, built on top of your custom data.
 - [Inference](/models/inference): OpenAI-compatible API for your trained models and frontier models
-- [MCP](/platform/mcp) and [CLI](/platform/cli): the same workflows from Cursor, Claude Code, OpenCode, or Codex
-
-## Surfaces
-
-| Surface | Hosted | Self-hosted default |
-| --- | --- | --- |
-| API | `https://api.overmindlab.ai` | `http://localhost:8000` |
-| Console | `https://console.overmindlab.ai` | `http://localhost:5173` |
-| MCP | `https://api.overmindlab.ai/api/mcp/` | `http://localhost:8000/api/mcp/` |
-
-Authenticate with an `ovr_` key as `X-Api-Key: <key>` or `Authorization: Bearer <key>`. Keys are scoped to an account or to one project; see [Projects & administration](/platform/administration).
 
 ## Guides
 

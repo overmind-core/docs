@@ -1,121 +1,109 @@
 ---
 title: Datasets
-description: Source, cells, versions — how a dataset lands, how its agent shapes it cell by cell, how every cell is a version and how a run uses one.
+description: Turn your production traffic into the eval and training data your runs read.
 ---
 
-A dataset is the curated slice of your data that eval runs, optimisation runs, and training runs consume. Overmind treats it as one chain:
+A dataset is the data your eval runs, optimisation runs and training runs read. You bring rows — selected traces, a file, pasted text — and shape them until they fit what you need. Overmind's own agent does most of that shaping for you.
 
-| Thing | What it is | Who writes it |
-| --- | --- | --- |
-| **Source** | The rows exactly as they arrived — a file, pasted rows, or a trace selection. Version 1.0 | Landing. Never edited |
-| **Cell** | One Python transformation over the previous frame. Each cell that ran is the next version: 1.1, 1.2, … | You, or the dataset's agent |
-| **Active version** | The cell a run reads: the last one that ran unless you set another | You |
+Two things say what a dataset is for: its **intent** (`train` or `eval`) and the **capability** it belongs to. Both are proposed when it lands and both can be changed by asking, until a run has used it.
 
-Two things describe what the table is for: the **intent** (`train`, `eval`, or `pending`) and the **capability** it belongs to. Landing proposes both from the rows, the agent can change either from the chat, and both freeze the moment a version is used. Every version carries two measured contracts against them.
+## Create a dataset
 
-Nothing is reshaped on the way in and nothing is edited in place. To change the table you change a cell and run again; the cells after it run again in place and keep their version numbers. A version a run has read is frozen: its script is read-only, its frame cannot change, and so is every cell before it.
-
-## Landing a source
-
-The **New dataset** dialog on the Datasets page takes a source (**Upload file**, **Paste rows**, or **From traces**), a name, a capability, and a purpose. The purpose is the intent: **Decide from the rows** leaves it `pending` for landing and the agent to settle; **Evaluation** and **Training** fix it. One dialog lands one dataset.
+**New dataset** on the Datasets page takes a source, a name, a capability and a purpose. **Decide from the rows** lets Overmind settle the intent for you; **Evaluation** and **Training** fix it.
 
 <Frame caption="The New dataset dialog: source, name, capability and purpose.">
   <img src="/images/platform/new-dataset-dialog.jpg" alt="New dataset dialog" />
 </Frame>
 
 <Tabs>
-  <Tab title="From traces">
-    Select rows in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or choose **From traces** in the dialog and land every trace matching the current filters. Each trace lands as one row: `trace_id`, `conversation_id`, `capability_id`, `capability`, `started_at`, `duration_ms`, `status`, `error`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, the capability's `input` and delivered `output`, the reconstructed `messages` and `tools` in the OpenAI wire shape, and `score` (the trace's last [trace scoring](/agent-testing/trace-scoring) result, empty when unscored). A `messages` column already satisfies the training contract; for eval data the dataset's agent renames `output` to `expected_output`. Splitting a transcript per assistant turn is one cell in the dataset's chat.
+  <Tab title="From your traces">
+    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or choose **From traces** to take everything matching your current filters.
+
+    Each run lands as one row: its input and delivered output, the full transcript and tools in OpenAI wire shape, model, tokens, cost, status, duration and its score. A transcript already satisfies the training contract; for eval data the agent renames `output` to `expected_output` for you.
   </Tab>
   <Tab title="Upload or paste">
-    Drop a **CSV, TSV, JSON, JSONL, or Parquet** file anywhere on the Datasets page, or paste rows straight into the dialog (JSON lines, a JSON array, or CSV). The upload endpoint also takes `.ndjson` and gzipped files up to 2 GB. Columns and types are read from the file; numbers stay numbers, nested JSON stays JSON. From a terminal, `overmind dataset upload FILE [--intent train|eval] [--capability <uuid>]` lands the same file. See the [CLI](/platform/cli#overmind-dataset).
+    Drop a **CSV, TSV, JSON, JSONL or Parquet** file anywhere on the Datasets page, or paste rows straight into the dialog. Files can be gzipped and up to 2 GB. Columns and types come from the file — numbers stay numbers, nested JSON stays JSON.
+
+    From a terminal: `overmind dataset upload FILE [--intent train|eval] [--capability <uuid>]`. See the [CLI](/platform/cli#overmind-dataset).
   </Tab>
 </Tabs>
 
-Landing writes the source as Parquet, stamps every row with a `source_row` index so later versions can be diffed value by value, scores every capability of the project against the rows (bound ids, the system turn, tool names, input keys) to propose one, and proposes the intent from the shape: transcripts with assistant turns are train, an input with a reference is eval, anything else stays `pending` until the agent decides. The dataset's `state` is `landing` while that happens, `diagnosing` during the first agent turn, `running` while a chain runs, otherwise `idle`; a failed landing ends in `error` with the reason.
+Nothing is reshaped on the way in. Your rows land exactly as they arrived, and every change after that is a step you can see and undo.
 
 <Warning>
-A cell value longer than 200,000 characters (a tool call carrying a serialised agent state, say) is cut to a preview marker on the way in. The row and every other column land intact.
+A single value longer than 200,000 characters — a tool call carrying a serialised agent state, say — is replaced with a preview marker. The rest of the row lands intact.
 </Warning>
 
-## The workshop
+## Shape it by asking
 
-Opening a dataset lands you in the Data Workshop: the outline of versions down the left edge, the cells stacked in the middle, and the dataset's agent on the right. The name, the intent and the capability change through the chat.
+Opening a dataset puts you in the Data Workshop: your versions down the left, the chain of steps in the middle, and the dataset's agent on the right.
 
-<Frame caption="The Data Workshop: the version outline, the cell chain with the source frame, and the agent's first turn on the right.">
+<Frame caption="The Data Workshop: the version outline, the chain of steps, and the agent's first turn.">
   <img src="/images/platform/workshop.jpg" alt="Data Workshop with cells and the dataset agent" />
 </Frame>
 
-- A cell is a title, a Python body and the frame it left. The body reads the previous frame as `df` (pandas, with `pd` and `np` bound) and leaves the next one in `df`. It runs in an isolated interpreter with a CPU and memory cap, no file or network access, and imports from the workshop's library list: the standard library and a preloaded tier — pandas, numpy, pyarrow, DuckDB, scipy, scikit-learn, rapidfuzz, tiktoken, regex, jsonschema, langdetect, datasketch, dateutil, pyyaml — plus an installable tier (nltk, textstat, unidecode, ftfy, simhash, emoji, langcodes, presidio-analyzer, jellyfish, Levenshtein, markdownify, beautifulsoup4, lxml, wordfreq, sentence-transformers, transformers, torch) the agent pulls in per project with its `install` tool.
-- A cell's `state` is `proposed`, `queued`, `running`, `ok`, or `failed`. Under the script, the table marks new rows and changed values against the cell before, with the old value on hover.
-- The active version's cell carries the consumers: a train table offers **Train a model**; an eval table offers **Run the optimiser** and **Use in a training job** (the eval dataset that scores the job). Export sits in the cell's title chip and writes JSONL or CSV. Any other version offers **Set active**.
+The agent goes first, before you type anything. It decides the intent if you left it open, lands the smallest set of steps that make your data fit, then runs the quality checks for that intent — duplicates, empty or truncated final turns, length outliers, tool calls that don't parse, missing or trivial references, the answer leaking into the input, rows from another capability — and adds one step per finding, with the row count in its note. A fix that would drop more than half your rows waits in the chat as a proposal with **Run** and **Discard** instead of landing on its own.
 
-**Run** executes every cell whose script or input changed. A failing cell shows its traceback, the cells after it stay queued, and the last good version stays active; fix the cell and run again. While an agent turn owns the dataset, cell edits from the page and the API wait for it.
+After that, ask for what you want in plain language. "Drop rows whose answer is under ten tokens." "Split each transcript per assistant turn." "Use this for training instead." Every request is one step, run immediately, and you see exactly which rows and values changed against the step before.
 
-### The agent
+Each step is Python you can read and edit yourself: it reads the previous table as `df` and leaves the next one in `df`, with pandas, numpy, DuckDB, scikit-learn and the rest already available. Edit a step and everything after it re-runs. If a step fails, you get the traceback and your last good version stays in use.
 
-The chat on the right is the dataset's own agent. It runs on the first engine the server has a key for — a Cursor session, then OpenRouter, then an OpenAI, Anthropic, or Gemini key with a native tool-calling loop — and both engines carry the same thirteen tools over the chain: `status`, `query` (read-only SQL over a version), `diff`, `try_script`, `inspect` (a measuring script that lands nothing), `add_cell`, `edit_cell`, `remove_cell`, `set_active`, `set_intent`, `set_capability`, `rename`, and `install`. It writes a script, tests it against a version, and only then lands a cell, so a cell that lands has already run once. A chat message is at most 8,000 characters. With no key configured the page opens and the agent says so; see [Self-hosting](/platform/self-hosting#the-data-workshop-agent).
+## Versions
 
-The first landing starts one turn. It decides a pending intent, lands the fewest cells that make the active version meet both contracts, each run as it lands, then runs the quality checks for that intent — for train: empty or truncated final turns, exact and near duplicates, length outliers, tool calls that do not parse or name an undeclared tool, a system turn that is not the capability's, rows from another capability, class imbalance; for eval: missing required input keys, empty or trivial references, ambiguous duplicates, length outliers, leakage of the reference into the input, language mismatch, overlap with the train set — and lands one cell per finding that has rows behind it, run at once, with the count in its note. A fix that would drop more than half the rows lands as a **proposal** instead: it waits in the chat as a card with **Run** and **Discard**, never in the notebook — Run lands and runs it, Discard drops it. The name, the intent and the capability change through the chat too (a used version fixes the intent and the capability), and changing either re-measures every version. When a contract fails, the contract chip on the active version suggests only the moves that would change the verdict: **Ask Overmind to fix it** sends one turn on that contract alone (no quality pass); **Use it for train/eval instead** appears when the other shape already holds; **Switch to &lt;capability&gt;** appears when another capability matches more rows, and **Remove the capability** when none does. A pending intent offers **Use it for train** or **Use it for eval** for whichever shape holds. Each suggestion is a chat turn: the agent makes the change and re-aligns the chain.
+Every step that runs is a version — the source is 1.0, each step adds 1.1, 1.2, and so on. The version a run reads is the **active** one, which is the last one that ran unless you pick another.
 
-After that the conversation is open. A request that changes the data is one new cell, run at once. A request to change an existing cell edits it in place and re-runs from there. A question is answered from the status, a query, or a diff between two versions.
+The moment a run uses a version, that version is frozen: its rows can't change and neither can any step before it. So an eval run from last week still means what it meant, while you keep curating on top. Carry on and the next run picks up your new active version.
 
 ## Contracts
 
-Every version is measured against two contracts, and the page reports whether the active version fits the intent:
+Overmind measures every version against what your intent actually needs, and tells you on the page whether it fits:
 
-| Intent | Shape | Capability, row by row | Feeds |
+| Intent | Shape | Per row | Feeds |
 | --- | --- | --- | --- |
-| **Train** | A `messages` column whose every row is a chat transcript with an assistant turn (`tools` optional) | The system turn is the capability's scanned system prompt; every tool call names a declared tool | [Models](/models/training) |
-| **Eval** | An `input` on every row and an `expected_output` column with at least one reference | Every `input` carries the capability's required input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
+| **Train** | A `messages` column, every row a chat transcript with an assistant turn (`tools` optional) | The system turn is your capability's own prompt, and every tool call names a tool it declares | [Model training](/models/training) |
+| **Eval** | An `input` on every row and an `expected_output` column with real references | Every `input` carries the keys your capability requires | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
 
-The capability contract is vacuous when the capability declares nothing. Rows that fail are counted with the reason; a row that cannot meet a contract is a finding for the agent, never a default value. A training run whose eval dataset shares `trace_id`s with the train version excludes those rows from training and says so in its log; the wizard shows the overlap before you launch.
+When a version doesn't fit, the page offers only the moves that would change the verdict — fix it, use it for the other intent, switch capability. Each one is a single request to the agent.
 
-## Versions and uses
+Rows that can't meet a contract are counted with the reason, never quietly filled in with a default. And if your training data shares runs with your eval data, the training job drops the overlap and says so — the wizard shows you the count before you launch.
 
-Every run — eval, optimiser, training — **uses** the version it read and links back to it. A use freezes that version and every cell before it, starts a new major number (1.3 becomes 2.0, the cells after it become 2.1, 2.2, …), and protects the frame: it cannot be deleted, and neither can its dataset. The worker re-hashes the frame before it starts, so a run never reads a file that changed underneath it.
+## From your coding agent
 
-## From a coding agent
-
-The MCP tools cover the loop: `list_datasets`, `inspect_dataset` (the chain, a sample, the recent chat, and next actions), `query_dataset` (read-only SQL over one ran version), `create_dataset_from_traces`, `message_dataset_agent`, and `run_dataset` (accept a proposal). Files go up through `overmind dataset upload` and versions come down through `overmind dataset export`, because bytes never cross MCP. See [MCP](/platform/mcp) and the [CLI](/platform/cli#overmind-dataset).
-
-A local loop — the optimiser and backtests — never reads a dataset by id. It pulls the used version through the export endpoint, whose response carries `X-Overmind-Cell`, `X-Overmind-Version`, and `X-Overmind-Fingerprint`, and caches it as `.overmind/datasets/<cell>.jsonl` with the fingerprint in `<cell>.hash` beside it.
-
-## API
+`/overmind dataset` covers the loop: land a dataset from traces, inspect it, query it with SQL, ask its agent for a change, accept a proposal. Files and exports go through the CLI, because bytes don't travel over MCP:
 
 ```bash
-# List, read, rename, delete
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/?project=<project-uuid>&intent=eval"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/"
-
-# Create from pasted rows (a file goes through /api/uploads/ first; traces take a selection)
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"project": "<project-uuid>", "name": "triage-eval", "intent": "eval",
-       "source": {"rows": [{"input": "...", "expected_output": "..."}]}}' \
-  "https://api.overmindlab.ai/api/datasets/"
-
-# Rows of a version with diff marks (also offset, sort, dir, filters, search), one row, column stats
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/rows/?cell=<cell-id>&diff=1&limit=50"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/rows/{index}/?cell=<cell-id>"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/columns/"
-
-# Add a cell, edit one, accept a proposal, run the chain, talk to the agent
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"title": "Keep", "script": "df = df[df[\"tag\"] == \"keep\"]"}' "https://api.overmindlab.ai/api/datasets/{id}/cells/"
-curl -X PATCH -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"script": "df = df.head(100)"}' "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/cells/{cell}/accept/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/run/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{"message": "Drop rows whose answer is under ten tokens"}' "https://api.overmindlab.ai/api/datasets/{id}/chat/"
-
-# Event stream (SSE): replays the dataset's events, sends replay.done, then streams
-# land_*, cell_*, run_*, chat_*, cells_changed and dataset_changed as they happen
-curl -N -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/events/"
-
-# Export a version — a raw stream, never a use; fmt is jsonl (default) or csv; the response
-# names the version in X-Overmind-Cell / X-Overmind-Version / X-Overmind-Fingerprint
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl&cell={cell}"
+overmind dataset upload rows.jsonl --intent eval
+overmind dataset export <dataset-id> --format jsonl
 ```
 
-The full surface is in the [API reference](/platform/api#building-a-dataset).
+See [MCP](/platform/mcp) and the [CLI](/platform/cli#overmind-dataset).
+
+## Use it elsewhere
+
+Export a version as JSONL or CSV from its title chip in the workshop, or over the API:
+
+```bash
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/datasets/{id}/export/?fmt=jsonl"
+```
+
+An export is a plain download and never counts as a use, so it won't freeze anything. Local loops — the optimiser and backtests — pull the exact version they were given and cache it under `.overmind/datasets/`.
+
+Everything the workshop does is available over REST: create a dataset, add or edit a step, run the chain, message the agent, page through rows with their diff marks, and stream events as they happen. See [Building a dataset](/platform/api#building-a-dataset).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Run an eval" href="/agent-testing/eval">
+    Measure variants against a baseline with the dataset you just built.
+  </Card>
+  <Card title="Train a model" href="/models/training">
+    Fine-tune on your own traffic and benchmark it against what you ship today.
+  </Card>
+  <Card title="Optimise your agent" href="/agent-testing/optimisers">
+    Let candidate code changes compete over the same rows.
+  </Card>
+  <Card title="Get more traffic in" href="/core/observability">
+    More real runs in means better data to curate from.
+  </Card>
+</CardGroup>

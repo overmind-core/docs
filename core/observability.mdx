@@ -1,93 +1,41 @@
 ---
 title: Observability
-description: How traces get from your agent into Overmind — the OTLP endpoint, the ingest pipeline, the span data model, and the Observability views.
+description: Get your agent's runs into Overmind and watch each one arrive scored.
 ---
 
 import { Ascii } from "/snippets/ascii.jsx";
 
-Overmind observability is OpenTelemetry end to end. Your process exports OTLP spans; the API stores them, maps them onto its data model, binds them to a capability, and scores each trace with the capability's evaluators. This page covers the path a span travels, with the endpoints, headers, and attribute names the platform reads.
+Overmind speaks OpenTelemetry. Point your agent at the tracing endpoint and every run lands in the Console — scored as it arrives, grouped into conversations, and ready to become a dataset.
 
-## Architecture
-
-There is no collector, sidecar, or proxy between your agent and the platform. SDKs (and any OTel exporter) POST OTLP protobuf to the API. The request handler writes the spans, projects each one onto its capability and session, and queues trace scoring:
+Nothing to run in between: no collector, no sidecar, no framework to adopt. If your agent already exports OTel spans, or your traces live in Langfuse, LangSmith, Braintrust or Galileo, you keep what you have.
 
 <Ascii
   lines={[
-    "╔═════════════════════════╗        ╔═ Overmind ════════════════════════════╗",
-    "║       Your process      ║        ║      ╔═════════════════════════╗      ║",
-    "║ OTel SDK / Overmind SDK ╟──OTLP──╫─────▶║   POST /api/v1/traces   ║      ║",
-    "╚═════════════════════════╝        ║      ║ OTLP protobuf + API key ║      ║",
-    "                                   ║      ╚════════════╤════════════╝      ║",
-    "                                   ║                   │                   ║",
-    "                                   ║                   ▼                   ║",
-    "                                   ║  ╔══════════════════════════════════╗ ║",
-    "                                   ║  ║           Bulk upsert            ║ ║",
-    "                                   ║  ║ Span rows, idempotent on span_id ║ ║",
-    "                                   ║  ╚════════════════╤═════════════════╝ ║",
-    "                                   ║                   │                   ║",
-    "                                   ║                   ▼                   ║",
-    "                                   ║         to Projection, below          ║",
-    "                                   ╚═══════════════════════════════════════╝",
+    "╔══════════════════════╗   ╔═══════════════╗   ╔════════════════════╗",
+    "║      Your agent      ║   ║  Scored runs  ║   ║  Datasets, evals   ║",
+    "║ SDK or OTel exporter ╟──▶║ as they land  ╟──▶║   trained models   ║",
+    "╚══════════════════════╝   ╚═══════════════╝   ╚════════════════════╝",
   ]}
 />
-
-<Ascii
-  lines={[
-    "╔═ Overmind ══════════════════════════════════════════════════════════════════╗",
-    "║       from Bulk upsert, above                                               ║",
-    "║                  ▼                                                          ║",
-    "║ ╔══════════════════════════════════╗   ╔═════════════════════════════════╗  ║",
-    "║ ║            Projection            ╟──▶║          Trace scoring          ║  ║",
-    "║ ║ capability + session attribution ║   ║ queued per root span, io_traces ║  ║",
-    "║ ╚══════════════════════════════════╝   ╚════════════════╤════════════════╝  ║",
-    "║                                                         │                   ║",
-    "║                                                         ▼                   ║",
-    "║                                       ╔═══════════════════════════════════╗ ║",
-    "║                                       ║              Console              ║ ║",
-    "║                                       ║ task executions, traces, sessions ║ ║",
-    "║                                       ╚═══════════════════════════════════╝ ║",
-    "╚═════════════════════════════════════════════════════════════════════════════╝",
-  ]}
-/>
-
-The write and the projection run inside the request, so a `200` response means the spans are stored and attributed. Re-sending the same spans is safe: rows are upserted on `span_id`. Trace scoring is queued once per root span that lands in the batch and runs on the `io_traces` Celery queue.
-
-## The OTLP endpoint
-
-| | |
-| --- | --- |
-| Endpoint | `POST https://api.overmindlab.ai/api/v1/traces` (alias: `POST /v1/traces`) |
-| Body | OTLP/HTTP **protobuf** (`ExportTraceServiceRequest`), `Content-Type: application/x-protobuf`. OTLP/JSON and gRPC are not accepted; a non-protobuf body returns `400` |
-| Compression | `Content-Encoding: gzip` is decoded |
-| Auth | `X-Api-Key: <key>`, `Authorization: Bearer <key>`, or `Authorization: Api-Key <key>` |
-| Response | `{"spans_ingested": N, "spans_post_processed": M}` |
-
-The `/v1/traces` alias exists so a stock OTel HTTP exporter works with only a base URL — exporters append `/v1/traces` themselves:
-
-```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT="https://api.overmindlab.ai"
-export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
-export OTEL_EXPORTER_OTLP_HEADERS="x-api-key=<project-key>"
-```
-
-A project-scoped API key pins every span in the request to its project. An account-scoped key resolves the project from the `overmind.project.id` resource attribute (you must be a member), otherwise from your first project membership. Trace ingest is never credit-gated. A self-hosted API takes the same requests at `http://localhost:8000`.
 
 ## Getting traces in
 
-The empty Observability page opens **Instrument your repository**: pick your coding agent and copy the prompt. The prompt tells the agent to install `overmind[tracing]`, call the `get_instrumentation_plan` MCP tool for exact placements, apply them, and verify one real trace with `verify_instrumentation` — the loop the `/overmind ensure-tracing` command runs. See [MCP](/platform/mcp).
+Ask your coding agent. `/overmind ensure-tracing` reads your repository, works out where the instrumentation belongs, applies it, and verifies one real trace before it stops. Overmind's empty **Observability** page hands you the same prompt if you'd rather paste it.
 
-In a local repository, run `overmind scan push` first: it writes the project credential to `.overmind/credentials.toml`, which the Python SDK reads. Deployed processes and non-Python exporters receive `OVERMIND_API_KEY` through their runtime secret configuration. To instrument by hand:
+Run `overmind scan push` first. It saves your project credential to `.overmind/credentials.toml`, which the Python SDK picks up automatically — no key in your code. Deployed processes get `OVERMIND_API_KEY` through their usual secret configuration.
+
+To instrument by hand:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     import overmind
 
     overmind.init(
         service_name="research-agent",
         environment="production",
-        providers="auto",  # instrument every installed provider SDK
-        capability_id="research-agent",  # the capability's UUID, or its `[[capability]] key` from overmind.toml
+        providers="auto",  # instrument every provider SDK you have installed
+        capability_id="research-agent",  # the capability's UUID, or its key from overmind.toml
     )
 
     @overmind.run(intent=lambda question: question)
@@ -97,13 +45,20 @@ In a local repository, run `overmind scan push` first: it writes the project cre
         return result
     ```
 
-    After `init()`, calls made with the OpenAI, Anthropic, Google Gemini, Agno, and LangChain client libraries are captured automatically — prompts, completions, tool calls, token usage, latency, and errors. `run()` brackets one agent run and `deliver()` marks its result, which is what [trace scoring](/agent-testing/trace-scoring) judges. See the [Python SDK reference](/tracing/sdk-python) for the decorators that trace your own code.
+    After `init()`, your OpenAI, Anthropic, Gemini, Agno and LangChain calls are captured on their own — prompts, completions, tool calls, tokens, latency, errors. `run()` marks one agent run and `deliver()` marks the result, which is what gets scored. The [Python SDK reference](/tracing/sdk-python) covers the decorators for your own functions.
+
+    Node.js has no Overmind SDK yet — instrument it with OpenTelemetry directly, as in the next tab. See [the note](/tracing/sdk-typescript).
   </Tab>
-  <Tab title="TypeScript">
-    There is no TypeScript SDK — see [the note](/tracing/sdk-typescript). Instrument Node.js with any OpenTelemetry SDK against the OTLP endpoint and stamp `overmind.capability.id` as a resource attribute.
-  </Tab>
-  <Tab title="Any language (raw OTel)">
-    Configure any OpenTelemetry SDK (Go, Java, Rust, .NET, ...) with the three environment variables above, or in code:
+  <Tab title="Any language">
+    Any OpenTelemetry SDK — Go, Java, Rust, .NET — exports to Overmind with three environment variables:
+
+    ```bash
+    export OTEL_EXPORTER_OTLP_ENDPOINT="https://api.overmindlab.ai"
+    export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+    export OTEL_EXPORTER_OTLP_HEADERS="x-api-key=<project-key>"
+    ```
+
+    Or in code:
 
     ```go
     exporter, _ := otlptracehttp.New(ctx,
@@ -112,150 +67,148 @@ In a local repository, run `overmind scan push` first: it writes the project cre
     )
     ```
 
-    Use the [attribute conventions below](#how-spans-map-to-the-data-model) — `overmind.capability.id` as a resource attribute in particular — so your spans are classified and attributed like SDK spans.
+    Set `overmind.capability.id` as a resource attribute so your spans reach the right capability, and follow [the attributes below](#the-attributes-overmind-reads) to get the same scoring as SDK spans.
   </Tab>
-  <Tab title="Connectors">
-    If your traces already live in Langfuse, LangSmith, Braintrust, or Galileo, import them. Credentials are entered in the Console under **Observability → Integrations** or created with `POST /api/connector-credentials/` (`connector_type`, `name`, `api_key`, `api_secret`, `base_url`).
+  <Tab title="Traces you already have">
+    Import from **Langfuse**, **LangSmith**, **Braintrust** or **Galileo**. Add the provider's credentials under **Observability → Integrations**, pick the source project and which capability its traces belong to, and Overmind backfills your history and then keeps polling for new traffic. **Sync now** pulls on demand.
 
-    | Connector | Credentials | Imports |
+    | Connector | What you need | What arrives |
     | --- | --- | --- |
-    | **Langfuse** | Public key (`pk-lf-...`) and secret key (`sk-lf-...`); host URL for self-hosted | Traces, evaluations, and prompt versions |
-    | **LangSmith** | API key (`lsv2_sk_...` or `lsv2_pt_...`); API URL for EU (`eu.api.smith.langchain.com`) | Traces, runs, and threads |
-    | **Braintrust** | API key or service token (`bt-st-...`) | Project logs, spans, and scores |
-    | **Galileo** | API key; API URL for self-hosted | Traces, spans, and metrics |
+    | **Langfuse** | Public and secret key; host URL if self-hosted | Traces, evaluations, prompt versions |
+    | **LangSmith** | API key; API URL for EU | Traces, runs, threads |
+    | **Braintrust** | API key or service token | Project logs, spans, scores |
+    | **Galileo** | API key; API URL if self-hosted | Traces, spans, metrics |
 
-    The Integrations setup walks through **Credentials**, **Source Project**, **Import Range**, **Capability Mapping**, and **Destination**. The same steps run through MCP: `inspect_connectors` (with `include_source_projects=true`) lists the source projects and observation shapes, `configure_connector` saves the source project, lookback, capability mapping and polling settings, and `sync_connector` queues the import and returns a job resource to poll. See [MCP](/platform/mcp).
-
-    A connector runs a resumable historical backfill (`idle` → `backfilling` → `live`), then polls incrementally; **Sync now** triggers a pull. Saving a new capability mapping relabels the spans already imported. Credentials are encrypted at rest and used only to read. Imported traces are scored on arrival and browsed like native ones.
+    Imported traces are scored on arrival and behave like native ones. Credentials are encrypted and only ever used to read. Your coding agent can drive the whole setup through MCP — see [MCP](/platform/mcp).
   </Tab>
 </Tabs>
 
-## How spans map to the data model
+## The OTLP endpoint
 
-A trace is not a separate record: it is the set of span rows sharing a `trace_id`, and the root span (the one with no parent) is what the trace list shows. Each stored span keeps the OTLP payload — timing, status, resource attributes, span attributes, events, and links — plus fields computed at ingest: a span type, an operation name, a usage projection, and foreign keys to the project, capability, and conversation it belongs to.
+| | |
+| --- | --- |
+| Endpoint | `POST https://api.overmindlab.ai/api/v1/traces` |
+| Body | OTLP/HTTP **protobuf**, `Content-Type: application/x-protobuf`. JSON and gRPC are not accepted |
+| Compression | `Content-Encoding: gzip` |
+| Auth | `X-Api-Key: <key>`, or `Authorization: Bearer <key>` |
+| Response | `{"spans_ingested": N, "spans_post_processed": M}` |
 
-### Span classification
+A stock OTel exporter appends `/v1/traces` itself, so `https://api.overmindlab.ai` as the base URL is enough. Self-hosted, the same requests go to `http://localhost:8000`.
 
-Each span is typed at ingest, in priority order:
+A project-scoped key pins every span to its project. Sending the same spans twice is safe. Trace ingest never costs credits.
 
-1. An explicit `overmind.span.type` attribute is stored verbatim (`entry_point`, `workflow`, `tool_call`, `function`, `llm_call`, `retrieval` — what the SDK decorators set); `overmind.span_type` and bare `type` are accepted spellings.
-2. An OpenInference `openinference.span.kind`: `llm` and `embedding` become `llm_call`, `tool` becomes `tool_call`, `retriever` and `reranker` become `retrieval`, `chain`, `agent`, `guardrail`, and `evaluator` become `workflow`.
-3. `gen_ai.operation.name = "execute_tool"` or a `tool.name` attribute marks the span `tool_call`.
-4. A span name containing `tool`, `function_call`, `function.call`, or `execute_tool` marks it `tool_call`.
-5. Otherwise the span is `llm_call`.
+### The attributes Overmind reads
 
-The **Model** filter's **Any model** option (`has_model=true`) is the test for a model call; `span_type=llm_call` includes unlabelled spans that fell through to the default.
+Overmind already understands the OTel GenAI, OpenLLMetry and OpenInference conventions, so models, providers, token counts, costs, tool names and message payloads from existing instrumentation land without any mapping of your own.
 
-### Attributes the ingest pipeline reads
+These are the ones you set:
 
-The pipeline reads three attribute dialects — the Overmind SDK's `genai.*` / `overmind.*` keys, the OTel GenAI semantic conventions, and OpenLLMetry/OpenInference keys. Aliases are coalesced onto the canonical key at ingest; an existing canonical value wins.
+| Attribute | What it does |
+| --- | --- |
+| `overmind.capability.id` | Binds the span to a [capability](/core/capabilities). The only key that binds — set it as a resource attribute |
+| `overmind.span.type` | `entry_point`, `workflow`, `tool_call`, `function`, `llm_call` or `retrieval` |
+| `overmind.unit_kind` | `run` on the span that brackets one agent run, `turn` on a phase you want scored on its own |
+| `overmind.delivery` | `true` on the span carrying the run's result — what judges grade |
+| `conversation.id` | Groups the traces of one multi-turn exchange into a session |
+| `code.namespace`, `code.function.name` | How a run matches the behaviour the scan found in your code |
+| `overmind.behaviour.key` | Names the behaviour explicitly instead of matching on code |
 
-| Purpose | Canonical key | Accepted aliases |
-| --- | --- | --- |
-| Input tokens | `genai.usage.prompt_tokens` | `genai.prompt_tokens`, `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `llm.usage.prompt_tokens`, `llm.token_count.prompt` |
-| Output tokens | `genai.usage.completion_tokens` | `genai.completion_tokens`, `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `llm.usage.completion_tokens`, `llm.token_count.completion` |
-| Cached tokens | `genai.cache_read_tokens` | `gen_ai.usage.cache_read_input_tokens`, `gen_ai.usage.cache_read_tokens`, `llm.token_count.prompt_details.cache_read` |
-| Model | `genai.model`, `genai.response.model` | `gen_ai.request.model`, `gen_ai.response.model`, `gen_ai.model`, `llm.model_name` |
-| Provider | `genai.provider` | `gen_ai.provider.name`, `gen_ai.system`, `llm.provider`, `llm.system` |
-| Cost | `genai.cost` | Derived from token counts and model pricing when absent |
-| Tool name | `tool.name` | `gen_ai.tool.name` |
-| Inputs / outputs | `overmind.input.data` / `overmind.output.data` | `inputs` / `outputs` (SDK decorators), `traceloop.entity.input` / `.output`, `input.value` / `output.value`, `gen_ai.input.messages` / `gen_ai.output.messages`, indexed `gen_ai.prompt.{N}.*` / `gen_ai.completion.{N}.*` |
-| Capability identity | `overmind.capability.id` (the only binding key) | — |
-| Capability label | `overmind.capability.name` | — |
-| Session grouping | `conversation.id` | `overmind.conversation.id` |
-| Scoring unit | `overmind.unit_kind` (`run` / `turn`), `overmind.delivery` (`true` on the terminal deliverable), `overmind.behaviour.key` (a declared behaviour), `overmind.grounded_by` (JSON list of evidence span ids), `overmind.provenance` (`user`, `agent`, `environment`, `harness`) | — |
-| Code identity | `code.namespace`, `code.function.name`, `vcs.ref.head.revision` (resource) — how a unit binds to a scanned behaviour | — |
-| Runtime expectations | Span events `overmind.eval.intent`, `overmind.eval.expectation`, `overmind.eval.checkpoint`, `overmind.eval.context`, `overmind.eval.conversation_end` | — |
-| Project (account-scoped key or session auth) | `overmind.project.id` resource attribute | `overmind.project_id` |
+The Python SDK sets all of these for you.
 
-`overmind.*` keys nested inside an `inputs`, `outputs`, or `traceloop.entity.*` payload are also read, at lower priority than resource and span attributes. Traceloop scope names under `@traceloop/*` are rewritten to `@overmind/*` on the way in.
+### Reaching the right capability
 
-### Capability attribution
-
-Traces attach to a [capability](/core/capabilities) through one attribute:
-
-- **`overmind.capability.id`** — the capability's UUID, or an identity the project knows for it: its manifest `key` (= slug) or its name. The only key ingest binds by; stable through renames. A span-level id wins over the resource-level one, so one process can serve several capabilities.
-- **`overmind.capability.name`** — a display label shown beside raw span attributes. It never resolves a capability.
-
-The Python SDK stamps both from one setting: `overmind.init(capability_id=...)`, or a `capability(..., id=...)` scope per request in a multi-capability process; switching capability mid-trace is a handoff that [trace scoring](/agent-testing/trace-scoring#behaviours-and-bindings) scores as its own unit. A child span that carries no identity — a subprocess, say — inherits the trace's capability when the trace maps to exactly one.
-
-An id the project does not know never creates a capability. The span lands under the **Unbound** capability filter instead, and binds retroactively once the id resolves (a scan push that creates the capability, or a restored one). Push the scan first, then copy the id or key into the SDK.
+`overmind.capability.id` takes the capability's UUID or the `key` it has in `overmind.toml`. Both survive renames. A span-level value beats the resource-level one, so one process can serve several capabilities.
 
 <Warning>
-Unbound spans are stored and browsable, but they do not appear on any capability's page, are not scored by its evaluators, and do not join capability-scoped datasets until they bind. A name alone never binds — set `capability_id`.
+An id Overmind doesn't recognise never creates a capability. The span still arrives and is browsable under the **Unbound** filter, but it belongs to no capability, no evaluators score it, and it joins no dataset until the id resolves. Push your scan first, then copy the id or key into `init()`.
 </Warning>
+
+`overmind.capability.name` is a display label. It never binds anything on its own.
 
 ### Sessions
 
-Stamp a shared `conversation.id` on the traces of one multi-turn exchange — `set_conversation_id("session-42")`, or `run(conversation_id=...)` — and Overmind groups them into a **session** with trace and span counts, tokens, cost, timespan, and a **session score** folded from the conversation's task executions. The **Sessions** view in Observability lists them.
-
-### Trace status
-
-A trace is `completed` once its root span has landed, `live` while spans are still arriving without a root, and `interrupted` when no root arrives inside the settle window (`TRACE_SETTLE_SECONDS`, default 600 s). `GET /api/traces/` rows and `GET /api/traces/{trace_id}/` carry it as `trace_status`; a live trace keeps polling in the Console.
+Put the same `conversation.id` on the traces of one exchange — `set_conversation_id("session-42")`, or `run(conversation_id=...)` — and Overmind groups them into a **session** with its own score, token and cost totals, and timespan. The **Sessions** view lists them.
 
 ## Scores on arrival
 
-When a root span lands, the platform carves the trace into **units**, binds each unit to one of the capability's **behaviours** as a **task execution**, and runs the trace-scoring members of the active [eval set](/agent-testing/eval#eval-sets) against each unit. Every verdict is stored as its own row, read over `GET /api/verdicts/`; the unit's span keeps the composed markers in `feedback_score.trace_scoring`, whose `_execution.score` is the composite the Console shows in the **Score** column. Sessions get a score of their own. A trace that never sends its root is picked up by a sweep once it is `interrupted`. The full contract — carve precedence, binding sources, how claims compose, the marker shape — is on [Trace scoring](/agent-testing/trace-scoring).
+You don't schedule scoring. When a run finishes, Overmind splits the trace into the units of work it contains, matches each one to a behaviour of your capability, and judges it with that capability's active [eval set](/agent-testing/eval#eval-sets). The result is the **Score** column, with every judge's reasoning behind it.
 
-## Exploring traces in the Console
+A run that dies before it finishes shows as **interrupted** and is still scored on what it did. [Trace scoring](/agent-testing/trace-scoring) covers how the score is composed.
 
-The **Observability** page is a filterable table with three views:
+## What you see in the Console
 
-- **Task executions** (default) — one row per scored unit: **Capability**, **Task** (the behaviour it bound to), **Score**, **Status**, **Duration**, **Tokens**, **Cost**, **Model**, **Conversation**, **Terminal**, **Time**. **Group by conversation** folds a page's rows under their `conversation.id`.
-- **Root traces** — one row per trace; the only view with bulk selection for datasets.
-- **Sessions** — one row per `conversation.id` with trace and span counts, tokens, cost, model, timespan, and the session score.
+**Observability** is one filterable table with three views:
 
-Quick filters: **LLM calls**, **Success**, **Errors**, **Slow (> 5s)**, **Expensive (> $0.01)**, **High tokens (≥ 5k)**. Filters, sort order, view, and page number live in the URL, so any slice is a shareable link.
+- **Task executions** (the default) — one row per scored unit of work: the capability, the task it matched, its score, duration, tokens, cost and model. **Group by conversation** folds them under their session.
+- **Root traces** — one row per run. This is the view you select from to build a dataset.
+- **Sessions** — one row per conversation, with its session score.
 
-<Frame caption="Task executions with quick filters. The Score column carries the execution score; the Task column names the behaviour the unit bound to.">
+Quick filters cover the usual questions: **Errors**, **Slow (> 5s)**, **Expensive (> $0.01)**, **High tokens (≥ 5k)**. Filters, sort, view and page all live in the URL, so any slice you're looking at is a link you can send to someone.
+
+<Frame caption="Task executions with quick filters. Score is the execution score; Task is the behaviour the run matched.">
   <img src="/images/platform/observability-executions.jpg" alt="Observability task executions view with quick filters and score column" />
 </Frame>
 
-Clicking an execution opens it in a sheet: the **Intent**, the steps the unit took with the matched contract anchor for each one, and every judge's verdict with its reasoning; a conflict marker names the judges that disagreed. A conversation row opens the whole thread turn by turn. Clicking a trace opens its detail as a panel over the list: a span tree (switchable to a flame chart) beside the selected span's detail — **Input**, **Output**, **Metadata**, and the trace scores with their reasoning.
+Click an execution to see what the agent was asked, the route it took through your code, and each judge's verdict with its reasoning — including a marker when two judges disagreed. A conversation opens turn by turn.
 
-<Frame caption="An execution: the intent, the route through the behaviour's anchors, and each evaluator's verdict with its reasoning.">
+<Frame caption="An execution: the intent, the route through the behaviour's steps, and every verdict with its reasoning.">
   <img src="/images/platform/execution-detail.jpg" alt="Task execution detail sheet with route and verdicts" />
 </Frame>
 
-<Frame caption="Trace detail: the span tree with token/cost rollups, plus the selected span's input, output, and verdicts.">
+Click a trace for the span tree — switchable to a flame chart — beside each span's input, output and scores.
+
+<Frame caption="Trace detail: the span tree with token and cost rollups, plus the selected span's input and output.">
   <img src="/images/platform/trace-detail.jpg" alt="Trace detail with span tree and span details panel" />
 </Frame>
 
 ### From traces to datasets
 
-In the **Root traces** view, select rows (or **Select all** across pages) and **Add to dataset**. One row per trace lands in the dataset with its wire transcript, delivered output, score, and a link back to the trace. [Datasets](/core/datasets) covers what happens next.
+In **Root traces**, select the runs you want — or **Select all** across pages — and **Add to dataset**. Each trace lands as one row with its transcript, its delivered output, its score and a link back. [Datasets](/core/datasets) is what happens next.
 
-<Frame caption="Bulk selection in the Root traces view: the selected traces about to become a dataset.">
+<Frame caption="Selecting traces in the Root traces view, about to become a dataset.">
   <img src="/images/platform/observability-add-to-dataset.jpg" alt="Trace selection bar with Add to dataset action" />
 </Frame>
 
-## Reading traces over the API
+## Reading traces from your own code
 
 Everything the Console shows is available over REST with the same API key:
 
 ```bash
-# Root traces, one row per trace. Filters: capability, session, trace_id, span_type,
-# status_code, service_name, model, has_model, has_error, min_duration_ms,
-# total_tokens__gte, total_cost__gte, received_at__gte, unbound, search, ordering
+# Runs, filtered the same way the Console filters them
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/traces/?capability={id}&has_error=true"
 
-# One trace with all of its spans, usage totals and trace_status
+# One run with all of its spans
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/traces/{trace_id}/"
 
-# Distinct service names and models; sessions
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/traces/services/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/traces/models/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/sessions/?capability={id}"
-
-# Task executions (the default view's row grain) and the behaviours they bind to
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/task-executions/?capability={id}&behaviour={id}"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
+# Scored units of work
+curl -H "X-Api-Key: $OVERMIND_API_KEY" \
+  "https://api.overmindlab.ai/api/task-executions/?capability={id}"
 ```
 
-`?all_spans=true` on `/api/traces/` returns every span instead of one head row per trace. Through MCP the same reads are `query_traces`, `query_task_executions`, `query_failures`, `inspect_capability_health`, and the `overmind://traces/{trace_id}` and `overmind://sessions/{session}` resources. See the [REST API](/platform/api) page for the full endpoint list.
+Because a Console filter is the same query string, you can copy a URL out of your browser and use it as an API recipe. The [REST API](/platform/api) has the full list, and your coding agent has the same reads as MCP tools.
 
-## Practical guidance
+## Good to know
 
-Initialise tracing once, at startup, before the first model call. Give each process its own `service_name` so its telemetry stays separate, and set the capability identity (`capability_id`) from the start. Auto-instrumentation alone produces flat model-call spans and no scoring unit: bracket every agent run with [`overmind.run()`](/tracing/sdk-python#run-the-run-boundary), call `deliver()` on the result, and decorate the functions the scan anchors on so each unit binds to its behaviour. A plain `function` span that starts its own trace outside a run boundary is dropped as an orphan fragment. `run()` flushes on exit; for short-lived processes with no run boundary, call `force_flush_traces()` before exit.
+- Call `init()` once at startup, before the first model call, and give each process its own `service_name`.
+- Auto-instrumentation alone gives you flat model calls and no score. Wrap each run in `overmind.run()` and call `deliver()` on the result — that's what creates something to judge.
+- Decorate the functions your capability's behaviours are anchored on, so each run matches its behaviour and its step judges apply.
+- `run()` flushes on exit. For a short script with no run boundary, call `force_flush_traces()` before it ends.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Structure your traces" href="/tracing/sdk-python">
+    The decorators that make a trace mirror your agent's real control flow.
+  </Card>
+  <Card title="See how scoring works" href="/agent-testing/trace-scoring">
+    How a run becomes a score, and what to do when one looks wrong.
+  </Card>
+  <Card title="Build a dataset" href="/core/datasets">
+    Turn the runs you selected into eval or training data.
+  </Card>
+  <Card title="Read your capabilities" href="/core/capabilities">
+    What the scan found in your repository and how traces attach to it.
+  </Card>
+</CardGroup>
