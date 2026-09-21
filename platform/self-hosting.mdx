@@ -92,3 +92,7 @@ cd frontend && bun run typecheck && bun run lint && bun run test
 ```
 
 `AGENTS.md` at the repo root is the playbook a coding agent reads before touching a subsystem; `.claude/skills/` holds the subsystem maps. Pull requests go against `main`; `oss` is based on `main` and carries the same code with the in-repo SDK. `sdk-publish.yml` builds and publishes the SDK to PyPI on pushes to `main` that touch `overmind/` and on published GitHub releases.
+
+## Licence
+
+The platform is [AGPL-3.0](/platform/licensing). The SDK and CLI under `overmind/` are MIT. A commercial licence is available from Overmind Ltd if you need different terms.

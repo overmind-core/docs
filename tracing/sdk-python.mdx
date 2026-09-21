@@ -3,7 +3,7 @@ title: Python SDK
 description: Reference for the overmind package — init(), provider auto-instrumentation, the run boundary, span decorators, behaviours and capabilities, and runtime expectations.
 ---
 
-The `overmind` package instruments your LLM stack over OpenTelemetry and exports spans to Overmind. One `init()` call captures every supported provider call automatically; `run()` brackets one agent run; decorators trace the code around the model calls; a few one-line calls declare what the run was asked to do and what it delivered, which is what [trace scoring](/agent-testing/trace-scoring) judges.
+The `overmind` package instruments your LLM stack over OpenTelemetry and exports spans to Overmind. One `init()` call captures every supported provider call automatically; `run()` brackets one agent run; decorators trace the code around the model calls; a few one-line calls declare what the run was asked to do and what it delivered, which is what [trace scoring](/agent-testing/trace-scoring) judges. The package is MIT.
 
 ```bash
 pip install "overmind[tracing]"   # the tracing SDK, every provider instrumentor, LangChain coverage
