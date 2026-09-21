@@ -1,6 +1,6 @@
 ---
 title: "Introduction"
-description: "Overmind improves production AI agents with their own data: traces in, scored datasets, eval runs, optimisation runs, and trained models out."
+description: "Production traces become datasets, evals, code diffs, and trained models."
 ---
 
 import { Ascii } from "/snippets/ascii.jsx";
@@ -33,21 +33,18 @@ import { Ascii } from "/snippets/ascii.jsx";
   ]}
 />
 
-Overmind ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, and feeds three kinds of work: eval runs, optimisation runs that score code diffs in your repository, and training runs that produce models benchmarked against the one you ship today.
+Overmind ingests OpenTelemetry traces, scores them as they arrive, and turns them into datasets. Those datasets drive evals, the optimiser, and training.
 
-The platform is open source. [overmind-core/overmind](https://github.com/overmind-core/overmind) holds the API, the Console, and the SDK, and runs the same way hosted at overmindlab.ai or [self-hosted](/platform/self-hosting) with Docker Compose.
+The platform is open source. [overmind-core/overmind](https://github.com/overmind-core/overmind) holds the API, the Console, and the SDK. The same code runs hosted at overmindlab.ai and [self-hosted](/platform/self-hosting).
 
-Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, [MCP](/platform/mcp) for coding agents, OpenAI-compatible serving for models. There is no proprietary agent framework. The Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain over OpenTelemetry, and any OTel exporter can POST to the same endpoint.
+The Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain over OpenTelemetry. Any OTel exporter can POST to the same endpoint.
 
-What the platform does:
-
-- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the capability's eval set
-- [Datasets from traffic](/core/datasets): traces become eval and training data, shaped by the dataset's own agent
-- [Eval runs](/agent-testing/eval): variants measured against a baseline with typed scores
-- [Optimiser](/agent-testing/optimisers): candidates generated and replayed in your repository by the CLI, scored on the platform, the winning diff left for you to apply
-- [Models](/models/training): GPU runs on Modal or Baseten, loss curves, a benchmark against your production model
-- [Inference](/models/inference): OpenAI-compatible API for your trained models and frontier models
-- [MCP](/platform/mcp) and [CLI](/platform/cli): the same workflows from Cursor, Claude Code, OpenCode, or Codex
+- [Live scoring](/agent-testing/trace-scoring): traces carved into task executions and judged against the capability's eval set
+- [Datasets](/core/datasets): traces become eval and training data
+- [Eval](/agent-testing/eval): variants measured against a baseline
+- [Optimiser](/agent-testing/optimisers): candidates replayed in your repository; the winning diff is yours to apply
+- [Training](/models/training) and [inference](/models/inference): fine-tune on Modal or Baseten; serve over an OpenAI-compatible API
+- [MCP](/platform/mcp) and [CLI](/platform/cli): the same work from Cursor, Claude Code, OpenCode, or Codex
 
 ## Surfaces
 
@@ -57,7 +54,7 @@ What the platform does:
 | Console | `https://console.overmindlab.ai` | `http://localhost:5173` |
 | MCP | `https://api.overmindlab.ai/api/mcp/` | `http://localhost:8000/api/mcp/` |
 
-Authenticate with an `ovr_` key as `X-Api-Key: <key>` or `Authorization: Bearer <key>`. Keys are scoped to an account or to one project; see [Projects & administration](/platform/administration).
+`ovr_` API keys: [Projects & administration](/platform/administration).
 
 ## Guides
 
