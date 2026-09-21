@@ -42,21 +42,11 @@ Overmind is built on top of standard protocols so no matter what agent you use, 
 What Overmind does:
 - [Capability scan](/core/capabilities): Scanning your codebase for AI agents and different agentic capabilities.
 - [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the agent's eval set
-- [Datasets from production](/core/datasets): traces from real environments become eval and training data, no synthetic data, no data poisoning, no hallucinations.
-- [Eval runs](/agent-testing/eval): your in house quality control loop, measured using a typed score, ensuring the agent is always improving.
+- [Datasets from traces](/core/datasets): traces from real environments become eval and training data, no synthetic data, no data poisoning, no hallucinations.
+- [Evaluations](/agent-testing/eval): your in house quality control loop, measured using a typed score, ensuring the agent is always improving.
 - [Optimiser](/agent-testing/optimisers): An AI Engineer running experiments on your repository, trying to improve the agent's performance while adhering to your quality control loop.
 - [Models](/models/training): Finetuned models that you own, built on top of your custom data.
 - [Inference](/models/inference): OpenAI-compatible API for your trained models and frontier models
-
-{/* this should be removed as well */}
-## Surfaces
-
-| Surface | Hosted | Self-hosted default |
-| --- | --- | --- |
-| API | `https://api.overmindlab.ai` | `http://localhost:8000` |
-| Console | `https://console.overmindlab.ai` | `http://localhost:5173` |
-| MCP | `https://api.overmindlab.ai/api/mcp/` | `http://localhost:8000/api/mcp/` |
-
 
 ## Guides
 
