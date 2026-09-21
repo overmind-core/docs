@@ -22,7 +22,7 @@ Nothing to run in between: no collector, no sidecar, no framework to adopt. If y
 
 Ask your coding agent. `/overmind ensure-tracing` reads your repository, works out where the instrumentation belongs, applies it, and verifies one real trace before it stops. Overmind's empty **Observability** page hands you the same prompt if you'd rather paste it.
 
-Run `overmind scan push` first. It saves your project credential to `.overmind/credentials.toml`, which the Python SDK picks up automatically — no key in your code. Deployed processes get `OVERMIND_API_KEY` through their usual secret configuration.
+Run `overmind sync` first. It saves your project credential to `.overmind/credentials.toml`, which the Python SDK picks up automatically — no key in your code. Deployed processes get `OVERMIND_API_KEY` through their usual secret configuration.
 
 To instrument by hand:
 
@@ -70,7 +70,7 @@ To instrument by hand:
     Set `overmind.capability.id` as a resource attribute so your spans reach the right capability, and follow [the attributes below](#the-attributes-overmind-reads) to get the same scoring as SDK spans.
   </Tab>
   <Tab title="Traces you already have">
-    Import from **Langfuse**, **LangSmith**, **Braintrust** or **Galileo**. Add the provider's credentials under **Observability → Integrations**, pick the source project and which capability its traces belong to, and Overmind backfills your history and then keeps polling for new traffic. **Sync now** pulls on demand.
+    Import from **Langfuse**, **LangSmith**, **Braintrust** or **Galileo**. Add the provider's credentials with `overmind connector add <type>` (keys from env or a TTY prompt) or under **Observability → Integrations**, pick the source project and which capability its traces belong to, and Overmind backfills your history and then keeps polling for new traffic. **Sync now** pulls on demand.
 
     | Connector | What you need | What arrives |
     | --- | --- | --- |
@@ -79,7 +79,7 @@ To instrument by hand:
     | **Braintrust** | API key or service token | Project logs, spans, scores |
     | **Galileo** | API key; API URL if self-hosted | Traces, spans, metrics |
 
-    Imported traces are scored on arrival and behave like native ones. Credentials are encrypted and only ever used to read. Your coding agent can drive the whole setup through MCP — see [MCP](/platform/mcp).
+    Imported traces are scored on arrival and behave like native ones. Credentials are encrypted and only ever used to read. Provider keys never go through MCP — `overmind connector add` takes them from env or a TTY prompt, then the coding agent configures and syncs through MCP. See [CLI](/platform/cli#overmind-connector) and [MCP](/platform/mcp).
   </Tab>
 </Tabs>
 

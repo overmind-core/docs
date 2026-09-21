@@ -13,17 +13,17 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Capability** — one purpose the agent serves, and Overmind's record of it: code structure from the scan joined with runtime behaviour from telemetry. Status is `current`, `leftover` (the latest push did not reproduce it; it returns when the code does) or `deleted` (a hand delete, which keeps its data). Ingest never creates one. See [Agent & Capabilities](/core/capabilities).
 
-**Scan** — the deterministic local pass `overmind scan` runs over a repository: functions, call edges, model calls, prompts, tools and entry points, clustered into one candidate capability per distinct set of system prompts an entry reaches. Its output is `.overmind/skeleton.json` (content-hashed wire document), `worksheet.json` (the file the coding agent names) and `report.json`. `overmind scan finalize` writes the worksheet into `overmind.toml`; `overmind scan push` sends it all to `POST /api/v1/scan/`. See [Agent & Capabilities](/core/capabilities#the-scan).
+**Scan** — the local discovery `/overmind setup` runs in your coding agent: `overmind chassis` prints the AST digest, the agent authors capability cards into `overmind.toml`, and `overmind sync` POSTs the snapshot to `/api/v1/sync`. See [Agent & Capabilities](/core/capabilities#the-scan).
 
-**Scan snapshot** — the server's record of one push: skeleton, manifest, report, cards, hash, SDK version and git sha. `overmind://scan/latest` and the project's Scan tab read the latest one.
+**Scan snapshot** — the server's record of one `overmind sync`: the toml capabilities, cards, and repo summary. `GET /api/v1/sync?project_id=` reads it back.
 
-**Cluster** — one group of functions the scan found reachable from an entry point with the same prompt set; the unit the worksheet names and the identity the server carries across pushes (`cluster_id`, `cluster.version`).
+**Cluster** — one group of functions reachable from an entry point with the same prompt set; the unit the coding agent names as a capability.
 
-**Mode** — one distinct model call inside a cluster, with its own system prompt: the roles inside an orchestration. Each mode becomes one behaviour on push.
+**Mode** — one distinct model call inside a capability, with its own system prompt: the roles inside an orchestration. Each mode becomes one behaviour on sync.
 
-**Card** — the agent-authored description of a capability at `.overmind/cards/<key>.json`: task, modality, input schema, output fields, expected output, success criteria, failure modes, constraints, tool protocol, one purpose per tool and, per mode, its purpose, model, prompt quote, terminal and ordered steps — each with source provenance. Stubbed by `scan finalize`, filled by the coding agent from source, merged onto the capability and its behaviours on push; `Capability.card_version` records the cluster version it was written for.
+**Card** — the agent-authored description of a capability in `overmind.toml` (`[capabilities.<slug>.capability_card]`): task, modality, input schema, output fields, expected output, success criteria, failure modes, constraints, tool protocol, and a trajectory map of anchors — each with source provenance. Filled by `/overmind setup` from source, merged onto the capability and its behaviours on `overmind sync`.
 
-**`overmind.toml`** — the repository's manifest: `[project]` (`id`, `name`, `base-url`) plus one `[[capability]]` row per declared capability (`key`, `name`, `description`, `id`, `entries`, `merged`) and `[[ignore]]` rows. `key` is the server identity; `scan push` writes ids back. `.overmind/credentials.toml` beside it holds the project key and stays ignored.
+**`overmind.toml`** — the repository's manifest: `project-id`, `project-name`, `base-url`, plus one `[capabilities.<slug>]` table per declared capability (`slug`, `name`, `description`, `id`, `entrypoint_fn`, and nested `capability_card`). `slug` is the server identity; `overmind sync` writes ids back. `.overmind/credentials.toml` beside it holds the project key and stays ignored.
 
 **API key** — an `ovr_...` credential (stored hashed, shown once at creation) that authenticates the SDK, OTLP ingest, the REST API, MCP, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`. **Project-scoped** keys see one project; **account-scoped** keys reach every project the user is in.
 
@@ -45,9 +45,9 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **OTLP** — the OpenTelemetry wire protocol. Overmind ingests OTLP/HTTP **protobuf** at `POST /api/v1/traces`. See [Observability](/core/observability#the-otlp-endpoint).
 
-**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Created with its provider credentials in the Console; the source project, capability mapping, and sync are MCP tools (`inspect_connectors`, `configure_connector`, `sync_connector`). Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
+**Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Created with `overmind connector add` (provider credentials from env or a TTY prompt) or in the Console; the source project, capability mapping, and sync are MCP tools (`inspect_connectors`, `configure_connector`, `sync_connector`). Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
 
-**Behaviour** — one thing a capability does, minted on scan push from one mode of its cluster: an entry anchor, the anchor sequence to the mode's model call, its tool set, and — from the card — its steps and terminal. Versioned as `BehaviourVersion`; status `active` or `retired`. API resource: `behaviours`. The Console labels the column **Task**. See [Trace scoring](/agent-testing/trace-scoring#behaviours-and-bindings).
+**Behaviour** — one thing a capability does, minted on `overmind sync` from one trajectory-map entry: an entry anchor, the ordered anchors that follow it, its tool set, and its terminal. Versioned as `BehaviourVersion`; status `active` or `retired`. API resource: `behaviours`. The Console labels the column **Task**. See [Trace scoring](/agent-testing/trace-scoring#behaviours-and-bindings).
 
 **Unit** — the slice of a trace that gets its own verdicts: a turn span, an entry-point invocation, a key segment, or the whole trace, in that order of precedence.
 
@@ -75,7 +75,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Rubric / checklist** — an LLM judge's plain-language criteria, compiled into weighted atomic checklist items; items can be hard **gates**.
 
-**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, per task execution). One set per capability is **active**; the scan push preloads the **Default** set.
+**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, per task execution). One set per capability is **active**; `overmind sync` preloads the **Default** set.
 
 **Eval run** — a controlled experiment: one data source × N variants × M evaluators, with evaluator snapshots frozen at creation. See [Eval](/agent-testing/eval#eval-runs).
 

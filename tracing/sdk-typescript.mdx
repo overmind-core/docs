@@ -10,9 +10,9 @@ No TypeScript SDK ships with the current platform. The `@overmind-lab/trace-sdk`
 Node.js services trace like any other OpenTelemetry client:
 
 - Export OTLP/HTTP protobuf to the [OTLP endpoint](/core/observability#the-otlp-endpoint) with `x-api-key` in the exporter headers.
-- Stamp `overmind.capability.id` as a resource attribute — the capability's UUID or its `[[capability]] key` from `overmind.toml` — so spans bind to the capability. `overmind.capability.name` is an optional display label and never binds.
+- Stamp `overmind.capability.id` as a resource attribute — the capability's UUID or its slug from `overmind.toml` — so spans bind to the capability. `overmind.capability.name` is an optional display label and never binds.
 - Mark the run boundary with `overmind.span.type = "entry_point"` and `overmind.unit_kind = "run"` on the root span, and the result span with `overmind.delivery = "true"`, so [trace scoring](/agent-testing/trace-scoring) has a unit and a terminal to judge.
 - Put `conversation.id` on every span of a multi-turn exchange to group them into a session.
 - To bind units to scanned behaviours, stamp `code.namespace` and `code.function.name` on the spans that wrap anchor functions, and `vcs.ref.head.revision` on the resource.
 
-The [attribute table](/core/observability#attributes-the-ingest-pipeline-reads) lists every key the pipeline reads, including the OTel GenAI and OpenLLMetry conventions that the OpenAI and Anthropic instrumentations for Node already emit.
+The [attribute table](/core/observability#the-attributes-overmind-reads) lists every key the pipeline reads, including the OTel GenAI and OpenLLMetry conventions that the OpenAI and Anthropic instrumentations for Node already emit.

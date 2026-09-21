@@ -7,7 +7,7 @@ description: Projects and membership, API keys, tracing connectors, running work
 
 A project is the tenant boundary for everything: capabilities, traces, datasets, eval sets, runs, deployed models, connectors, and project keys belong to exactly one project, and switching projects switches the entire Console view. There is no organisation layer above projects.
 
-Members are added per project by email (`POST /api/projects/{id}/memberships/`; the address must already have an account) or invited when it does not (`POST /api/projects/{id}/invites/`, delivered through Clerk and converted to a membership at first sign-in). You cannot remove yourself from a project; delete the project instead. A project is created in the Console, with an account-scoped key over the API, or by the first `overmind scan push` from a repository whose `overmind.toml` has no project id.
+Members are added per project by email (`POST /api/projects/{id}/memberships/`; the address must already have an account) or invited when it does not (`POST /api/projects/{id}/invites/`, delivered through Clerk and converted to a membership at first sign-in). You cannot remove yourself from a project; delete the project instead. A project is created in the Console, with an account-scoped key over the API, or by the first `overmind sync` from a repository whose `overmind.toml` has no project id.
 
 Data does not cross project boundaries: a project key is pinned to its project, and a model deployed in one project is not callable from another.
 
@@ -17,7 +17,7 @@ One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, t
 
 - **Format**: `ovr_` followed by a random token. Only a SHA-256 hash is stored — the full key is **shown once, at creation**; the table keeps the first 12 characters as `prefix`.
 - **Headers**: `X-Api-Key: <key>`, `Authorization: Bearer <key>`, or `Authorization: Api-Key <key>`.
-- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of and are the only keys that can create a project. MCP and `.overmind/credentials.toml` hold a project-scoped key; the onboarding prompt carries a temporary account-scoped key that `overmind scan push` trades for a project one.
+- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of and are the only keys that can create a project. MCP and `.overmind/credentials.toml` hold a project-scoped key; the onboarding prompt carries a temporary account-scoped key that `overmind sync` trades for a project one.
 - **Lifetime**: keys do not expire unless an `expires_at` is set on the row. Revocation is immediate, and each key records `last_used_at`.
 - **Where**: **Projects → your project → API keys** in the Console, or [over the API](/platform/api#authentication).
 
@@ -25,11 +25,11 @@ One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, t
   <img src="/images/platform/project-api-keys.jpg" alt="Project page with the API keys table" />
 </Frame>
 
-Scope one key per environment and keep them out of source control. `overmind scan push` writes the project key to `.overmind/credentials.toml`, and `overmind init` writes it into the IDE's MCP entry; both refuse a path git already tracks, add the file to `.git/info/exclude` (not `.gitignore`), and set mode `0600`.
+Scope one key per environment and keep them out of source control. `overmind sync` writes the project key to `.overmind/credentials.toml`, and `overmind init` writes it into the IDE's MCP entry; both refuse a path git already tracks, add the file to `.git/info/exclude` (not `.gitignore`), and set mode `0600`.
 
 ## Tracing connectors
 
-**Langfuse**, **LangSmith**, **Braintrust**, and **Galileo**. Provider keys enter under **Integrations** in the Console (`/observability/integrations`) or through `POST /api/connector-credentials/`; the source project, the capability mapping, and the import run through MCP (`inspect_connectors`, `configure_connector`, `sync_connector`) or the same Console page. Each connector runs a backfill then incremental polling (`idle` → `backfilling` → `live`), with a manual **Sync now**. Credentials are Fernet-encrypted at rest with `FIELD_ENCRYPTION_KEY` (a key derived from `DJANGO_SECRET_KEY` when it is unset); disconnecting keeps the imported traces. See [Observability](/core/observability#getting-traces-in).
+**Langfuse**, **LangSmith**, **Braintrust**, and **Galileo**. Provider keys enter with `overmind connector add` (env or a TTY prompt) or under **Integrations** in the Console (`/observability/integrations`); the source project, the capability mapping, and the import run through MCP (`inspect_connectors`, `configure_connector`, `sync_connector`) or the same Console page. Each connector runs a backfill then incremental polling (`idle` → `backfilling` → `live`), with a manual **Sync now**. Credentials are Fernet-encrypted at rest with `FIELD_ENCRYPTION_KEY` (a key derived from `DJANGO_SECRET_KEY` when it is unset); disconnecting keeps the imported traces. See [Observability](/core/observability#getting-traces-in).
 
 ## Running work
 

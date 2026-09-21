@@ -18,7 +18,7 @@ Three ways to authenticate; the first is right for almost all programmatic use:
 
 | Method | How | Use for |
 | --- | --- | --- |
-| **API key** | `X-Api-Key: ovr_...`, `Authorization: Bearer ovr_...`, or `Authorization: Api-Key ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, MCP, inference, `overmind scan push` |
+| **API key** | `X-Api-Key: ovr_...`, `Authorization: Bearer ovr_...`, or `Authorization: Api-Key ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, MCP, inference, `overmind sync` |
 | **JWT** | `POST /api/auth/token/` with `email` and `password` → access token (1 day) + refresh token (7 days, `POST /api/auth/token/refresh/`) | Accounts created with `POST /api/auth/register/`; guest sessions |
 | **Clerk session** | `Authorization: Bearer <Clerk session token>` | The Console |
 
@@ -47,8 +47,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Projects | `/api/projects/` | `GET/POST /{project_id}/memberships/` (add by `email`), `DELETE .../memberships/{id}/` (not yourself), `GET/POST /{project_id}/invites/` (an email with no account; sent through Clerk), `DELETE .../invites/{id}/`; `POST` needs an account-scoped key |
 | Capabilities | `/api/capabilities/` | list is `status=current` unless `?status=leftover`; `PATCH` any field but `slug` (`name`, `description`, `model`, `active_model` — a `ready` deployment in the same project — the eval-spec fields); `DELETE` sets `status=deleted` and keeps traces, datasets and runs; `GET .../eval_spec/`; `GET .../prompts/` (selectable system prompts, paged) |
 | Agent graph | `GET /api/agent/?project=` | current capabilities plus `invokes` / `shares_tool` edges weighted by observed transitions |
-| Scan | `POST /api/v1/scan/` | what `overmind scan push` sends: `{skeleton, manifest, report, cards}`; API key only; `413` over 20 MB, `400 invalid_scan` when the skeleton hash, manifest or a card fails validation, `400` when `manifest.project.id` is missing and the key sees more than one project, `403` when the key does not match it; returns `{project_id, snapshot_id, capabilities: [{key, id, status, created}]}` |
-| Latest scan | `GET /api/projects/{project_id}/scan/latest/` | the last push: report, skeleton counts and one row per cluster with the capability it carried; `404 no_scan` until a push lands |
+| Sync | `POST` / `GET /api/v1/sync` | what `overmind sync` sends: `{project_id, repo_summary, trace_provider, version, capabilities}`; API key only; project keys must match `project_id`; POST reconciles identity (carry / leftover / remount) and returns the snapshot with ids filled in; GET returns leftovers as `archived=true` |
 | Traces | `/api/traces/` | list returns one head span per trace (the root once it arrives) with `trace_status` (`live`, `completed`, `interrupted`), per-trace `total_tokens`/`total_cost`/`model`, `scoring_pending` and `feedback_score`; `?all_spans=true` lists spans instead; `GET /{trace_id}/` returns `root`, `span_count`, `trace_status`, `usage` and every span; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score`; `GET /{id}/` |
 | Task executions | `/api/task-executions/` | read-only; one row per unit bound to a behaviour — filters in [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api); `GET /{id}/` adds `observed_route`, `step_results`, `user_intent`, `execution_score` and `flow`; `GET conversation-turns/?conversation_id=` (one row per turn) |

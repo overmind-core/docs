@@ -11,7 +11,7 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
 
 <Steps>
   <Step title="A capability from your code">
-    Candidates are edits to source, so the capability must be one `overmind scan push` created from an entry declared in `overmind.toml`; the CLI resolves `-c <slug>` through that file, and the run records the capability's `entrypoint_fn` as the entrypoint under test. See [Agent & Capabilities](/core/capabilities).
+    Candidates are edits to source, so the capability must be one `overmind sync` created from an entry declared in `overmind.toml`; the CLI resolves `-c <slug>` through that file, and the run records the capability's `entrypoint_fn` as the entrypoint under test. See [Agent & Capabilities](/core/capabilities).
   </Step>
   <Step title="An eval dataset">
     The run replays the agent over the rows of an eval dataset in the same project whose active version fits the **eval** contract; the inputs must be a shape the agent can be invoked with. The dataset's contracts are the only creation gate — a wrong entrypoint signature surfaces at the smoke test. See [Datasets](/core/datasets#contracts).
