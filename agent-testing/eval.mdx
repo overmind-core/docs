@@ -9,6 +9,13 @@ The **Evaluations** area of the Console has three surfaces: **Runs**, **Eval set
 
 ## Evaluators
 
+Generated evaluations preserve provider finish reasons. A response stopped by its output token limit remains inspectable, but the sample is marked degraded and its judgments are skipped rather than assigned quality zeros. Degraded samples are excluded from trusted score aggregates and counted in run health. Check this coverage before comparing model quality: a high average over the few complete samples is not a successful overall run. Training-linked evaluations with degraded evidence report failure and no headline comparison score.
+
+Rubric judges default to generative grading. Qualified bounded checklist,
+claim-support and per-turn decisions can opt into [Jev with generative
+fallback](/agent-testing/decision-engine). Authoring and holistic reasoning remain
+generative. Evaluator policies and score provenance identify which path ran.
+
 An evaluator is one reusable, versioned scorer — editing one writes a new `version` row, so past runs keep meaning what they meant. Five kinds exist:
 
 <Tabs>
@@ -66,12 +73,24 @@ Evaluators are platform-managed templates, project-wide, or scoped to a single c
 
 ## Eval sets
 
-An eval set is a named group of a capability's evaluators. Each member carries a **role**:
+An eval set is a named group of evaluators, optionally mapped to a capability. On
+**Evaluations → Eval sets**, choose **New eval set**, enter a name, and search the
+whole evaluator library by name, type, or mapped capability. Select multiple
+evaluators; selected rows show their name, type, and capability and can be removed
+before creation. Leave capability set to **None** for a reusable project set.
+
+`POST /api/eval-sets/` accepts `evaluator_ids` and an optional nullable `capability`;
+the set and members are created together. MCP provides `create_eval_set` and the
+read-only `overmind://eval-sets/{eval_set}` resource. Neither creation path starts
+an evaluation or activates the set. Each member receives its applicable **roles**:
 
 - `generative` members score outputs produced during eval runs and optimisation runs.
 - `trace_scoring` members run on every production trace, per task execution, writing verdicts and the execution score into [Observability](/core/observability#scores-on-arrival). The mechanics are on [Trace scoring](/agent-testing/trace-scoring).
 
 The same evaluator can hold both roles. One set per capability is **active** (`POST /api/eval-sets/{id}/activate/`); it is what trace scoring, optimisation runs and training runs default to. `POST /api/eval-sets/{id}/members/` adds members.
+
+A set without a capability can be selected for project evaluation and training,
+but cannot be activated for live trace scoring until a capability is assigned.
 
 ## Eval runs
 
@@ -118,6 +137,14 @@ A sample that exceeds the generation worker's time limit records an error and is
 </Frame>
 
 The report shows per-variant rollups (mean score, pass rate) per evaluator, the score distribution per evaluator and variant, cost and latency per model — generation cost and eval cost separated — and a per-datapoint table. Opening a datapoint shows each evaluator's score with its reasoning; the **Compare runs** tab lays one run's results next to another's.
+
+Each dataset row has its own entry in the breakdown, with responses from different model variants grouped under that row. Search or page through the entries, then open one to inspect its input and each available model output. A model with no sample for that row does not display another model's response.
+
+The datapoint popup shows **Input** beside **Output and evaluation**. Select a model to switch both panels together. Generated output is the model's response, not a label extracted by a statistical evaluator; the **Reference answer** is shown separately as grading data. Expand **Generated messages** to inspect recorded assistant and tool messages.
+
+New generated samples capture the initial model-runner input, including the system prompt and tool definitions. This is not the provider's rendered chat template or every subsequent replay request. Older samples show **Dataset input** from the run's pinned version and state that the exact model request was not captured. A missing pinned source is shown as unavailable, never reconstructed from a mixed input/output transcript. Existing runs do not need to be rerun to inspect their pinned dataset input.
+
+The MCP `overmind://eval-runs/{eval_run}` resource exposes up to five bounded sample inspections with separate input, output, reference, and evaluator reasoning. `input_source` distinguishes captured requests, pinned dataset rows, and unavailable input; `samples_truncated` indicates additional samples.
 
 <Frame caption="Datapoint drill-down: each evaluator's score with reasoning. A check that could not be applied is not-applicable and does not enter the averages.">
   <img src="/images/platform/eval-datapoint.jpg" alt="Per-datapoint evaluator scores with reasoning" />

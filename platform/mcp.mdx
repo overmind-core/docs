@@ -94,6 +94,7 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | Tool | Arguments | Effect |
 | --- | --- | --- |
 | `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `mode?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
+| `create_eval_set` | `name`, `evaluator_ids`, `capability?` | Atomically create an eval set and its members in their applicable roles; does not activate it or launch a run |
 | `upsert_evaluator` | `evaluator?`, `name?`, `kind?`, `capability?`, `scope?`, `score_type?`, `display_name?`, `description?`, `rubric_md?`, `evaluation_prompt?`, `checklist?`, `judge_model?`, `score_min?`, `score_max?`, `pass_threshold?`, `requires_reference?`, `variable_mapping?`, `config?`, `applicable_roles?`, `surface?`, `choices?` | Create or update an evaluator |
 | `run_evaluation` | `name`, `dataset`, `eval_set?`, `cell?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?` | Create and launch an eval run. Returns a job receipt |
 | `compare_evaluations` | `run`, `baseline` | Compare a run with a project-scoped baseline |
@@ -173,7 +174,7 @@ Read-only, project-scoped entity state under `overmind://`. Static:
 | `overmind://checkpoint-download` | CLI guidance for downloading an archived checkpoint |
 | `overmind://connector-setup` | CLI guidance for `overmind connector add` — provider keys never cross MCP |
 
-Templates: `overmind://capabilities/{capability}`, `overmind://traces/{trace_id}`, `overmind://sessions/{session}`, `overmind://datasets/{dataset}`, `overmind://eval-runs/{eval_run}`, `overmind://finetunes/{job_id}`, `overmind://deployments/{deployment}`, `overmind://optimizer-runs/{experiment}`, `overmind://connectors/{connector}`, `overmind://jobs/{kind}/{id}`.
+Templates: `overmind://capabilities/{capability}`, `overmind://traces/{trace_id}`, `overmind://sessions/{session}`, `overmind://datasets/{dataset}`, `overmind://eval-runs/{eval_run}`, `overmind://eval-sets/{eval_set}`, `overmind://finetunes/{job_id}`, `overmind://deployments/{deployment}`, `overmind://optimizer-runs/{experiment}`, `overmind://connectors/{connector}`, `overmind://jobs/{kind}/{id}`.
 
 ## The CLI boundary
 

@@ -7,7 +7,7 @@ mode: wide
 
 import { ModelCatalog } from "/snippets/model-catalog.jsx";
 
-Fine-tune an open-weight model on the data your agent has already produced. You pick the model, Overmind runs the training on GPUs, streams the loss curves while it goes, and scores the finished model against the one your capability runs in production — with the same judges you use everywhere else.
+Fine-tune an open-weight model on the data your agent has already produced. You pick the model, Overmind runs the training on GPUs, streams the loss curves while it goes, and scores your selected before/after models on the same evaluation data — with the same judges you use everywhere else.
 
 The model is yours. Its weights are downloadable, and it serves through an [OpenAI-compatible API](/models/inference#calling-your-model) you call with your existing client.
 
@@ -15,26 +15,39 @@ The model is yours. Its weights are downloadable, and it serves through an [Open
 
 | | |
 | --- | --- |
-| **Capability** | The capability you're training for. Its production model becomes the benchmark to beat |
+| **Capability** | Optional. Select **None** to train without one |
 | **Training data** | A **train** dataset that fits the [train contract](/core/datasets#contracts) |
 | **Eval data** | An **eval** dataset, used to score both the baseline and your trained model |
-| **Graders** | An eval set with at least one enabled judge |
+| **Graders** | A project eval set with at least one enabled generative evaluator; its capability can be **None** |
+| **Benchmark model** | The codebase incumbent or a ready trained model in this project |
 
-Your train and eval data must not share the same runs. Overmind counts the overlap for you and shows it in the wizard before you launch; anything overlapping is dropped from training rather than quietly inflating your score.
+Independent train and eval data gives meaningful held-out scores. Overmind reports overlap by normalized inputs, trace/conversation, groups and synthetic lineage as a warning; it does not drop selected rows or block launch. Successful creation atomically pins training, validation and eval versions. Internal loss-validation splitting keeps content/group families together and preserves duplicates. Deduplication belongs in the workshop.
 
 <Frame caption="The training wizard: your data and graders on the left, the recommended models with cost and time estimates on the right.">
   <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
 </Frame>
 
+## Exact preprocessing
+
+Workshop quality reviews remain advisory and are not repeated as launch approval gates. Training performs model-specific preparation, not repairs to labels, evidence or task scope.
+
+For Modal, CPU preprocessing runs after launch and before GPU training using the matching tokenizer, chat template and loss mask. Setup does not start or wait for preprocessing. Recommendations size context from estimated row lengths; job preparation includes pinned training and enabled validation data. Exact overflow within the model's training-method limit requests a larger context and rechecks every row. Over-limit rows, invalid tool formatting and examples without supervised next-token targets still block. Nothing is silently truncated or discarded.
+
+The GPU consumes the matching validated token artifact and saved tokenizer. Repair incompatible data in the workshop and prepare the revised version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` remain available; poll with `get_job(kind="training_preparation")`. Other providers retain provider-side preprocessing.
+
+Worker failures are distinct from incompatible data. A processor/code mismatch requires deploying the current Modal SFT worker, not just restarting Docker. Preprocessing logs remain at `preparations/<id>/preprocess_stdout.log` on the SFT volume. Confirmed failures can retry; uncertain submissions fail closed.
+
 ## Pick a model
 
-The wizard ranks the catalogue for your data and estimates cost and duration for each option before you spend anything.
+The wizard ranks the catalogue and estimates cost and duration before launch. With a capability selected, its recorded codebase task determines the ranking; without one, the dataset's task is used. An unclassifiable selected capability stays ungraded instead of borrowing the dataset's task. Dataset measurements still drive context, tool compatibility and hyperparameters.
+
+Serving context is planned separately from training sequence length, using the pinned eval inputs, reference outputs and capability prompt. Cards show serving and output budgets. Recommendations and launch reject workloads exceeding native serving context or GPU capacity. Runtime serving checks the actual templated input plus reserved output; these planning estimates are not exact tokenization. Increasing serving context does not require retraining.
 
 <ModelCatalog />
 
-Three things can rule a model out, and the wizard handles all three for you:
+The wizard shows the constraints for each model:
 
-- **Context.** A model's training context is often shorter than its inference window. One that can't fit your longest row is dropped from the recommendations.
+- **Context.** Training limits can be shorter than inference windows and differ between LoRA and full training. Modal uses estimates to size context, not to exclude candidates; exact preparation determines compatibility. Other providers retain their existing eligibility checks.
 - **Tool calling.** If your data contains tool calls, only models that support them are offered.
 - **Adapters.** Larger dense models and every mixture-of-experts model train as LoRA adapters; the picker says so instead of offering a choice.
 
@@ -52,14 +65,28 @@ Your coding agent can do the whole thing: `/overmind finetune` checks you're rea
 
 A job moves from queued, through training, to deploying, and lands on succeeded. While it runs you get per-step train and validation loss, learning rate, token accuracy and gradient norm, alongside steps completed, an ETA, tokens processed and credits used. You can cancel a run at any point, and retry one that failed.
 
+Before GPU submission, Retry also recovers confirmed preprocessing failures or an undersized context through a matching new preparation. Ready/in-flight artifacts are retained. Unresolved data incompatibilities and uncertain submissions refuse retry without resetting evaluations.
+
 ## The benchmark
 
-This is the part that tells you whether the training was worth it. Every run with eval data and graders scores two things on the same rows with the same judges:
+Choose **Benchmark model** in setup: the codebase incumbent or a ready trained model in this project. This selection is saved for the run and is independent of **Live** serving. REST/MCP accept `baseline_model`; omission uses the capability's separate `benchmark_model` default or codebase incumbent. MCP `set_benchmark_model` changes that default.
 
-1. **Baseline** — the model your capability runs today, captured when you launched.
-2. **Final** — your trained model, once it's serving.
+Four independent checkboxes choose what to evaluate:
 
-The headline is the delta between them, with each grader's score underneath and a link to the full eval run behind every number.
+| Model | Before training | After training |
+| --- | --- | --- |
+| Benchmark model | The selected benchmark | The same saved benchmark |
+| Training model | The untouched base | The trained checkpoint once serving is ready |
+
+Untouched-base-before and trained-model-after are the defaults. Incumbent comparisons are opt-in; all four can be off, but eval data and graders remain required. REST/MCP expose `eval_incumbent_before`, `eval_incumbent_after`, `eval_model_before` and `eval_model_after`.
+
+Every selected evaluation uses the entire pinned eval version, the same prompt snapshot and frozen graders. Before evaluations run alongside training without gating it; after evaluations wait for training, and checkpoint evaluations wait for deployment. Intermediate checkpoints are not automatically judged. Recorded inputs and tools are replayed, not the live application; a capability prompt is injected only where a row lacks a system turn.
+
+Supported untouched bases use OpenRouter when configured and exactly matched in its catalog; otherwise they use the existing provider/Modal route. Once an eval or baseline deployment starts, its route stays pinned until an explicit retry. Trained checkpoints use their own deployment.
+
+The Evals table shows selected evaluations immediately, including what each is waiting for, and keeps updating after deployment. Evaluations that never start are skipped if training fails or is cancelled.
+
+The headline delta compares against base-model-before when selected, otherwise incumbent-before, otherwise incumbent-after. With no comparison, it is absent. Token-limited outputs remain inspectable but are marked incomplete and not quality-scored. Training evaluations with degraded evidence report failure without a headline score or delta; a high average over a few complete rows is not a successful run.
 
 <Frame caption="Baseline and Final rows per experiment, scored with the same graders.">
   <img src="/images/platform/training-evals.jpg" alt="Training evals table with baseline and final scores" />

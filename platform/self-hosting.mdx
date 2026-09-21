@@ -60,6 +60,14 @@ docker compose exec -T api python manage.py shell < seed.py
 
 The dataset agent runs on the first key it finds, in this order: `CURSOR_API_KEY` (a Cursor Composer session), `OPENROUTER_API_KEY`, then `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` with a native tool-calling loop. Both engines take the same tools and emit the same events. With none set the workshop page opens and the agent reports that it is not configured. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
 
+### Decision engine
+
+For [Jev decisions](/agent-testing/decision-engine), the existing OpenRouter key
+and shared Redis cache also provide decision routing and account-wide pacing.
+`JEV_REQUESTS_PER_MINUTE` (default `1200`) and `JEV_TOKENS_PER_SECOND` (default
+`250000`) should match the account allowance. Missing configuration or unavailable
+capacity falls back to generative judging; Jev is not a chat or inference model.
+
 ### Training and serving
 
 | Variable | Purpose |
