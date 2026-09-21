@@ -7,7 +7,7 @@ MCP is the platform's first-class agent surface: a project-scoped [Model Context
 
 ## Setup
 
-`overmind init --ide <client>` writes the entry and `overmind scan push` fills in the project key, which is what the [Quickstart](/quickstart) prompt does for you. The entry is a streamable-HTTP server with an `X-Api-Key` header:
+`overmind init --ide <client>` writes the entry and `overmind sync` fills in the project key, which is what the [Quickstart](/quickstart) prompt does for you. The entry is a streamable-HTTP server with an `X-Api-Key` header:
 
 <CodeGroup>
 
@@ -168,16 +168,16 @@ Read-only, project-scoped entity state under `overmind://`. Static:
 | URI | Content |
 | --- | --- |
 | `overmind://project/current` | The authenticated project identity and safe metadata |
-| `overmind://scan/latest` | The last `overmind scan push`: report, skeleton summary, and each cluster's capability with its trace-confirmation state and `card_current` |
 | `overmind://dataset-upload` | CLI guidance for uploading local dataset bytes |
 | `overmind://dataset-export` | CLI guidance for downloading a committed dataset |
 | `overmind://checkpoint-download` | CLI guidance for downloading an archived checkpoint |
+| `overmind://connector-setup` | CLI guidance for `overmind connector add` — provider keys never cross MCP |
 
 Templates: `overmind://capabilities/{capability}`, `overmind://traces/{trace_id}`, `overmind://sessions/{session}`, `overmind://datasets/{dataset}`, `overmind://eval-runs/{eval_run}`, `overmind://finetunes/{job_id}`, `overmind://deployments/{deployment}`, `overmind://optimizer-runs/{experiment}`, `overmind://connectors/{connector}`, `overmind://jobs/{kind}/{id}`.
 
 ## The CLI boundary
 
-Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; the repository scan and push are `overmind scan`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key is entered in the Console. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
+Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; repository discovery is `/overmind setup` then `overmind sync`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key is entered with `overmind connector add` in a terminal. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
 
 ## The skill
 

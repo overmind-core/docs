@@ -5,7 +5,7 @@ description: How a production trace becomes scored task executions — units, be
 
 import { Ascii } from "/snippets/ascii.jsx";
 
-Every trace that reaches Overmind is scored against the owning capability's active [eval set](/agent-testing/eval#eval-sets). Scoring does not grade the trace as one blob: it carves the trace into **units**, binds each unit to one of the capability's **behaviours**, judges each unit on its own, and rolls the results up into an **execution score** per unit and a **session score** per conversation. This page is the contract behind the **Task executions** view in [Observability](/core/observability#exploring-traces-in-the-console).
+Every trace that reaches Overmind is scored against the owning capability's active [eval set](/agent-testing/eval#eval-sets). Scoring does not grade the trace as one blob: it carves the trace into **units**, binds each unit to one of the capability's **behaviours**, judges each unit on its own, and rolls the results up into an **execution score** per unit and a **session score** per conversation. This page is the contract behind the **Task executions** view in [Observability](/core/observability#what-you-see-in-the-console).
 
 <Ascii
   lines={[
@@ -47,7 +47,7 @@ The span carrying `overmind.delivery = true` — `deliver()` in the SDK — is t
 
 ## Behaviours and bindings
 
-A **behaviour** is one contract a capability performs, minted by [`overmind scan push`](/core/capabilities#the-scan) — one per mode of the capability's cluster — from the trajectory map: an entry anchor, the ordered anchor segments that follow it, its tool set, and its terminal. Behaviours keep their identity across pushes through their key.
+A **behaviour** is one contract a capability performs, minted by [`overmind sync`](/core/capabilities#the-scan) from the trajectory map: an entry anchor, the ordered anchor segments that follow it, its tool set, and its terminal. Behaviours keep their identity across syncs through their key.
 
 Each unit binds to one behaviour, recorded as a **task execution** with a `binding_source`:
 

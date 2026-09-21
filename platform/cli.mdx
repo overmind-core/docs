@@ -1,16 +1,30 @@
 ---
 title: CLI
-description: The overmind command — init, the scan workflow, dataset upload and export, the optimise loop, model checkpoints, and skills.
+description: The overmind command — init, sync, chassis, dataset upload and export, connectors, the optimise loop, model checkpoints, and skills.
 ---
 
-The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, scans the repository and pushes the result, lands files as datasets, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does.
+The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does.
 
 ```bash
 pip install overmind              # the CLI and the inference client
 pip install "overmind[tracing]"   # plus the tracing SDK and every provider instrumentor
 ```
 
-Every command that talks to the API resolves its key in the same order: `--api-key`, then the project credential in `.overmind/credentials.toml` (written by `overmind scan push`), then `OVERMIND_API_KEY`. The base URL comes from `--api-url`, `OVERMIND_API_URL`, or `base-url` in `overmind.toml`; the hosted default is `https://api.overmindlab.ai`. Keys go over the wire as `X-Api-Key`. `overmind --version` prints the package version.
+```bash
+uv tool install overmind
+# or
+pipx install overmind
+```
+
+Every command that talks to the API resolves its key in the same order: `--api-key`, then the project credential in `.overmind/credentials.toml` (written by `overmind sync`), then `OVERMIND_API_KEY`. The base URL comes from `--api-url`, `OVERMIND_API_URL`, or `base-url` in `overmind.toml`; the hosted default is `https://api.overmindlab.ai`. Keys go over the wire as `X-Api-Key`. `overmind --version` prints the package version; `overmind <command> --help` prints flags.
+
+```bash
+export OVERMIND_API_KEY=<your-api-key>
+overmind init --ide cursor        # or claude | opencode | codex
+overmind sync                     # create the project, save the project key
+```
+
+Then in your coding agent, `/overmind setup` scans the repository and writes capabilities into `overmind.toml`. Run `overmind sync` again to push them. There is no `overmind scan` command.
 
 ## `overmind init`
 
@@ -25,63 +39,57 @@ overmind init --ide claude --env local
 | `--env` | `production` | `production`, `staging`, or `local` (`http://localhost:8000`) |
 | `--api-url` | `$OVERMIND_API_URL` | Base URL; overrides `--env` for both the MCP entry and `overmind.toml` |
 
-Installs the `overmind` skill under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor and Claude Code only: `.cursor/commands/` or `.claude/commands/`), adds the Overmind MCP entry to the client's own config file, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched; an existing `overmind.toml`, old format included, is left for `scan` to migrate.
+Installs the `overmind` skill under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor and Claude Code only: `.cursor/commands/` or `.claude/commands/`), adds the Overmind MCP entry to the client's own config file, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
 
-| Client | MCP config |
-| --- | --- |
-| Cursor | `.cursor/mcp.json` |
-| Claude Code | `.mcp.json` |
-| OpenCode | `opencode.json` |
-| Codex | `.codex/config.toml` |
+| Client | MCP config | Skill install |
+| --- | --- | --- |
+| Cursor | `.cursor/mcp.json` | `.cursor/skills` |
+| Claude Code | `.mcp.json` | `.claude/skills` |
+| OpenCode | `opencode.json` | `.opencode/skills` |
+| Codex | `.codex/config.toml` | `.agents/skills` |
 
-The MCP entry is written with the saved project key when `.overmind/credentials.toml` already exists; otherwise it is written without a key and `overmind scan push` fills it in. Any file that receives a key is added to `.git/info/exclude` and set to mode `0600`; the CLI refuses to write a key into a tracked file. Codex is limited to `production` and `staging` unless `--api-url` is set.
+The MCP entry is written with the saved project key when `.overmind/credentials.toml` already exists; otherwise it is written without a key and `overmind sync` fills it in. Any file that receives a key is added to `.git/info/exclude` and set to mode `0600`; the CLI refuses to write a key into a tracked file. Codex is limited to `production` and `staging` unless `--api-url` is set. `init` does not persist the bootstrap account key.
 
-## `overmind scan`
+Slash commands written for Cursor and Claude Code: `/overmind`, `/overmind onboard`, `/overmind setup`, `/overmind ensure-tracing`, `/overmind dataset`, `/overmind finetune`, `/overmind optimise`, `/overmind backtest`.
 
-The discovery workflow. `/overmind setup` in your coding agent runs it end to end; the [Agent & Capabilities](/core/capabilities#the-scan) page explains what each step produces.
+## `overmind sync`
+
+Two-way sync of `overmind.toml` with `POST` / `GET /api/v1/sync`.
 
 ```bash
-overmind scan                          # extract, cluster, write .overmind/{skeleton,worksheet,report}.json
-overmind scan --paths src/agent        # restrict to directories or files, relative to --root
-overmind scan --dry-run                # write only under .overmind/; never touch overmind.toml
-overmind scan finalize                 # validate the worksheet, write overmind.toml, stub cards
-overmind scan push                     # POST skeleton + manifest + report + cards to /api/v1/scan/
-overmind scan diff                     # compare with the last push; exit 1 on change
+overmind sync                      # up, then down
+overmind sync up                   # POST the local snapshot; write ids back
+overmind sync down                 # GET the server snapshot; overwrite the local file
 ```
-
-Every subcommand takes `--root PATH` (default `.`): the repository root that holds `overmind.toml`.
-
-### `scan`
-
-Reads the Python sources under the root (or `--paths`), clusters them, applies the declarations in `overmind.toml`, and writes `.overmind/skeleton.json`, `.overmind/worksheet.json` and `.overmind/report.json`. A worksheet from a previous scan is carried forward, so names you already gave rows survive a rescan. Prints conflicts (a `@overmind.capability` decorator disagreeing with the toml; the toml wins), warnings, the report summary, and how many rows are still to name. An `overmind.toml` in the pre-`[[capability]]` format is migrated in place with a backup at `.overmind/overmind.toml.bak`; with `--dry-run` the migrated text is printed instead. Exit 2 when the root holds no supported source files.
-
-### `scan finalize`
-
-Validates `worksheet.json` against the skeleton and the manifest. On any problem it lists them and exits 1. Otherwise it writes one `[[capability]]` row per declared cluster and one `[[ignore]]` row per ignored unattached call into `overmind.toml`, rescans so the skeleton reflects the declarations, records the worksheet changes in the report, and stubs one card per capability at `.overmind/cards/<key>.json`, refreshing existing cards without discarding authored fields. Prints how many cards are to author.
-
-### `scan push`
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `--api-key` | resolved | Overmind API key |
 | `--api-url` | `$OVERMIND_API_URL` | Backend base URL |
+| `--path` | `overmind.toml` | Path to the manifest |
 
-Loads and validates every card (any problem exits 1 before anything is sent), then POSTs the skeleton, the manifest, the report, the worksheet and the cards to `POST /api/v1/scan/`. On success it prints one line per capability — key, id, status, `new` when created — and:
+`up` (and the default both-ways run) POSTs the local snapshot. On success it writes assigned capability ids back into `overmind.toml`. When `project-id` is missing and the key is **account-scoped**, it creates a project named after `project-name` in the toml (seeded at init from the repo directory), writes `project-id`, saves a project-scoped key to `.overmind/credentials.toml`, and rewrites every configured MCP entry with it. Reload the coding agent once after that. Project-scoped keys cannot create a project — set `project-id` first.
 
-- writes the returned ids into `overmind.toml`, appending a `[[capability]]` row for any cluster the server keyed that the manifest had not declared;
-- writes `.overmind/last_pushed.json` (timestamp, project id, snapshot id, the pushed skeleton) for `scan diff`;
-- on the first push with an account-scoped key, creates the project named after the toml's `project.name`, writes `project.id` into the toml, saves a project-scoped key to `.overmind/credentials.toml`, and rewrites every configured MCP entry with it. Reload the coding agent once after that.
+`down` requires `project-id` already in the toml. Leftover capabilities come back with `archived = true`.
 
-Capabilities pushed without a card are listed as a warning; author them and push again. Clusters pushed with `name == null` carry the server key as their name.
+Commit `overmind.toml`. Do not commit `.overmind/credentials.toml`.
 
-### `scan diff`
+## `overmind chassis`
 
-Classifies each cluster in the current `skeleton.json` against the skeleton in `last_pushed.json`, prints a `cluster / name / status` table, and exits 1 when anything changed. Run it in CI after `overmind scan` to catch a drifted card.
+```bash
+overmind chassis                   # print the AST digest for the current directory
+overmind chassis --root PATH
+```
+
+Prints a deterministic inventory of Python functions and call edges under `--root` (default `.`). `/overmind setup` runs this before it authors capability cards; the digest is the ground truth those cards must not contradict. You rarely need to run it yourself.
+
+Skipped directories: `.git`, `.venv`, `venv`, `node_modules`, `__pycache__`, `.tox`, `site-packages`, `dist`, `build`.
 
 ## `overmind dataset`
 
 ```bash
 overmind dataset upload rows.jsonl --intent eval --json
+overmind dataset upload traffic.parquet --split 20 --split-position random
 overmind dataset export <dataset-id> --format csv --cell <cell-id> --output triage.csv
 ```
 
@@ -89,24 +97,52 @@ overmind dataset export <dataset-id> --format csv --cell <cell-id> --output tria
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--project-id` | `project.id` in the toml | Project UUID |
+| `--project-id` | `project-id` in the toml | Project UUID |
 | `--intent` | proposed at landing | `train` or `eval` |
 | `--capability` | none | Capability UUID to align the dataset with |
+| `--split` | off | Land a train dataset and an eval dataset; the eval share in percent (1–99). Drop `--intent`. |
+| `--split-position` | `tail` | Where the eval rows come from: `head`, `tail`, or `random` |
+| `--wait` | off | Wait for landing to finish; exit 1 if it fails |
 | `--api-key`, `--api-url`, `--path` | resolved | Credentials; `--path` points at `overmind.toml` |
 | `--json` | off | Print one machine-readable object |
 
-Reserves an upload at `POST /api/uploads/`, streams the file in resumable chunks with `PUT /api/uploads/{id}/chunk/` (the CLI reads the received offset back before each chunk), then creates the dataset with `POST /api/datasets/` and `source: {upload_id, filename}`. The file may be `.csv`, `.tsv`, `.json`, `.jsonl`, `.ndjson` or `.parquet`, optionally gzipped. The JSON result carries the dataset `id`, its `state` (`landing` until the landing run finishes) and `next_mcp_actions` — `get_job(kind="dataset_run")` then `dataset_inspect` — which is how the `/overmind dataset` command reads the outcome back. See [Datasets](/core/datasets#landing-a-source).
+Reserves an upload at `POST /api/uploads/`, streams the file in resumable chunks with `PUT /api/uploads/{id}/chunk/` (the CLI reads the received offset back before each chunk), then creates the dataset with `POST /api/datasets/` and `source: {upload_id, filename}`. The file may be `.csv`, `.tsv`, `.json`, `.jsonl`, `.ndjson` or `.parquet`, optionally gzipped. With `--split`, it posts to `/api/datasets/split/` instead and the JSON result carries `id` (train) and `eval_id`. The JSON result also carries `state` (`landing` until the landing run finishes) and `next_mcp_actions` — `get_job(kind="dataset_run")` then `inspect_dataset` — which is how the `/overmind dataset` command reads the outcome back. See [Datasets](/core/datasets#create-a-dataset).
 
 ### `dataset export DATASET`
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `--format` | `jsonl` | `jsonl` or `csv` |
-| `--cell` | active version | Cell UUID to export instead |
+| `--cell` | active version | Cell UUID or a version such as `1.2` |
 | `--output` | server filename | Local path; must not exist |
 | `--api-key`, `--api-url`, `--path`, `--json` | | As above |
 
 Streams `GET /api/datasets/{id}/export/?fmt=…[&cell=…]` to a new local file and refuses to overwrite. The export is a raw stream and never counts as a use of the dataset.
+
+## `overmind connector`
+
+```bash
+overmind connector add langfuse --json
+overmind connector add langsmith
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--project-id` | `project-id` in the toml | Project UUID |
+| `--name` | the connector type | Display name |
+| `--base-url` | provider default | Provider API base URL (`LANGFUSE_HOST` for Langfuse) |
+| `--api-key`, `--api-url`, `--path`, `--json` | resolved | Overmind credentials |
+
+Creates a tracing connector from provider credentials. Types: `langfuse`, `langsmith`, `braintrust`, `galileo`. Provider keys come from the environment or a TTY prompt — never paste them into chat.
+
+| Type | Env |
+| --- | --- |
+| Langfuse | `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` |
+| LangSmith | `LANGSMITH_API_KEY` |
+| Braintrust | `BRAINTRUST_API_KEY` |
+| Galileo | `GALILEO_API_KEY` |
+
+Generic fallback: `OVERMIND_CONNECTOR_API_KEY` and, for Langfuse, `OVERMIND_CONNECTOR_API_SECRET`. The JSON result carries the connector `id` and `next_mcp_calls` — `inspect_connectors`, `configure_connector`, `sync_connector`. Auto-sync starts off; configure the source project and capability mapping through MCP or the Console, then sync. See [Observability](/core/observability#getting-traces-in).
 
 ## `overmind optimise`
 
@@ -120,7 +156,7 @@ The client side of an [optimisation run](/agent-testing/optimisers). Every subco
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--capability`, `-c` | | Capability key from `overmind.toml` or UUID |
+| `--capability`, `-c` | | Capability slug from `overmind.toml` or UUID |
 | `--dataset`, `-d` | | Dataset UUID |
 | `--experiment`, `-e` | | Attach to an existing experiment instead of creating one |
 | `--eval-set` | the capability's active set | Eval set UUID |
@@ -170,8 +206,8 @@ overmind skills sync overmind --ide cursor
 
 ## JSON output
 
-`--json` on `dataset upload`, `dataset export` and `model download-checkpoint` prints one machine-readable object and nothing else; on failure they print `{"error": "..."}` and exit 1. `optimise status --json` prints the experiment. This is how the `/overmind` commands hand a local step to the CLI and read the result back.
+`--json` on `dataset upload`, `dataset export`, `connector add` and `model download-checkpoint` prints one machine-readable object and nothing else; on failure they print `{"error": "..."}` and exit 1. `optimise status --json` prints the experiment. This is how the `/overmind` commands hand a local step to the CLI and read the result back.
 
-## Not commands
+## Not a command
 
-There is no `overmind sync`, `overmind chassis` or `overmind connector`. Discovery is the `scan` workflow above. Tracing connectors are created with their provider credentials in the Console and configured and synced through the MCP tools `inspect_connectors`, `configure_connector` and `sync_connector`. See [Observability](/core/observability#getting-traces-in).
+There is no `overmind scan`. Discovery is `/overmind setup` in your coding agent: it runs `overmind chassis`, authors capability cards into `overmind.toml`, then `overmind sync` uploads them. See [Agent & Capabilities](/core/capabilities#the-scan).
