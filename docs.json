@@ -161,6 +161,10 @@
             "href": "https://app.eu.vanta.com/overmindlab.ai/trust/qa4htl2l1qrvbw1bz8wrv"
           },
           {
+            "label": "Licensing",
+            "href": "/platform/licensing"
+          },
+          {
             "label": "Privacy",
             "href": "https://www.overmindlab.ai/legals/privacy"
           },
@@ -360,7 +364,8 @@
         "pages": [
           "platform/api",
           "platform/administration",
-          "platform/glossary"
+          "platform/glossary",
+          "platform/licensing"
         ]
       }
     ]
