@@ -31,6 +31,25 @@ An evaluator is one reusable, versioned scorer — editing one writes a new `ver
 
 Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajectory`, `sample`, or `dataset`), a **score type** (`numeric`, `categorical`, or `boolean`) with a `pass_threshold`, an **evidence requirement** (`model_output`, `harness_artifact`, `trajectory`, or `reference`), and a **surface** — `model`, `harness`, or `any` — that says where it may run: a `model` grader never runs on live trace scoring, a `harness` grader never runs on a generate variant. If a run cannot supply the required evidence, the evaluator abstains or is marked not-applicable instead of producing a number.
 
+### Jev categorical judging
+
+Rubric judges use generative models by default. Set `config.decision.backend` to
+`jev` to opt a label-only categorical evaluator into Jev. The evaluator must have
+2–254 distinct, nonblank declared labels and no checklist or behaviour contract.
+The MCP `upsert_evaluator` tool accepts the same decision policy.
+
+Jev selects a declared label and preserves its configured numeric value. It
+records decision provenance and confidence without generating an explanation.
+Use generative judging when the result requires an explanation. Categorical
+checklists, behaviour contracts, judge panels and cascade routes retain their
+generative review.
+
+Low confidence, insufficient evidence, oversized input or provider failure uses
+the generative fallback. `config.decision.min_confidence` defaults to `0.9`;
+`judge_model` selects the generative judge and fallback. Validate the policy on
+representative human-labelled examples before relying on it: confidence is not
+measured accuracy.
+
 ### Claims
 
 Every evaluator also carries a **claim**: what it asserts and at which grain. The claim is what [trace scoring](/agent-testing/trace-scoring#verdicts-and-the-execution-score) uses to compose one execution score out of many verdicts.
