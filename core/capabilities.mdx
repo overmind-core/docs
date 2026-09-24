@@ -46,6 +46,12 @@ Your **agent** in Overmind is the product itself: one per project, mapped as a g
 
 Discovery runs in your repository, not on the server. `/overmind setup` in your coding agent drives it; `overmind chassis` and `overmind sync` are the CLI halves. See the [CLI](/platform/cli).
 
+The installed skill opens with the detected repository, package manager, and verified connection, then previews ten onboarding stages: installation, project connection, and eight scan stages. Each update shows the current stage name and number, completed count, and how many stages follow it. Discovery explains the capabilities and their source-grounded relationships; later updates report findings rather than just commands. Longer stages include per-capability counts. Completion requires a successful sync; a failed stage keeps its number and reports the error.
+
+Before upload, the agent summarizes the destination, included data, credential checks performed, and local configuration to review. The final handoff reports what was actually synced, material caveats, outstanding verification, and one recommended next action. Instrumentation, application runs, and server-side evaluator preparation remain separate work.
+
+Before scanning, the agent identifies its model when available, the configured Overmind destination, and the data involved. Source excerpts read by the coding agent enter its model context. Sync sends capability metadata, including captured prompt text, tool descriptions, and source references; it does not send a repository archive. The configuration's API-key field is excluded from the snapshot and used for authentication. Overmind may pass the synced metadata to its configured providers to prepare evaluators. Local command execution is not a guarantee that all model processing stays on the machine.
+
 <Steps>
   <Step title="overmind chassis">
     Prints a deterministic AST inventory of Python functions and call edges under the repository root. `/overmind setup` runs this first; the digest is ground truth the cards must not contradict.
@@ -58,7 +64,7 @@ Discovery runs in your repository, not on the server. `/overmind setup` in your 
   </Step>
 </Steps>
 
-After code changes: `/overmind setup` again, then `overmind sync`. A trajectory entry whose anchors are not call-graph reachable from its entry is stamped `verified = false`.
+After code changes: run `/overmind setup` again; it includes the final `overmind sync`. A trajectory entry whose anchors are not call-graph reachable from its entry is stamped `verified = false`.
 
 ### What the server does with a sync
 
