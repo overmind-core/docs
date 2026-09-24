@@ -41,7 +41,7 @@ Worker failures are distinct from incompatible data. A processor/code mismatch r
 
 The wizard ranks the catalogue and estimates cost and duration before launch. With a capability selected, its recorded codebase task determines the ranking; without one, the dataset's task is used. An unclassifiable selected capability stays ungraded instead of borrowing the dataset's task. Dataset measurements still drive context, tool compatibility and hyperparameters.
 
-Serving context is planned separately from training sequence length, using the pinned eval inputs, reference outputs and capability prompt. Cards show serving and output budgets. Recommendations and launch reject workloads exceeding native serving context or GPU capacity. Runtime serving checks the actual templated input plus reserved output; these planning estimates are not exact tokenization. Increasing serving context does not require retraining.
+Serving context is planned separately from training sequence length, using the pinned eval inputs, reference outputs and capability prompt. Cards show serving and output budgets. Estimated context overflow produces a warning without excluding the model or blocking launch. Unsupported GPU configurations still require correction. Training setup also estimates the incumbent and generative judges against the selected evaluation data. Runtime serving checks the actual templated input plus reserved output; these planning estimates are not exact tokenization and cannot guarantee provider acceptance. Increasing serving context does not require retraining.
 
 <ModelCatalog />
 
@@ -82,9 +82,11 @@ Untouched-base-before and trained-model-after are the defaults. Incumbent compar
 
 Every selected evaluation uses the entire pinned eval version, the same prompt snapshot and frozen graders. Before evaluations run alongside training without gating it; after evaluations wait for training, and checkpoint evaluations wait for deployment. Intermediate checkpoints are not automatically judged. Recorded inputs and tools are replayed, not the live application; a capability prompt is injected only where a row lacks a system turn.
 
+**Judge model**, below **Eval set**, defaults to the set's per-evaluator choices. An explicit selection is saved for this run and used on both sides of the comparison without changing the set. REST/MCP use `eval_judge_model`; it cannot change after launch. The dropdown labels estimated context fit and judge-budget differences. Estimated limit overflows turn affected selectors and **Start** orange; undersized options are greyed out but remain selectable. Clicking **Start** opens a short risk summary with **Start anyway**, without requiring a model change. Unverified, unavailable and pending checks stay neutral and do not open this warning. Shared incumbent evaluations require the same judge selection as well as matching data and benchmark context.
+
 Supported untouched bases use OpenRouter when configured and exactly matched in its catalog; otherwise they use the existing provider/Modal route. Once an eval or baseline deployment starts, its route stays pinned until an explicit retry. Trained checkpoints use their own deployment.
 
-The Evals table shows selected evaluations immediately, including what each is waiting for, and keeps updating after deployment. Evaluations that never start are skipped if training fails or is cancelled.
+The Evals table shows selected evaluations immediately, including what each is waiting for, and keeps updating after deployment. Evaluations that never start are skipped if training fails or is cancelled. When experiments share an incumbent-before evaluation, the group view shows that run once as **Shared · N experiments**. Each experiment still has its own base-model and trained-model evaluations, and its individual view retains the shared incumbent result and comparison.
 
 The headline delta compares against base-model-before when selected, otherwise incumbent-before, otherwise incumbent-after. With no comparison, it is absent. Token-limited outputs remain inspectable but are marked incomplete and not quality-scored. Training evaluations with degraded evidence report failure without a headline score or delta; a high average over a few complete rows is not a successful run.
 

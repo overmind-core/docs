@@ -94,13 +94,75 @@ but cannot be activated for live trace scoring until a capability is assigned.
 
 ## Eval runs
 
+### Context warnings
+
+Training setup shows advisory context estimates for the model
+being evaluated and its generative judges. These include prompt, tools and reserved
+output tokens. Judge preflight uses reference-answer size as a proxy for the answer
+that has not been generated yet. Unknown model limits are shown as unverified.
+These are estimates, not exact tokenizer counts; warnings never prevent launch.
+
+The **Judge model** selector below **Eval set** starts with the set's saved judge
+or **Mixed models** when its evaluators use different judges. A selection applies
+to this training run's generative judges and fallbacks, not the saved set or its
+Jev policy. The dropdown marks estimated context fit and shows the budget change
+across all judges for one dataset pass per evaluated model. Undersized options are
+greyed out but remain selectable. Estimated limit overflows turn the affected judge
+or benchmark selector orange. **Start** also turns orange with a warning icon;
+clicking it opens a short risk summary with **Start anyway**. Unverified, unavailable
+and pending checks stay neutral and do not open this warning. Changing the model is optional.
+
+Before launch, context warnings suggest alternatives with verified context and output
+capacity. Judge suggestions preserve configured model order, exclude the model family
+under test and require structured-output support. Generation suggestions require tool
+support when the input declares tools. These checks do not predict model quality.
+No suggestion changes the selection automatically. A judge change should be applied to
+both sides of a comparison.
+
+Evaluation cost comparisons use published token rates, all checked rows and the full
+reserved output for one pass per model or judge. They are not a total-run quote: retries,
+extra tool turns, caching, hosting and training are excluded. Missing prices remain
+unavailable. In training setup, training alternatives use the existing dataset ranking
+and show training-cost and duration estimates for their recommended configurations
+separately from judge evaluation costs. Benchmark deployment costs are not inferred
+from the base model's token prices.
+
+API clients can preview a selected version with `POST /api/eval-runs/context-check/`
+using `project`, `dataset`, optional `cell`, `eval_set`, `capability`, `variants`
+and a run-specific `judge_model`. The response includes `judge_models` with fit
+and budget comparisons. Training launch accepts the selected `eval_judge_model`;
+omitting it preserves the eval set's per-evaluator models.
+Each preview variant can supply `output_tokens` for a planned absolute output
+reservation; otherwise the registered model parameters or provider-call default apply.
+The request reads data without launching a run or calling a model. MCP
+`check_evaluation_readiness` accepts proposed `variants` and `judge_model` and returns
+advisory `context_checks` and `judge_models`; these do not change `ready`.
+MCP `start_finetune` accepts `eval_judge_model`. Standalone REST creation and MCP
+`run_evaluation` accept `judge_model`, matching the preview. Omit it or pass blank
+to preserve each evaluator's saved judge. An explicit choice applies only to that
+run's generative judges and fallbacks, including replay judges attached after launch;
+it does not edit the library, deterministic checks or Jev policy. Judge selection
+is frozen once created: start a new run to use another judge. Run detail shows the
+snapshot judges; the MCP run resource exposes `judge_model`, `run_evaluators` and
+the context checks.
+
+Runtime checks use the actual model messages and assembled judge prompt. The judge
+funnel preserves that prompt instead of clipping it to a fixed character limit.
+If a judge exhausts its output budget, it can retry once with a larger budget only
+when published context and output limits permit it. It does not switch judges or
+shorten the evidence. Permanent context rejection and exhausted grading attempts
+are technical errors, not quality zeros. Score `_judge` metadata records attempt
+budgets, finish reasons, usage, request IDs and costs where the provider supplies them.
+
+### Configuration
+
 An eval run is one experiment: **one data source × N variants × M evaluators.**
 
 - **Data source** — `dataset` (the version is used and frozen, so the run stays reproducible as the dataset evolves) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
 - **Variants** — the columns of the experiment. A variant's `mode` is `generate` (re-run a model over each row) or `existing` (grade the recorded output as-is). Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the baseline (`is_baseline`) every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits cannot change what a completed run measured.
 
-Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, an eval dataset version feeds two consumers from its cell: **Run the optimiser**, and **Use in a training job**, where it scores the job before and after training. Eval runs themselves are created through the API and the `run_evaluation` MCP tool.
+Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, **Evaluations → New evaluation** selects an eval dataset, eval set, model to test, maximum samples and optional run-only judge. Model selectors show the provider logo and model name, matching training setup. Judge options also show estimated context fit and cost comparisons; context warnings remain advisory. Estimates cover the full dataset, while maximum samples limits the run. Eval runs can also be created through the API and the `run_evaluation` MCP tool. An eval dataset's cell also offers **Run the optimiser** and **Use in a training job**.
 
 ```bash
 # Create (which also launches), follow, and compare a run
