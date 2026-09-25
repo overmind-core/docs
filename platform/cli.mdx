@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: The overmind command — init, sync, chassis, dataset upload and export, connectors, the optimise loop, model checkpoints, and skills.
+description: The overmind command — init, sync, chassis, dataset upload and export, connectors, the optimise loop, model-layer backtest and finetune, model checkpoints, and skills.
 ---
 
 The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does. The package is MIT.
@@ -183,6 +183,47 @@ Each verb takes `--experiment`/`-e` (default: the active experiment) and posts i
 | `run-iteration` | Apply queued diffs, run every datapoint, post outputs, wait for scores |
 | `status [--json]` | Show experiment status and scores |
 | `complete` | Seal the experiment and record the winner on the server |
+
+## `overmind backtest`
+
+```bash
+overmind backtest --models openai/gpt-5-mini,anthropic/claude-sonnet-4.5 --since 7d
+```
+
+Scores candidate models on stored `llm_call` spans. It does not run the application or its tools. Each span becomes one eval row: the recorded request, and the recorded completion as the reference. The command waits, prints each model's score against that baseline, and exits 1 if any candidate regresses. Exit 2 means the wait budget ran out.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--models` | required | 1–5 model ids, comma-separated or repeated |
+| `--capability` | the only capability in `overmind.toml` | Slug or id; required when the toml lists more than one |
+| `--since` | `7d` | ISO timestamp, or a duration like `7d`, `24h`, `30m` |
+| `--until` | now | ISO timestamp |
+| `--limit` | 200 | Maximum calls, newest first |
+| `--from-model` | | Only spans recorded from this model |
+| `--timeout` | `45m` | How long to wait for landing and scoring |
+| `--project-id`, `--api-key`, `--api-url`, `--path` | resolved | As for `dataset upload` |
+
+The capability needs an active eval set with generative evaluators. `overmind optimise` remains the path that reruns the repository.
+
+## `overmind finetune`
+
+```bash
+overmind finetune --models Qwen/Qwen2.5-7B-Instruct,meta-llama/Llama-3.1-8B-Instruct --since 7d
+```
+
+Builds a train dataset and an eval dataset from the same stored calls (one row per call, hash-split on `span_id`) and starts one fine-tune job per model. The jobs share a group, the capability, and the capability's active eval set. The command prints the group id and each job id and does not wait for training. A model missing from the training catalog is refused before any dataset is created. If a later job fails to queue, the command prints the jobs already started and exits 1.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--models` | required | 1–4 catalog model ids, comma-separated or repeated |
+| `--capability` | the only capability in `overmind.toml` | Slug or id; required when the toml lists more than one |
+| `--since` | `7d` | ISO timestamp, or a duration like `7d` |
+| `--until` | now | ISO timestamp |
+| `--limit` | 200 | Maximum calls, newest first |
+| `--from-model` | | Only spans recorded from this model |
+| `--eval-percent` | 20 | Share of calls that land in the eval dataset |
+| `--timeout` | `45m` | How long to wait for the datasets to land |
+| `--project-id`, `--api-key`, `--api-url`, `--path` | resolved | As for `dataset upload` |
 
 ## `overmind model`
 

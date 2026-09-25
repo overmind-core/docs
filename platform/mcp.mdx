@@ -86,6 +86,7 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | `inspect_dataset` | `dataset`, `chat_limit?` | One dataset: cell chain, sample, recent agent chat, next actions |
 | `query_dataset` | `dataset`, `sql`, `cell?`, `limit?` | Read-only SQL over one ran cell |
 | `create_dataset_from_traces` | `name`, `trace_ids?`, `filters?`, `search?`, `limit?`, `intent?`, `capability?` | Land a dataset, one row per trace; the selection is counted first and refused when empty. Returns a task receipt |
+| `create_dataset_from_llm_calls` | `name`, `capability`, `since`, `until?`, `model?`, `limit?`, `intent?`, `split?`, `eval_percent?` | Land one row per `llm_call` span. The application is not run. `split` lands train and eval. Returns a task receipt |
 | `message_dataset_agent` | `dataset`, `message` | Queue one agent turn for an idle dataset. Returns a job receipt |
 | `run_dataset` | `dataset`, `proposal_cell?` | Run the dataset, optionally accepting one proposal. Returns a job receipt |
 
