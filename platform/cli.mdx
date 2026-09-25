@@ -24,7 +24,9 @@ overmind init --ide cursor        # or claude | opencode | codex
 overmind sync                     # create the project, save the project key
 ```
 
-Then in your coding agent, `/overmind setup` scans the repository and writes capabilities into `overmind.toml`. Run `overmind sync` again to push them. There is no `overmind scan` command.
+Then in your coding agent, `/overmind setup` scans the repository, writes capabilities into `overmind.toml`, and runs `overmind sync` to push them. The installed skill recognises the repository and verified connection, previews the onboarding roadmap, and reports repository-specific findings alongside the current stage out of ten, completed stages, and stages still to follow. A pre-sync handoff names the destination, included data, credential checks performed, and configuration to review. The finish reports the synced result, outstanding verification, and one recommended next action without automatically starting it. There is no `overmind scan` command.
+
+When Overmind is a project dependency, run commands through that project's environment (`uv run overmind`, `poetry run overmind`, or its virtual-environment executable). An editable installation does not update skill copies already in a repository. Refresh the installed skill with `uv run overmind skills sync overmind --ide <cursor|claude|opencode|codex>` using the appropriate project runner, then start a new conversation so the coding agent reads it.
 
 ## `overmind init`
 
