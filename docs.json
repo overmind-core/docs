@@ -340,7 +340,8 @@
       {
         "group": "Agent Testing",
         "pages": [
-          "agent-testing/eval",
+         "agent-testing/eval",
+          "agent-testing/decision-engine",
           "agent-testing/trace-scoring",
           "agent-testing/optimisers"
         ]

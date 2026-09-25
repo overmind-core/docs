@@ -5,14 +5,24 @@ description: Call your fine-tuned models through an OpenAI-compatible endpoint �
 
 Every successful [training run](/models/training) registers a deployment and serves it from Overmind's GPU pool through an OpenAI-compatible chat completions endpoint. You call it with your existing client and an Overmind API key; the model id is either the deployment's reference or a capability alias that follows whichever model you have made live.
 
+The Console model list shows deployments from training runs. Base-model deployments used internally for evaluations are excluded from the list and its counts; they remain available to evaluation jobs.
+
 ## How a model is served
 
-A deployment moves through `queued → quantizing → deploying → warming → ready`, or ends `failed`, `deleting`, `deleted`. Two shapes:
+A deployment moves through `queued → deploying → warming → ready`, or ends `failed`, `deleting`, `deleted`. Two shapes:
 
 - A dense model trained on Modal with LoRA is served as an **adapter on a shared BF16 base**; deployments of the same base share one process and skip the `quantizing` stage.
 - Everything else — full fine-tunes, mixture-of-experts models, models whose family has no adapter support — is **merged and quantised into a private checkpoint** (FP8 where the base supports it) and served from its own vLLM process.
 
 Each process scales to zero when idle: two minutes without traffic for most models, fifteen for the largest. The first request after that cold-boots the model in two to seven minutes; the response is held open with an idle ping every 15 seconds so the connection survives.
+
+Deployment progress reports base-weight preparation, checkpoint preparation, registration, and boot-and-verification. Remote operation handles are saved: a worker restart reconnects to the same work. One controller checks training outputs and evaluation baselines every 15 seconds; an abandoned worker claim expires after 45 seconds.
+
+Confirmed failures retry after 30 and 60 seconds, with a four-hour overall deadline. Transport errors reconnect to the existing operation. If submission succeeded but its acknowledgement was lost, deployment stops rather than risking duplicate GPU work; remote state must be resolved before retrying. The last error, retry time, attempt, and deadline are available through the deployment API and MCP resource.
+
+Deployment failure does not discard or repeat successful training. The checkpoint is retained and its dependent evaluation is marked failed. An explicit deployment retry starts a new bounded attempt and reuses prepared artifacts where available.
+
+Before-training evaluations report baseline deployment progress on the waiting training run. If that deployment fails, the evaluation is marked failed and the next training poll stops submission with the deployment error, even while remote cancellation is awaiting confirmation.
 
 ## Calling your model
 
@@ -40,6 +50,10 @@ Two ids work in `model`:
 Model ids under `anthropic/`, `deepseek/`, `google/`, `meta-llama/`, `openai/`, `qwen/` and `x-ai/` are frontier models the same endpoint forwards to OpenRouter, so a repository can switch between frontier and fine-tuned models by changing the id alone. They are listed only when the API has an OpenRouter key configured.
 
 ### Request fields
+
+Serving context includes both the input and generated output. Training sequence length does not determine deployment capacity. Requests reserve an explicit positive output budget (8,192 tokens when omitted); an input that cannot fit alongside that reservation is rejected instead of silently reducing output space. Prompt truncation is not supported. `max_completion_tokens` is accepted as an alternative to `max_tokens` and takes precedence when both are supplied.
+
+Inspect each choice's `finish_reason`: `length` indicates an incomplete answer, even when HTTP transport succeeded. Streaming responses retain this finish reason. MCP `run_inference` returns `finish_reason` and `truncated`; `content_clipped` separately identifies its response-size bound. If capacity is insufficient, reduce the request or deploy with a larger supported serving context.
 
 `POST /api/v1/chat/completions` accepts `model`, `messages`, `temperature`, `max_tokens`, `top_p`, `frequency_penalty`, `presence_penalty`, `tools`, `tool_choice`, `response_format`, `stream`, `stream_options.include_usage`, `reasoning_effort`, `include_reasoning` and `chat_template_kwargs`. Unknown fields are ignored.
 
@@ -102,5 +116,5 @@ The model page carries the same badge next to the reference, **View API snippet*
 ## Good to know
 
 - Every request through the endpoint is recorded as an inference call and traced under the project, so a live fine-tuned model feeds the datasets for its next round of training.
-- Quantisation adds a `quantizing` stage to the first deployment of a merged model; adapter deployments skip it.
-- A retry after `failed` starts from the checkpoint download and re-runs the merge and quantisation.
+- Merged checkpoints are quantised during weight preparation; adapter deployments use a shared BF16 base.
+- A retry after `failed` validates base weights again and reuses cached checkpoint preparation. It never restarts training.

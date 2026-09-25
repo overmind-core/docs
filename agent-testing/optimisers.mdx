@@ -20,12 +20,12 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
     Candidates are graded by the eval set you pick, or the capability's active eval set by default. The set must belong to the capability. See [Eval](/agent-testing/eval#eval-sets).
   </Step>
   <Step title="A coding agent in the repository">
-    Your agent executes in **your** environment, not Overmind's. The loop is driven from your checkout by the `overmind` CLI, and the candidate diffs are written by your coding agent. **Optimiser → New run** in the Console hands you the prompt to paste — **Harness** for prompt and code optimisation, **Backtesting** for model comparison — which the `/overmind optimise` and `/overmind backtest` commands run end to end.
+    Your agent executes in **your** environment, not Overmind's. The loop is driven from your checkout by the `overmind` CLI, and the candidate diffs are written by your coding agent. **Optimiser → New run** in the Console offers **Improve prompts & code** to test changes to prompts, tool definitions and application logic, or **Compare models** to evaluate different models while keeping prompts and logic fixed. Select the capability and eval dataset, then use **Copy prompt** and paste into your coding agent in that capability's repository. Copying does not start a run. The `/overmind optimise` and `/overmind backtest` commands are unchanged; scores and progress appear in Overmind.
   </Step>
 </Steps>
 
-<Frame caption="New run: the Harness and Backtesting prompts the coding agent runs.">
-  <img src="/images/platform/optimiser-new-run.jpg" alt="New optimiser run dialog with Harness and Backtesting tabs" />
+<Frame caption="Configure a local run and copy its coding-agent prompt.">
+  <img src="/images/platform/optimiser-new-run.jpg" alt="Optimiser setup with capability, dataset and a coding-agent prompt" />
 </Frame>
 
 The run's **budget** is the number of iterations (default 5) and candidates per iteration (default 3); patience — consecutive iterations without improvement before early stop — is 3. Starting a run requires credits and counts against the plan's optimiser quota.
@@ -95,8 +95,8 @@ Each subsequent iteration takes the batch of candidate diffs from the coding age
 
 | Mode | Candidates | Stops on |
 | --- | --- | --- |
-| **optimize** (Harness) | Code diffs the coding agent writes | Budget or patience |
-| **model_comparison** (Backtesting) | One to five model ids — OpenRouter slugs or your own `ft-…` deployments — one iteration per model, one candidate each | Every model, always — a comparison owes a full table |
+| **optimize** (Improve prompts & code) | Code diffs the coding agent writes | Budget or patience |
+| **model_comparison** (Compare models) | One to five model ids — OpenRouter slugs or your own `ft-…` deployments — one iteration per model, one candidate each | Every model, always — a comparison owes a full table |
 | **hybrid** | Every diff crossed with every model in `--model` | Budget or patience |
 
 A backtest runs the repository with its provider calls redirected to OpenRouter: `overmind.backtest.rewrite_repo(".")` rewrites `OpenAI`, `AsyncOpenAI`, `Anthropic`, `AsyncAnthropic` and `ChatOpenAI` constructors to read `OPENROUTER_MODEL`, `OPENROUTER_API_KEY` and the OpenRouter base URL from the environment, and reports leftover call sites (`ChatAnthropic`, Google GenAI, Vertex) for the coding agent to patch. For each candidate the loop then runs the datapoints with `OPENROUTER_MODEL` set to that candidate's model and `OPENROUTER_API_KEY` from your environment (`OPENAI_API_KEY` as a fallback).

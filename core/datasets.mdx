@@ -3,13 +3,15 @@ title: Datasets
 description: Turn your production traffic into the eval and training data your runs read.
 ---
 
-A dataset is the data your eval runs, optimisation runs and training runs read. You bring rows — selected traces, a file, pasted text — and shape them until they fit what you need. Overmind's own agent does most of that shaping for you.
+A dataset is the data your eval runs, optimisation runs and training runs read. You bring rows — selected traces, uploaded files or API rows — and shape them until they fit what you need. Overmind's own agent does most of that shaping for you.
 
-Two things say what a dataset is for: its **intent** (`train` or `eval`) and the **capability** it belongs to. Both are proposed when it lands and both can be changed by asking, until a run has used it.
+Two things say what a dataset is for: its **intent** (`train` or `eval`) and the **capability** it belongs to. Capability is optional. Purpose is explicit in Console creation; a pending intent from other sources is resolved during preparation. Ask the dataset's chat to change either before a run uses it.
 
 ## Create a dataset
 
-**New dataset** on the Datasets page takes a source, a name, a capability and a purpose. **Decide from the rows** lets Overmind settle the intent for you; **Evaluation** and **Training** fix it.
+Choose **Upload file** or **Data from traces** from **New dataset**, then enter a name and select **Evaluation**, **Training**, or **Train + eval**. Capability can be **Decide from the rows**, **None**, or a project capability. **None** keeps the dataset unbound.
+
+**Train + eval** creates two datasets from the combined source. The editable evaluation share defaults to 30%; choose first, last or random ordering. Exact duplicates are removed before splitting, while matching inputs, traces, conversations and synthetic seed descendants stay together. Preview counts are estimates: grouping can change the final share, and at least two independent groups are required. Custom grouping and stratification remain available through REST and MCP. Near-duplicate similarity is not checked.
 
 <Frame caption="The New dataset dialog: source, name, capability and purpose.">
   <img src="/images/platform/new-dataset-dialog.jpg" alt="New dataset dialog" />
@@ -17,12 +19,12 @@ Two things say what a dataset is for: its **intent** (`train` or `eval`) and the
 
 <Tabs>
   <Tab title="From your traces">
-    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or choose **From traces** to take everything matching your current filters.
+    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**, or choose **Data from traces** to take everything matching your current filters.
 
     Each run lands as one row: its input and delivered output, the full transcript and tools in OpenAI wire shape, model, tokens, cost, status, duration and its score. A transcript already satisfies the training contract; for eval data the agent renames `output` to `expected_output` for you.
   </Tab>
-  <Tab title="Upload or paste">
-    Drop a **CSV, TSV, JSON, JSONL or Parquet** file anywhere on the Datasets page, or paste rows straight into the dialog. Files can be gzipped and up to 2 GB. Columns and types come from the file — numbers stay numbers, nested JSON stays JSON.
+  <Tab title="Upload files">
+    Drop **CSV, TSV, JSON, JSONL or Parquet** files anywhere on the Datasets page, or choose them in the dialog. Removable file chips show names, types, sizes and row counts. Up to 100 files form one source, appended in selection order. The upload endpoint also accepts NDJSON and gzip, up to 2 GB per file. Columns and types come from the files — numbers stay numbers, nested JSON stays JSON.
 
     From a terminal: `overmind dataset upload FILE [--intent train|eval] [--capability <uuid>]`. See the [CLI](/platform/cli#overmind-dataset).
   </Tab>
@@ -42,11 +44,25 @@ Opening a dataset puts you in the Data Workshop: your versions down the left, th
   <img src="/images/platform/workshop.jpg" alt="Data Workshop with cells and the dataset agent" />
 </Frame>
 
-The agent goes first, before you type anything. It decides the intent if you left it open, lands the smallest set of steps that make your data fit, then runs the quality checks for that intent — duplicates, empty or truncated final turns, length outliers, tool calls that don't parse, missing or trivial references, the answer leaking into the input, rows from another capability — and adds one step per finding, with the row count in its note. A fix that would drop more than half your rows waits in the chat as a proposal with **Run** and **Discard** instead of landing on its own.
+The agent goes first, before you type anything. It receives whole-frame task-family profiles and downstream training/evaluation requirements, prepares the data, audits it, repairs supported findings and checks again. Example previews are bounded, but profile counts cover every row. An audit alone does not finish preparation.
 
-After that, ask for what you want in plain language. "Drop rows whose answer is under ten tokens." "Split each transcript per assistant turn." "Use this for training instead." Every request is one step, run immediately, and you see exactly which rows and values changed against the step before.
+Mechanical, evidence-preserving restructuring and declared-rule derivations can apply directly. Semantic judgement calls and replacements of existing task instructions require a concrete proposal, including during initial preparation. Follow-up row exclusions also require review, regardless of percentage. The proposal shows identity-matched examples and coverage changes; **Approve** applies that exact preview, and **Deny** leaves the data unchanged. Changed source data or capability context invalidates the proposal. Once all proposals have decisions, the agent resumes the original request.
+
+Training retains messages and tools. Evaluation separates the final assistant target into expected_output while keeping the complete input prefix, instructions, evidence and recorded tool results. An application record ID is not a substitute for that evidence. The source stays unchanged, and hidden row/group/seed lineage survives projections and stays out of model features.
+
+After that, ask for what you want in plain language. "Drop rows whose answer is under ten tokens." "Split each transcript per assistant turn." "Use this for training instead." You see exactly which rows and values changed against the step before; changes requiring judgement wait for review.
 
 Each step is Python you can read and edit yourself: it reads the previous table as `df` and leaves the next one in `df`, with pandas, numpy, DuckDB, scikit-learn and the rest already available. Edit a step and everything after it re-runs. If a step fails, you get the traceback and your last good version stays in use.
+
+### Quality checks and synthetic data
+
+Deterministic quality checks execute against every row and record boolean-or-null results. The workshop can also run [semantic decision checks](/agent-testing/decision-engine#semantic-dataset-checks) for task alignment, input evidence and answer support. Jev uses separate evidence and answer columns with generative fallback. Batches of up to 200 rows resume against the same version and check contract; missing evidence and unprocessed rows remain unknown. An answer is never its own evidence. Audits do not authorize edits.
+
+Quality and capability-alignment findings remain advisory, including train/eval overlap. Only unreadable or technically incompatible data blocks a consumer. Reports preserve measured coverage and provenance; unsupported labels are not guessed.
+
+Ask explicitly for synthetic examples. Validated batches accumulate in one active generated version, with no draft or Apply step. Retries do not add duplicate rows; interrupted generation keeps completed batches and can continue to the same target. Used versions cannot receive more batches. Seed lineage, capability context, instructions and generation engine are recorded. Synthetic answers still need independent review and cannot be split away from their seeds into held-out evaluation. Automatic preparation never generates synthetic rows.
+
+Chat activity is chronological, with expandable thinking and approval checkpoints. Clearing chat does not remove applied versions. The agent uses the first configured engine: Cursor, OpenRouter, then OpenAI, Anthropic or Gemini. With no key, the workshop opens and reports that the agent is unavailable; see [Self-hosting](/platform/self-hosting#the-data-workshop-agent).
 
 ## Versions
 
@@ -60,12 +76,12 @@ Overmind measures every version against what your intent actually needs, and tel
 
 | Intent | Shape | Per row | Feeds |
 | --- | --- | --- | --- |
-| **Train** | A `messages` column, every row a chat transcript with an assistant turn (`tools` optional) | The system turn is your capability's own prompt, and every tool call names a tool it declares | [Model training](/models/training) |
-| **Eval** | An `input` on every row and an `expected_output` column with real references | Every `input` carries the keys your capability requires | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
+| **Train** | A `messages` column, every row a chat transcript with an assistant turn (`tools` optional) | Task instructions and tools are preserved; model-specific formatting is checked during training preparation | [Model training](/models/training) |
+| **Eval** | An `input` on every row and an `expected_output` column with real references | Model transcripts retain task context and evidence; application entry-point objects carry the declared input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
 
-When a version doesn't fit, the page offers only the moves that would change the verdict — fix it, use it for the other intent, switch capability. Each one is a single request to the agent.
+Rows that cannot meet a technical contract are counted with the reason, never quietly filled in with a default. Ask the dataset's agent to repair them. Task alignment, input evidence, answer support, output schema, capability mismatch and overlap findings are warnings; they do not require quality approval before proceeding.
 
-Rows that can't meet a contract are counted with the reason, never quietly filled in with a default. And if your training data shares runs with your eval data, the training job drops the overlap and says so — the wizard shows you the count before you launch.
+Training reports overlap without dropping selected rows. Checks include normalized inputs, trace/conversation identities, configured groups, case identifiers and synthetic seed lineage. Internal identity columns are hidden from the table, filters and column counts, not removed from stored data.
 
 ## From your coding agent
 

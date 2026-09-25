@@ -9,6 +9,13 @@ The **Evaluations** area of the Console has three surfaces: **Runs**, **Eval set
 
 ## Evaluators
 
+Generated evaluations preserve provider finish reasons. A response stopped by its output token limit remains inspectable, but the sample is marked degraded and its judgments are skipped rather than assigned quality zeros. Degraded samples are excluded from trusted score aggregates and counted in run health. Check this coverage before comparing model quality: a high average over the few complete samples is not a successful overall run. Training-linked evaluations with degraded evidence report failure and no headline comparison score.
+
+Rubric judges default to generative grading. Qualified bounded checklist,
+claim-support and per-turn decisions can opt into [Jev with generative
+fallback](/agent-testing/decision-engine). Authoring and holistic reasoning remain
+generative. Evaluator policies and score provenance identify which path ran.
+
 An evaluator is one reusable, versioned scorer — editing one writes a new `version` row, so past runs keep meaning what they meant. Five kinds exist:
 
 <Tabs>
@@ -66,14 +73,88 @@ Evaluators are platform-managed templates, project-wide, or scoped to a single c
 
 ## Eval sets
 
-An eval set is a named group of a capability's evaluators. Each member carries a **role**:
+An eval set is a named group of evaluators, optionally mapped to a capability. On
+**Evaluations → Eval sets**, choose **New eval set**, enter a name, and search the
+whole evaluator library by name, type, or mapped capability. Select multiple
+evaluators; selected rows show their name, type, and capability and can be removed
+before creation. Leave capability set to **None** for a reusable project set.
+
+`POST /api/eval-sets/` accepts `evaluator_ids` and an optional nullable `capability`;
+the set and members are created together. MCP provides `create_eval_set` and the
+read-only `overmind://eval-sets/{eval_set}` resource. Neither creation path starts
+an evaluation or activates the set. Each member receives its applicable **roles**:
 
 - `generative` members score outputs produced during eval runs and optimisation runs.
 - `trace_scoring` members run on every production trace, per task execution, writing verdicts and the execution score into [Observability](/core/observability#scores-on-arrival). The mechanics are on [Trace scoring](/agent-testing/trace-scoring).
 
 The same evaluator can hold both roles. One set per capability is **active** (`POST /api/eval-sets/{id}/activate/`); it is what trace scoring, optimisation runs and training runs default to. `POST /api/eval-sets/{id}/members/` adds members.
 
+A set without a capability can be selected for project evaluation and training,
+but cannot be activated for live trace scoring until a capability is assigned.
+
 ## Eval runs
+
+### Context warnings
+
+Training setup shows advisory context estimates for the model
+being evaluated and its generative judges. These include prompt, tools and reserved
+output tokens. Judge preflight uses reference-answer size as a proxy for the answer
+that has not been generated yet. Unknown model limits are shown as unverified.
+These are estimates, not exact tokenizer counts; warnings never prevent launch.
+
+The **Judge model** selector below **Eval set** starts with the set's saved judge
+or **Mixed models** when its evaluators use different judges. A selection applies
+to this training run's generative judges and fallbacks, not the saved set or its
+Jev policy. The dropdown marks estimated context fit and shows the budget change
+across all judges for one dataset pass per evaluated model. Undersized options are
+greyed out but remain selectable. Estimated limit overflows turn the affected judge
+or benchmark selector orange. **Start** also turns orange with a warning icon;
+clicking it opens a short risk summary with **Start anyway**. Unverified, unavailable
+and pending checks stay neutral and do not open this warning. Changing the model is optional.
+
+Before launch, context warnings suggest alternatives with verified context and output
+capacity. Judge suggestions preserve configured model order, exclude the model family
+under test and require structured-output support. Generation suggestions require tool
+support when the input declares tools. These checks do not predict model quality.
+No suggestion changes the selection automatically. A judge change should be applied to
+both sides of a comparison.
+
+Evaluation cost comparisons use published token rates, all checked rows and the full
+reserved output for one pass per model or judge. They are not a total-run quote: retries,
+extra tool turns, caching, hosting and training are excluded. Missing prices remain
+unavailable. In training setup, training alternatives use the existing dataset ranking
+and show training-cost and duration estimates for their recommended configurations
+separately from judge evaluation costs. Benchmark deployment costs are not inferred
+from the base model's token prices.
+
+API clients can preview a selected version with `POST /api/eval-runs/context-check/`
+using `project`, `dataset`, optional `cell`, `eval_set`, `capability`, `variants`
+and a run-specific `judge_model`. The response includes `judge_models` with fit
+and budget comparisons. Training launch accepts the selected `eval_judge_model`;
+omitting it preserves the eval set's per-evaluator models.
+Each preview variant can supply `output_tokens` for a planned absolute output
+reservation; otherwise the registered model parameters or provider-call default apply.
+The request reads data without launching a run or calling a model. MCP
+`check_evaluation_readiness` accepts proposed `variants` and `judge_model` and returns
+advisory `context_checks` and `judge_models`; these do not change `ready`.
+MCP `start_finetune` accepts `eval_judge_model`. Standalone REST creation and MCP
+`run_evaluation` accept `judge_model`, matching the preview. Omit it or pass blank
+to preserve each evaluator's saved judge. An explicit choice applies only to that
+run's generative judges and fallbacks, including replay judges attached after launch;
+it does not edit the library, deterministic checks or Jev policy. Judge selection
+is frozen once created: start a new run to use another judge. Run detail shows the
+snapshot judges; the MCP run resource exposes `judge_model`, `run_evaluators` and
+the context checks.
+
+Runtime checks use the actual model messages and assembled judge prompt. The judge
+funnel preserves that prompt instead of clipping it to a fixed character limit.
+If a judge exhausts its output budget, it can retry once with a larger budget only
+when published context and output limits permit it. It does not switch judges or
+shorten the evidence. Permanent context rejection and exhausted grading attempts
+are technical errors, not quality zeros. Score `_judge` metadata records attempt
+budgets, finish reasons, usage, request IDs and costs where the provider supplies them.
+
+### Configuration
 
 An eval run is one experiment: **one data source × N variants × M evaluators.**
 
@@ -81,7 +162,7 @@ An eval run is one experiment: **one data source × N variants × M evaluators.*
 - **Variants** — the columns of the experiment. A variant's `mode` is `generate` (re-run a model over each row) or `existing` (grade the recorded output as-is). Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the baseline (`is_baseline`) every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits cannot change what a completed run measured.
 
-Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, an eval dataset version feeds two consumers from its cell: **Run the optimiser**, and **Use in a training job**, where it scores the job before and after training. Eval runs themselves are created through the API and the `run_evaluation` MCP tool.
+Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, **Evaluations → New evaluation** selects an eval dataset, eval set, model to test, maximum samples and optional run-only judge. Model selectors show the provider logo and model name, matching training setup. Judge options also show estimated context fit and cost comparisons; context warnings remain advisory. Estimates cover the full dataset, while maximum samples limits the run. Eval runs can also be created through the API and the `run_evaluation` MCP tool. An eval dataset's cell also offers **Run the optimiser** and **Use in a training job**.
 
 ```bash
 # Create (which also launches), follow, and compare a run
@@ -118,6 +199,14 @@ A sample that exceeds the generation worker's time limit records an error and is
 </Frame>
 
 The report shows per-variant rollups (mean score, pass rate) per evaluator, the score distribution per evaluator and variant, cost and latency per model — generation cost and eval cost separated — and a per-datapoint table. Opening a datapoint shows each evaluator's score with its reasoning; the **Compare runs** tab lays one run's results next to another's.
+
+Each dataset row has its own entry in the breakdown, with responses from different model variants grouped under that row. Search or page through the entries, then open one to inspect its input and each available model output. A model with no sample for that row does not display another model's response.
+
+The datapoint popup shows **Input** beside **Output and evaluation**. Select a model to switch both panels together. Generated output is the model's response, not a label extracted by a statistical evaluator; the **Reference answer** is shown separately as grading data. Expand **Generated messages** to inspect recorded assistant and tool messages.
+
+New generated samples capture the initial model-runner input, including the system prompt and tool definitions. This is not the provider's rendered chat template or every subsequent replay request. Older samples show **Dataset input** from the run's pinned version and state that the exact model request was not captured. A missing pinned source is shown as unavailable, never reconstructed from a mixed input/output transcript. Existing runs do not need to be rerun to inspect their pinned dataset input.
+
+The MCP `overmind://eval-runs/{eval_run}` resource exposes up to five bounded sample inspections with separate input, output, reference, and evaluator reasoning. `input_source` distinguishes captured requests, pinned dataset rows, and unavailable input; `samples_truncated` indicates additional samples.
 
 <Frame caption="Datapoint drill-down: each evaluator's score with reasoning. A check that could not be applied is not-applicable and does not enter the averages.">
   <img src="/images/platform/eval-datapoint.jpg" alt="Per-datapoint evaluator scores with reasoning" />

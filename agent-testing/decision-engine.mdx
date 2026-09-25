@@ -1,0 +1,116 @@
+---
+title: Decision engine
+description: Jev-backed bounded decisions, generative fallback, provenance, and semantic dataset checks.
+---
+
+Overmind uses TypeSafe's Jev for bounded classification and verification through
+OpenRouter's System One endpoint. It is a decision model, not a chat model: it
+chooses among declared answers and returns confidence and a probability
+distribution. It does not write prompts, explanations, code, or training examples.
+
+## Coverage
+
+| Workload | Decision path | Generative work retained |
+| --- | --- | --- |
+| Generative eval checklists | Per-item pass/fail decisions; Python preserves weights and gates | Authoring, categorical judges, judge panels, uncertain verdicts |
+| Proportional evals and grounding | Support or contradiction of extracted claims | Claim extraction and uncertain verification |
+| Per-turn replay | Fixed progress, match and tool dimensions | Uncertain ratings |
+| Live trace scoring | Cascade step ratings and confident successful numeric behaviour steps | Failed-step causal diagnosis, holistic outcomes, session ledgers, long-trace summaries |
+| Setup | Capability task taxonomy | Combined dataset description, evaluator relevance and new rubric generation in one call |
+| Data Workshop | Semantic questions against real rows and named evidence | Workshop conversation, transformations, synthesis, uncertain checks |
+
+Customer inference, eval sample generation, training, embeddings, and deterministic
+checks do not use Jev. The generative judge model remains independently selectable.
+
+## Evaluator policy
+
+Configurable rubric judges default to **generative**. Jev is an explicit opt-in
+after validation on representative labelled examples for that rubric. A high
+confidence value is not proof of correctness or agreement with the existing judge.
+Fixed grounding, capability classification and workshop semantic services use
+Jev with generative fallback. Existing explicit policies and snapshots are preserved.
+
+The Console's evaluator editor exposes **Decision engine** and **Minimum confidence**.
+The REST authoring request accepts `decision_policy`. General evaluator writes and
+MCP `upsert_evaluator` accept the same policy under `config.decision`:
+
+```json
+{
+  "decision": {
+    "backend": "jev",
+    "model": "typesafe/jev-1.13",
+    "min_confidence": 0.9,
+    "version": 1
+  }
+}
+```
+
+Set `backend` to `generative` to use the generative judge throughout that evaluator.
+The policy is frozen in new evaluator snapshots and included in verdict identities.
+The requested Jev release is pinned; the provider's actual served revision is
+recorded with each response. Historical results are not relabelled or rescored.
+
+Responses must cover every question, use only declared options, and return valid
+probability distributions. Low-confidence answers, invalid responses, unavailable
+capacity, provider errors and oversized evidence fall back to the generative judge.
+Independent checks retain accepted answers and resolve only uncertain or unfinished
+questions. Failed behaviour steps still receive a full causal review. Claim-support
+fallback reuses extracted claims; it does not re-extract the output.
+Jev's context guard is conservative and does not truncate evidence. Insufficient
+evidence is not a pass or not-applicable: binary checklists fall back, grounding
+keeps it outside the support/contradiction denominator, and dataset audits record
+unknown rows.
+Proportional claim scoring counts a claim without evidential support as a failure;
+a verification failure remains unjudged. It does not use grounding's denominator.
+
+Score details retain `_decision` metadata: policy, actual model, choices,
+probabilities, confidence, usage, and fallback reason when present. Eval score
+details display this provenance. Costs include successful decision and fallback
+attempts; unknown provider costs remain unknown. Cached decisions incur no new
+provider charge, and a provider-reported zero is not replaced by a price estimate.
+Missing usage cost remains distinct from zero. A Jev verdict's explanation is a
+result label, not generated chain-of-thought or a causal diagnosis.
+Mixed results identify the accepted Jev questions and the generated resolutions
+separately; generated answers do not claim Jev confidence. Cascade batches store
+their provenance once. Recorded decision latency includes waiting, retries and
+fallback, including timed-out attempts.
+
+## Semantic dataset checks
+
+Ask the dataset's chat, or MCP `message_dataset_agent`, to check task alignment,
+input evidence, or answer support. Its internal `check_semantic_quality` tool takes
+named questions with `evidence_columns` and optional `answer_columns`. Answer
+support requires disjoint answer and independent evidence columns.
+
+The tool checks at most 200 rows per call, packing batches against actual context
+and question budgets. Large groups split without truncating evidence. Each completed
+batch saves results and usage before reporting progress. After an interruption,
+repeated calls resume the same version, context and check contract without rechecking
+saved rows. Results are tied to original
+`source_row` identities; unprocessed and unsupported rows remain unknown. Changed
+data or context invalidates reuse. Inspection returns a bounded summary while the
+full resumable audit and decision provenance are persisted on the version.
+Stale version or audit writes are rejected. Persisted batch billing identities
+prevent duplicate ledger charges when an audit resumes.
+
+Checks do not change rows, invent labels, approve a transformation, or replace
+preparation. Deterministic audits remain available for exact rules. Failed,
+unknown and partial reviews are advisory; technical compatibility remains the
+consumer gate. Synthetic answers are not ground truth merely because a judge
+accepted them.
+
+## Configuration and validation
+
+Use the existing `OPENROUTER_API_KEY` and a shared Redis `CACHE_URL`. No TypeSafe key
+is required. `JEV_REQUESTS_PER_MINUTE` defaults to `1200` and
+`JEV_TOKENS_PER_SECOND` to `250000`; lower these to the allowance on your account.
+Workers sharing the same key must share Redis for account-wide pacing. Without
+working shared capacity, requests fall back instead of bypassing the limit.
+
+The default confidence threshold is an operating policy, not calibrated accuracy.
+Before production reliance, compare Jev and generative judges against a frozen,
+human-labelled set for each workload. Include failures, missing evidence, prompt
+injection, ambiguous rubrics, long inputs, and tool-only turns. Measure accepted
+coverage, false passes, false failures, fallback rate, latency and total cost.
+Provider access and quality/latency measurements require an approved real run;
+mocked integration tests establish contracts, not model quality.
