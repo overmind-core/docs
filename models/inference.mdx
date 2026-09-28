@@ -26,15 +26,16 @@ Before-training evaluations report baseline deployment progress on the waiting t
 
 ## Calling your model
 
-Point any OpenAI-compatible client at `https://api.overmindlab.ai/api/v1` with your API key (`Authorization: Bearer <key>` or `X-Api-Key: <key>`). The model page's **View API snippet** shows this for each model.
+Point any OpenAI-compatible client at `https://api.overmindlab.ai/api/v1` with your API key (`Authorization: Bearer <key>` or `X-Api-Key: <key>`). The model page’s **View API snippet** and coding-agent prompt use the current server’s URL, default to the capability alias and offer an explicit version pin. Reuse a project key in `OVERMIND_API_KEY`, or open the existing key-creation flow from the snippet dialog.
 
 ```python
+import os
 from openai import OpenAI
 
-client = OpenAI(base_url="https://api.overmindlab.ai/api/v1", api_key="<OVERMIND_API_KEY>")
+client = OpenAI(base_url="https://api.overmindlab.ai/api/v1", api_key=os.environ["OVERMIND_API_KEY"])
 
 response = client.chat.completions.create(
-    model="ft-9635f347-qwen3-4b",
+    model="overmind/<capability-uuid>",
     messages=[{"role": "user", "content": "Classify this ticket: ..."}],
 )
 print(response.choices[0].message.content)
@@ -60,7 +61,7 @@ Inspect each choice's `finish_reason`: `length` indicates an incomplete answer, 
 - **Reasoning.** For families that emit chain-of-thought, `include_reasoning` defaults to `false` and `reasoning_effort` to the family's default; pass them explicitly to override. `chat_template_kwargs` is merged over the family's defaults and forwarded to the chat template.
 - **`max_tokens`.** Some families spend part of the budget on a preamble that cannot be turned off; a value below the family's floor is raised to it so the answer is not empty.
 - **Streaming.** `"stream": true` returns SSE `data:` events; the idle ping is an SSE comment line (`: `).
-- **Non-streaming to a deployed model.** The `200` status line and a newline ping are sent before the model answers, and the JSON body follows as a chunked response. An upstream failure after that point arrives as `{"error": {...}}` inside the `200` body — check for an `error` key, not only the status.
+- **Non-streaming to a deployed model.** A result or failure within 15 seconds returns a normal JSON response with its success or error status. Longer requests send newline keepalives every 15 seconds. If inference fails after keepalives commit the headers, the response terminates without a complete JSON body, producing a transport error in the OpenAI client. SSE failures carry an error frame. `X-Request-ID` correlates deployed-model requests with recorded failures.
 
 ### Error codes
 
@@ -92,12 +93,16 @@ The Console uses the project API, `/api/deployed-models/`, for the rest:
 | `POST .../{id}/retry/` | Resets a `failed` or `deleted` deployment to `queued` and re-runs registration; the training job must be `succeeded` or `deploying`. The **Retry** / **Deploy** button on the model page's banner |
 | `POST .../{id}/undeploy/` | Removes the model from the serving backend and marks it `deleted`; weights are kept, so `retry/` brings it back |
 | `DELETE .../{id}/` | Same teardown from the Console's **Delete model** |
-| `GET .../{id}/metrics/` | Request count, prompt and completion tokens, median and p95 warm latency, median throughput, average cold-start latency, cost this month and total, and the savings against the capability's original model priced at its OpenRouter rate |
-| `GET .../{id}/activity/` | Requests, tokens, median latency and throughput per `minute`, `hour` or `day` bucket |
-| `GET .../{id}/live/` | Live serving signal: recent activity, warming, and the backend's runner counts |
+| `GET .../{id}/metrics/` | Request count, prompt and completion tokens, median and p95 warm latency, median throughput, estimated cold-request count and latency, failed requests, end-to-end p50/p95, latest failure request id, cost this month and total, and the savings against the capability's original model priced at its OpenRouter rate |
+| `GET .../{id}/activity/` | Requests, failures, tokens, median warm throughput, and end-to-end p50/p95 latency per `minute`, `hour` or `day` bucket |
+| `GET .../{id}/live/` | Recent successful activity and warming signals; worker availability remains unknown when no per-deployment measurement exists |
 | `GET .../{id}/checkpoints/` | A presigned download link for the trained weights, valid for one hour |
 
-**Make live** is `PATCH /api/capabilities/{id}/` with `active_model` set to the deployment. The CLI's `overmind model download-checkpoint <deployment-id>` fetches the weights through `checkpoints/`.
+**Make live** is `PATCH /api/capabilities/{id}/` with `active_model` set to a ready deployment. This starts a saved activation: **Check deployment → Wake & verify → Switch routing**. The response keeps the existing `active_model` until the verification request succeeds. Poll the capability’s `activation` field for progress, including after navigating away. Failures identify the stage and offer **Retry activation**.
+
+The Console shows **Waiting for first application request** after activation, then the timestamp of the first successful application API-key request to the alias. Verification probes, internal evaluations and requests pinned to a version do not confirm alias integration. Making a model live wakes it once; idle scale-down still applies.
+
+Through MCP, call `set_active_model` and poll its `model_activation` receipt with `get_job`. Clearing `active_model` cancels an in-progress switch and removes alias routing. The CLI's `overmind model download-checkpoint <deployment-id>` fetches the weights through `checkpoints/`.
 
 ## The Console Inference page
 
@@ -105,9 +110,15 @@ The Console uses the project API, `/api/deployed-models/`, for the rest:
   <img src="/images/platform/inference-list.jpg" alt="Inference page listing deployed models" />
 </Frame>
 
-The list shows **Model**, **Base model**, **Capability**, **Training job**, **Reference**, **Status**, **Requests**, **Tokens**, **Throughput**, **Latency** and **Last active**; latency and throughput are medians over warm calls. Status shows the deployment status until it is `ready`; a ready model shows its serving state from `live/` — **Live** when it served a request in the last 90 seconds or the backend reports a running worker, **Warming** while a cold boot started within the last ten minutes is still in progress, **Dormant** otherwise.
+The list shows **Model**, **Base model**, **Capability**, **Training job**, **Reference**, **Status**, **Requests**, **Tokens**, **Throughput**, **Latency** and **Last active**; latency and throughput are medians over warm calls. Status shows the deployment status until it is `ready`; a ready model shows its serving state from `live/` — **Warm** when its worker pool has running containers or it served successful traffic in the last 90 seconds, **Warming** while a cold boot is in progress, **Asleep** when its measured pool has no containers, and **Unknown** only when worker measurements are unavailable and there is no recent serving signal. The list and detail page refresh this state every five seconds; checking status does not wake the model. The separate **Live model** badge identifies the capability’s selected route, independently of worker warmth.
 
-The model page carries the same badge next to the reference, **View API snippet**, and **View traces** into Observability filtered to the model. The overview shows **Requests**, **Tokens**, **Throughput** and **Latency**, the context length, GPU and deployment time, the lineage (**Base model**, **Capability**, **Training job**) and **Make live** or the copyable model-swap prompt. Below it: **Activity**, **Throughput** and **Latency** charts from `activity/`, the **Weights & checkpoints** disclosure with **Download weights**, and **Delete model** under Danger zone. A `failed` or `deleted` model shows a banner with **Retry** or **Deploy**.
+The model page focuses on **Inference performance**: request volume, success rate, end-to-end p50 and p95 response time, median warm generation speed, and estimated serving cost. The reporting period applies to both headline metrics and charts: **Last hour**, **Last 24 hours**, **Last 7 days**, **Last 30 days** or **All time**. **Application traffic** includes API-key requests to either the capability alias or a pinned model ID; **All traffic** also includes internal calls and historical requests whose source is unknown. Metrics refresh every 15 seconds while the page is open.
+
+The charts show request traffic and failures, response-time percentiles, and generation speed. Empty traffic buckets are zero; missing timing measurements remain gaps. Failed calls do not contribute to latency or speed distributions. A single empty state replaces the charts when the selected period has no requests. Refresh errors are visible and do not turn into zero traffic. The latest failure includes its request ID.
+
+The serving row retains the capability alias, **Make live**, stage-based activation progress and **Copy prompt**, which copies coding-agent instructions for the capability alias directly to the clipboard. **Deployment details** contains base model, training job, GPU, context, precision, weights download and the guarded delete action. A failed or deleted deployment retains **Retry** or **Deploy**.
+
+Both `metrics/` and `activity/` accept `period=1h|24h|7d|30d|all` and `source=application|all`; both default to `all`. `activity/` also accepts `granularity=minute|hour|day`. Percentile calculations use the most recent 5,000 measured successful requests in the selected population (per bucket for charts). Estimated cost reports how many requests have a recorded cost when coverage is incomplete.
 
 <Frame caption="A model page: identity and metrics on top, request activity underneath.">
   <img src="/images/platform/inference-model.jpg" alt="Inference model detail page" />
