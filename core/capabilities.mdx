@@ -140,7 +140,7 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviour
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/v1/sync?project_id={project_id}"
 ```
 
-`GET /api/capabilities/` returns current capabilities unless `?status=` asks for leftovers. `PATCH /api/capabilities/{id}/` updates mutable fields, including `model` and `active_model`. `POST /api/v1/sync` is what `overmind sync` speaks; it takes API-key auth and requires `project_id` to be in the key's scope (a project-scoped key supplies its one project). Through MCP: `inspect_capability_health`, `query_failures`, and the `overmind://capabilities/{capability}` resource. See the [REST API](/platform/api) for the full surface.
+`GET /api/capabilities/` returns current capabilities unless `?status=` asks for leftovers. `PATCH /api/capabilities/{id}/` updates mutable fields, including `model`. Writing `active_model` starts a persisted activation that verifies inference before switching the alias; read `activation` for progress and errors. The existing selection remains active until verification succeeds. `POST /api/v1/sync` is what `overmind sync` speaks; it takes API-key auth and requires `project_id` to be in the key's scope (a project-scoped key supplies its one project). Through MCP: `inspect_capability_health`, `query_failures`, and the `overmind://capabilities/{capability}` resource. See the [REST API](/platform/api) for the full surface.
 
 ## Good to know
 

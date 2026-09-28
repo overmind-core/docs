@@ -106,8 +106,8 @@ A finished job deploys its model for you. It appears on [Inference](/models/infe
 
 Two ways to put it in front of traffic:
 
-- **Make live** points your capability's alias `overmind/<capability-uuid>` at the new model. Your next request hits it, with no code change at all.
-- **Copy** gives you a prompt for your coding agent that retargets your LLM client at the model directly. The edit lands in your repository through your normal review.
+- **Make live** wakes and verifies the model, then switches your capability’s alias `overmind/<capability-uuid>`. Inline progress persists across navigation; the previous model continues serving until verification succeeds.
+- **Copy prompt** copies instructions for your coding agent to connect your LLM client to the capability alias. The edit lands in your repository through your normal review.
 
 ## Good to know
 

@@ -109,9 +109,11 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | `estimate_finetune` | `dataset`, `base_model`, `n_epochs?`, `use_lora?`, `cell?`, `version?` | Real-token cost and duration estimate; creates nothing |
 | `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?` | Validate and queue a training job. Returns a job receipt |
 | `retry_deployment` | `deployment` | Retry a failed or deleted deployment. Returns a job receipt |
-| `set_active_model` | `capability`, `deployment?` | Set or clear a capability's active model; the deployment must be ready |
-| `run_inference` | `deployment`, `messages`, `temperature?`, `max_tokens?` | One bounded chat completion against a ready deployment, with usage and latency |
+| `set_active_model` | `capability`, `deployment?` | Verify a ready deployment, then switch the alias; poll the returned `model_activation` job. Omit deployment to clear routing |
+| `run_inference` | `deployment`, `messages`, `temperature?`, `max_tokens?` | One chat completion against a ready deployment using production output budgets, with usage, latency and finish reason |
 | `get_model_swap_prompt` | `finetune`, `pin?` | A copy-paste prompt that points the capability's code at a successful fine-tune; the agent applies it locally |
+
+`run_inference` uses the production serving output reservation when `max_tokens` is omitted or null (currently 8,192 tokens). Explicit positive integer budgets have no MCP-specific ceiling. The model server validates the templated input plus reserved output against the deployment's context; an oversized request returns `context_length_exceeded` without silently reducing its budget. Generation exhaustion is reported by `finish_reason` and `truncated`. The MCP response's `content` is separately bounded to 32,000 characters, with `content_clipped` indicating any response clipping.
 
 ### Optimisation
 
@@ -175,6 +177,10 @@ Read-only, project-scoped entity state under `overmind://`. Static:
 | `overmind://connector-setup` | CLI guidance for `overmind connector add` — provider keys never cross MCP |
 
 Templates: `overmind://capabilities/{capability}`, `overmind://traces/{trace_id}`, `overmind://sessions/{session}`, `overmind://datasets/{dataset}`, `overmind://eval-runs/{eval_run}`, `overmind://eval-sets/{eval_set}`, `overmind://finetunes/{job_id}`, `overmind://deployments/{deployment}`, `overmind://optimizer-runs/{experiment}`, `overmind://connectors/{connector}`, `overmind://jobs/{kind}/{id}`.
+
+Deployment resources accept `?period=1h|24h|7d|30d|all&source=application|all` (defaults: all time and all traffic). For example, `overmind://deployments/{deployment}?period=24h&source=application` returns the selected metrics and activity, including failures and end-to-end response percentiles, from the same services used by the Console.
+
+Each deployment resource also includes a current `worker` section: `state` (`warm`, `warming`, `asleep`, or `unknown`), measurement `available`, runner/input/backlog counts and recent-activity/warming signals. These use the Console's cached measurements and do not wake the model. Worker state is independent of the historical metrics filters, deployment readiness (`status`) and the capability's routing selection (`active_model`). Unavailable counts are null, not zero; recent successful traffic can still establish warmth when provider measurements are unavailable.
 
 ## The CLI boundary
 
