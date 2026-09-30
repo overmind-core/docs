@@ -894,7 +894,7 @@ html[data-page-mode="wide"] #content-area {
 }
 
 /* Code-block header (filename / language tabs) as a strip on the same panel. */
-#content-area :is(.code-block, .code-group) > div:first-child:not(:has(pre)) {
+#content-area :is(.code-block, .code-group) > div:first-child:not(:has(pre), [data-floating-buttons]) {
   background: var(--surface) !important;
   border-bottom: 1px solid var(--frame) !important;
   font-family: var(--font-mono) !important;
@@ -925,9 +925,15 @@ html[data-page-mode="wide"] #content-area {
   color: var(--text) !important;
   background: var(--surface-2) !important;
 }
+/* Mintlify's fade overlay is a gradient band wider than the buttons; the flat
+   canvas has no gradients, so the buttons sit on a code-bg chip instead. */
 #content-area [data-fade-overlay] {
-  background: var(--code-bg) !important;
-  background-image: none !important;
+  display: none !important;
+}
+#content-area [data-floating-buttons] {
+  z-index: 2;
+  padding-left: 6px;
+  background: var(--code-bg);
 }
 
 /* ─── Tables — hairlines only ───────────────────────────────────────────── */
