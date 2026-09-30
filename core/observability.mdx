@@ -99,7 +99,7 @@ A project-scoped key pins every span to its project. Sending the same spans twic
 
 ### The attributes Overmind reads
 
-Overmind already understands the OTel GenAI, OpenLLMetry and OpenInference conventions, so models, providers, token counts, costs, tool names and message payloads from existing instrumentation land without any mapping of your own.
+Overmind already understands the OTel GenAI, OpenLLMetry and OpenInference conventions, so models, providers, token counts, costs, tool names and message payloads from existing instrumentation land without any mapping of your own. A span that reports tokens but no cost is priced at ingest from its model's list price on the span's start date, counting cache reads at the cache rate; a reported cost is kept as sent.
 
 These are the ones you set:
 
