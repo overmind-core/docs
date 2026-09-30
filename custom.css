@@ -1282,6 +1282,17 @@ html[data-page-mode="wide"] #content-area {
   color: var(--text) !important;
   border-bottom-color: var(--copper-500) !important;
 }
+/* Mintlify underlines the inner tab button too; the tab's own border is the one indicator. */
+#content-area [data-component-part="tab-button"] {
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: inherit !important;
+  font: inherit !important;
+}
+#content-area [role="tab"]:focus-visible {
+  outline-offset: -2px;
+}
 
 /* ─── kbd ───────────────────────────────────────────────────────────────── */
 
