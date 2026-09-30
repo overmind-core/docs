@@ -96,6 +96,8 @@
   --text-3: var(--stone-400);
   --text-disabled: var(--stone-600);
   --code-bg: #0e0c09;
+  /* Floating buttons (58px) + their right inset (16px) + 8px of air. */
+  --code-button-gutter: 82px;
 
   --font-display: "PP Mondwest", ui-serif, Georgia, serif;
   --font-nav: "NeueBit", ui-monospace, monospace;
@@ -901,6 +903,14 @@ html[data-page-mode="wide"] #content-area {
   font-size: 12px !important;
   color: var(--text-3) !important;
 }
+/* The code viewport stops at a gutter under the floating buttons, so a long line
+   clips before them instead of running beneath; the fade overlay has nothing to cover. */
+#content-area .code-block > [data-floating-buttons] + [data-component-part="code-block-root"] {
+  padding-right: var(--code-button-gutter);
+}
+#content-area [data-fade-overlay] {
+  display: none !important;
+}
 #content-area :is(.code-block, .code-group) [role="tab"] {
   font-family: var(--font-mono) !important;
   font-size: 12px !important;
@@ -914,26 +924,16 @@ html[data-page-mode="wide"] #content-area {
   border-bottom-color: var(--copper-500) !important;
 }
 
-#content-area [data-testid="copy-code-button"] {
+#content-area :is([data-testid="copy-code-button"], #ask-assistant-code-block-button) {
   background: transparent !important;
   border: 0 !important;
   color: var(--text-3) !important;
   clip-path: var(--notch);
   transition: color 150ms ease, background-color 150ms ease;
 }
-#content-area [data-testid="copy-code-button"]:hover {
+#content-area :is([data-testid="copy-code-button"], #ask-assistant-code-block-button):hover {
   color: var(--text) !important;
   background: var(--surface-2) !important;
-}
-/* Mintlify's fade overlay is a gradient band wider than the buttons; the flat
-   canvas has no gradients, so the buttons sit on a code-bg chip instead. */
-#content-area [data-fade-overlay] {
-  display: none !important;
-}
-#content-area [data-floating-buttons] {
-  z-index: 2;
-  padding-left: 6px;
-  background: var(--code-bg);
 }
 
 /* ─── Tables — hairlines only ───────────────────────────────────────────── */
