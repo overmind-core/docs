@@ -13,11 +13,12 @@
   },
   "seo": {
     "metatags": {
-      "og:image": "https://docs.overmindlab.ai/images/og-default.png",
+      "og:image": "https://cdn.sanity.io/images/gv4t9qa3/production/82cfbaa4afc3fb109b6a6858d21694256d4f7b80-1920x1080.webp/og.jpg?w=1200&h=630&fit=crop&fm=jpg&q=85",
       "og:image:width": "1200",
       "og:image:height": "630",
+      "og:image:type": "image/jpeg",
       "twitter:card": "summary_large_image",
-      "twitter:image": "https://docs.overmindlab.ai/images/og-default.png"
+      "twitter:image": "https://cdn.sanity.io/images/gv4t9qa3/production/82cfbaa4afc3fb109b6a6858d21694256d4f7b80-1920x1080.webp/og.jpg?w=1200&h=630&fit=crop&fm=jpg&q=85"
     }
   },
   "colors": {
