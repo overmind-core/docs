@@ -28,6 +28,27 @@ Then in your coding agent, `/overmind setup` scans the repository, writes capabi
 
 When Overmind is a project dependency, run commands through that project's environment (`uv run overmind`, `poetry run overmind`, or its virtual-environment executable). An editable installation does not update skill copies already in a repository. Refresh the installed skill with `uv run overmind skills sync overmind --ide <cursor|claude|opencode|codex>` using the appropriate project runner, then start a new conversation so the coding agent reads it.
 
+## Windows
+
+Install into a virtual environment. It keeps package paths short and puts `overmind` on `PATH` while it is active:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1          # cmd.exe: .venv\Scripts\activate.bat
+pip install overmind
+overmind --help
+```
+
+If PowerShell refuses to run `Activate.ps1`, allow local scripts for your user once:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+A global `pip install` puts `overmind.exe` in the interpreter's `Scripts` folder, which is not on `PATH` by default. The command is then not found; `python -m overmind` runs the same CLI.
+
+`overmind[tracing]` depends on litellm, some of whose files sit more than 120 characters below `site-packages`. Windows limits a full path to 260 characters unless long paths are enabled. The Microsoft Store `Python 3.x` packages install into a folder of about 140 characters, so the install fails with `OSError: [Errno 2] No such file or directory`. Use a virtual environment in a short folder such as `C:\dev\app\.venv`, or have an administrator enable the **Enable Win32 long paths** group policy (or set `LongPathsEnabled` to `1` under `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem`) and reboot.
+
 ## `overmind init`
 
 ```bash

@@ -6,11 +6,11 @@ description: Reference for the overmind package — init(), provider auto-instru
 The `overmind` package instruments your LLM stack over OpenTelemetry and exports spans to Overmind. One `init()` call captures every supported provider call automatically; `run()` brackets one agent run; decorators trace the code around the model calls; a few one-line calls declare what the run was asked to do and what it delivered, which is what [trace scoring](/agent-testing/trace-scoring) judges. The package is MIT.
 
 ```bash
-pip install "overmind[tracing]"   # the tracing SDK, every provider instrumentor, LangChain coverage
+pip install "overmind[tracing]"   # the tracing SDK, every provider instrumentor, LangChain coverage, span cost pricing
 pip install overmind              # the `overmind` CLI and the inference client only
 ```
 
-The base package is the [CLI](/platform/cli) and the OpenAI-compatible [inference client](/models/inference#calling-your-model). Tracing is the one extra: on a bare install, accessing `overmind.init` or any tracing name raises `ImportError` with the install line to run. There are no other extras.
+The base package is the [CLI](/platform/cli) and the OpenAI-compatible [inference client](/models/inference#calling-your-model). Tracing is the one extra: on a bare install, accessing `overmind.init` or any tracing name raises `ImportError` with the install line to run. The extra also carries litellm, which prices spans from their token counts. There are no other extras. On Windows, see [Windows](/platform/cli#windows).
 
 ## `init()`
 
