@@ -17,7 +17,7 @@ One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, t
 
 - **Format**: `ovr_` followed by a random token. Only a SHA-256 hash is stored — the full key is **shown once, at creation**; the table keeps the first 12 characters as `prefix`.
 - **Headers**: `X-Api-Key: <key>`, `Authorization: Bearer <key>`, or `Authorization: Api-Key <key>`.
-- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of and are the only keys that can create a project. MCP and `.overmind/credentials.toml` hold a project-scoped key; the onboarding prompt carries a temporary account-scoped key that `overmind sync` trades for a project one.
+- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of and are the only keys that can create a project. `overmind sync` stores a project-scoped key in `.overmind/credentials.toml` and the MCP entry; the onboarding prompt carries a temporary account-scoped key that `overmind sync` trades for a project one.
 - **Lifetime**: keys do not expire unless an `expires_at` is set on the row. Revocation is immediate, and each key records `last_used_at`.
 - **Where**: **Projects → your project → API keys** in the Console, or [over the API](/platform/api#authentication).
 
@@ -25,7 +25,7 @@ One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, t
   <img src="/images/platform/project-api-keys.jpg" alt="Project page with the API keys table" />
 </Frame>
 
-Scope one key per environment and keep them out of source control. `overmind sync` writes the project key to `.overmind/credentials.toml`, and `overmind init` writes it into the IDE's MCP entry; both refuse a path git already tracks, add the file to `.git/info/exclude` (not `.gitignore`), and set mode `0600`.
+Scope one key per environment and keep them out of source control. `overmind sync` writes the project key to `.overmind/credentials.toml`, and `overmind init` writes it into the IDE's MCP entry; both refuse a path git already tracks, add the file to `.git/info/exclude` (not `.gitignore`), and set mode `0600`. Claude Code's MCP entry lives in `~/.claude.json`, outside the repository.
 
 ## Tracing connectors
 

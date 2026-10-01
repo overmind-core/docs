@@ -7,35 +7,46 @@ The platform is one repository, [overmind-core/overmind](https://github.com/over
 
 ## Requirements
 
-Docker with Compose, [Bun](https://bun.sh/) for the frontend, and[uv](https://docs.astral.sh/uv/) for anything Python outside the containers.
-> The API refuses to start without a training backend's credentials (Modal or Baseten), an S3 credential pair for the checkpoint archive, and `INFERENCE_API_URL` — see [Training and serving](#training-and-serving).
+Docker with Compose, and [uv](https://docs.astral.sh/uv/) for anything Python outside the containers.
+
+The API refuses to start until every required key is set; the error names each missing one.
+
+| Required | Used for |
+| --- | --- |
+| `OPENROUTER_API_KEY` | Judges, evals, trace scoring, the Data Workshop, optimiser scoring, frontier inference |
+| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET` | Modal training and serving workers |
+| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Serving trained models: the endpoint printed by `modal deploy` and its shared secret |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME` | The fine-tuning checkpoint archive |
+| `HF_TOKEN` | Gated Hugging Face base models |
+
+| Optional | Effect |
+| --- | --- |
+| `CURSOR_API_KEY` | Recommended for the Data Workshop: runs the dataset agent as a Cursor Composer session |
+| `OPENAI_API_KEY` | The `embedding_cosine` evaluator |
+| `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` | Data Workshop fallbacks; unused while `OPENROUTER_API_KEY` is set |
+| `STRIPE_SECRET_KEY` | Paid plans and the credit cap — see [Billing modes](#billing-modes) |
+
+Fine-tuning and serving also need the Modal workers deployed — see [Training and serving](#training-and-serving).
 
 ## Start the stack
 
 ```bash
 git clone https://github.com/overmind-core/overmind.git
 cd overmind
-cp .env.example .env      # fill in OPENROUTER_API_KEY, the training backend, AWS keys, INFERENCE_API_URL
-docker compose up -d      # API, Postgres, Redis, four Celery workers, beat, Grafana
+cp .env.example .env      # set the required keys above
+docker compose up -d      # API, Console, Postgres, Redis, four Celery workers, beat, Grafana
 ```
 
-The Console is a React SPA served separately using Bun:
+The Console is at [http://localhost:5173](http://localhost:5173) and the API at `http://localhost:8000`. Sign in with any email and password; self-hosted mode creates the account on first use and needs no email verification. Leave `CLERK_API_SECRET_KEY` blank.
+
+Start by creating a project by following the [Quickstart](/quickstart). The onboarding prompt in your Console already points the coding agent at your API.
+
+To connect a repository by hand instead, run `overmind init --ide <cursor|claude|opencode|codex> --env local`, then `overmind sync` with the temporary account key from the Console. `--env local` points the MCP entry at `http://localhost:8000/api/mcp/`. Sync saves a project-scoped key; reload the coding agent once to connect. For another self-hosted address, set `OVERMIND_API_URL` before both commands.
+
+For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed with the email you sign in with:
 
 ```bash
-cd frontend && \
-cp .env.example .env && \
-bun install && bun run dev    # http://localhost:5173
-```
-
-You can now access the Console at [http://localhost:5173](http://localhost:5173).
-Use any login credentials to sign in, self hosted mode doesn't require any email verification.
-
-Start by creating a project by following the [Quickstart](/quickstart).
-
-For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed:
-
-```bash
-docker compose exec -T api python manage.py shell < seed.py
+docker compose exec api python manage.py seed_demo --owner you@example.com
 ```
 
 ## Environment reference
@@ -53,12 +64,12 @@ docker compose exec -T api python manage.py shell < seed.py
 | `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials. Unset, one is derived from `DJANGO_SECRET_KEY`; the API prints a warning at startup when `DJANGO_DEBUG=False` |
 | `FRONTEND_URL` | Where the Console lives (default `http://localhost:5173`), for links in prompts and emails |
 | `TRACE_SETTLE_SECONDS` | How long a trace with no root span stays `live` before it reads `interrupted` (default `600`) |
-| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference |
+| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference and the Data Workshop agent. Required at startup. If the key is rejected, the capability's Evaluators tab shows `Judge authoring failed`; fix the key, then run `overmind sync` again |
 
 
 ### The Data Workshop agent
 
-The dataset agent runs on the first key it finds, in this order: `CURSOR_API_KEY` (a Cursor Composer session), `OPENROUTER_API_KEY`, then `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` with a native tool-calling loop. Both engines take the same tools and emit the same events. With none set the workshop page opens and the agent reports that it is not configured. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
+The dataset agent runs on OpenRouter. We recommend setting `CURSOR_API_KEY`, which runs it as a Cursor Composer session instead. Both engines take the same tools and emit the same events. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
 
 ### Decision engine
 
@@ -72,12 +83,14 @@ capacity falls back to generative judging; Jev is not a chat or inference model.
 
 | Variable | Purpose |
 | --- | --- |
-| `FINETUNING_BACKEND` | `modal` (settings default); `docker-compose.yml` and `.env.example`. Startup fails unless the chosen backend's credentials are set |
-| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_vllm_worker.py`, `register_model.py` and `modal_sft_worker.py` (`--env $MODAL_ENVIRONMENT`). `MODAL_ENVIRONMENT` (default `overmind-dev`) also selects the checkpoint bucket |
+| `FINETUNING_BACKEND` | `modal`, the only accepted value |
+| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Required (tokens). Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_vllm_worker.py`, `register_model.py` and `modal_sft_worker.py` (`--env $MODAL_ENVIRONMENT`). `MODAL_ENVIRONMENT` (default `overmind-dev`) also selects the checkpoint bucket |
 | `MODAL_SFT_APP_NAME` | The deployed SFT app (default `overmind-sft`) |
-| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | The Modal serving endpoint printed by `modal deploy`, and the shared secret it checks. `INFERENCE_API_URL` is required at startup |
-| `HF_TOKEN` | Gated base models on Hugging Face |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | The checkpoint archive that backs weights download; the key pair is required at startup |
+| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Required. The Modal serving endpoint printed by `modal deploy`, and the shared secret it checks |
+| `HF_TOKEN` | Required. Gated base models on Hugging Face |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME`, `AWS_REGION` | Required (all but the region). The checkpoint archive that backs weights download |
+
+The Modal workers read their credentials from a Modal secret named `overmind-inference`: the AWS keys, `INFERENCE_API_KEY` and `HF_TOKEN`.
 
 ### Billing modes
 

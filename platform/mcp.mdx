@@ -1,9 +1,9 @@
 ---
 title: MCP
-description: The Overmind MCP server — setup per coding agent, authentication, the 32 tools, 11 prompts and the resources, and the CLI handoff for local work.
+description: The Overmind MCP server — setup per coding agent, the optional plugin, authentication, the 36 tools, 12 prompts, resources, workflow skills and the CLI handoff for local work.
 ---
 
-MCP is the platform's first-class agent surface: a project-scoped [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
+MCP is the platform's first-class agent surface: an account-aware [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
 
 ## Setup
 
@@ -15,18 +15,6 @@ MCP is the platform's first-class agent surface: a project-scoped [Model Context
 {
   "mcpServers": {
     "overmind": {
-      "url": "https://api.overmindlab.ai/api/mcp/",
-      "headers": { "X-Api-Key": "ovr_…" }
-    }
-  }
-}
-```
-
-```json Claude Code (.mcp.json)
-{
-  "mcpServers": {
-    "overmind": {
-      "type": "http",
       "url": "https://api.overmindlab.ai/api/mcp/",
       "headers": { "X-Api-Key": "ovr_…" }
     }
@@ -48,25 +36,49 @@ MCP is the platform's first-class agent surface: a project-scoped [Model Context
 }
 ```
 
-```bash Claude Code (one line)
-claude mcp add --transport http overmind https://api.overmindlab.ai/api/mcp/ --header "X-Api-Key: ovr_…"
+```bash Claude Code
+claude mcp add --scope local --transport http overmind https://api.overmindlab.ai/api/mcp/ --header "X-Api-Key: ovr_…"
 ```
 
 </CodeGroup>
 
-Codex takes the same entry in `.codex/config.toml`. Self-hosted: replace the URL with `http://localhost:8000/api/mcp/` (`overmind init --env local`).
+Codex takes the same entry in `.codex/config.toml`. Claude Code keeps the key in local scope (`~/.claude.json`), outside the repository. Self-hosted: replace the URL with your API host plus `/api/mcp/`, for example `http://localhost:8000/api/mcp/` (`overmind init --env local`, or `--api-url`).
+
+## Optional plugin
+
+The Cursor, Claude Code and Codex plugins bundle the MCP connection, Overmind branding and the [workflow skills](#workflow-skills). MCP alone is the complete integration: tool descriptions, operating guidance, resources and prompts reach every client, with or without a plugin.
+
+The plugin's `.mcp.json` points at the hosted API and signs in with OAuth. The connection reaches every active project your account can access, including projects you join later. For a self-hosted deployment, run `overmind init --env local --ide <client>` and `overmind sync` instead. Keep one active Overmind MCP connection per client.
+
+Start with `list_projects`. To see a project in the browser, read `overmind://project/current?project_id=ID` and open its `console_url`, which the server builds from `FRONTEND_URL`. The browser needs its own Console sign-in, and opening a page grants no write access.
 
 ## Authentication
 
-The key must be **project-scoped** — pinned to exactly one active project the key's owner is a member of — and carry `read` and/or `write` permission. The project is bound from the key; no tool accepts a project id. A key with only `read` sees the read-only tools; the rest need `write`. A key with an IP allowlist is refused from other addresses. `Authorization: Bearer ovr_…` is accepted as an alternative to `X-Api-Key`.
+**Account connections.** OAuth connections and account API keys find the projects you can access with `list_projects`. Pass the chosen `project_id` to every project tool, and as a query parameter on resource URIs. Membership is checked on every operation, and there is no shared "current project", so parallel work cannot switch another request's project. Returned resource links keep the project id.
 
-The server answers `401` for authentication errors and `403` otherwise, without a `WWW-Authenticate: Bearer` challenge, so MCP clients never start OAuth registration against it. Requests must be `POST` with `application/json`, from an allowed host and origin, and at most the protocol's default body size. Errors are JSON-RPC values, never exceptions: `{"error": {code, message, retryable, fields}}`.
+**Project API keys** reach only their own project and can omit `project_id`.
+
+**Permissions.** Read access exposes the read-only tools; writes need write access. API keys keep their expiry, active-user and IP-allowlist checks, and authenticate as `X-Api-Key` or `Authorization: Bearer`.
+
+**OAuth.** A grant asks for `overmind:read` and/or `overmind:write`, and needs Console sign-in and explicit consent. Tokens use S256 PKCE, exact redirect matching, one-time codes and resource binding, and only MCP accepts them. Access tokens expire after one hour. A connection stays authorized until it is revoked: refresh tokens have no time limit, but they rotate, and reusing an old one revokes the connection. A disabled account or a lost project membership ends access.
+
+**Hosting.** On a public deployment, set `MCP_SERVER_URL` to the HTTPS `/api/mcp/` endpoint and `FRONTEND_URL` to the Console. Plain HTTP is accepted only on local loopback. The server then advertises OAuth discovery, public-client registration (`token_endpoint_auth_method: none`), and the authorization, token and revocation endpoints. To publish the server as an OpenAI app, set `OPENAI_APPS_CHALLENGE` to the portal's ownership token; the API serves it at `/.well-known/openai-apps-challenge`.
+
+**Transport.** Requests are `POST` with `application/json`, from an allowed host and origin, within the protocol's body limit. Authentication failures return `401` and authorization failures `403`. Tool errors are structured results: `{"error": {code, message, retryable, fields}}`.
 
 The public surface is read and write only. There are no delete, cancel or generic API tools; `retry_deployment` is the one lifecycle exception and covers exactly the failed-or-deleted deployment case.
 
 ## Tools
 
-Thirty-two tools, all project-scoped, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
+Thirty-six tools, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
+
+Project tools also accept `project_id`, required for account connections. `list_projects` and `get_model_catalog` do not need a project.
+
+### Projects
+
+| Tool | Arguments | Returns |
+| --- | --- | --- |
+| `list_projects` | `limit?`, `offset?` | Authorized active projects, Console/resource links and pagination |
 
 ### Observability
 
@@ -85,7 +97,7 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | `list_datasets` | `capability?`, `intent?`, `state?`, `search?`, `limit?`, `offset?` | List project datasets |
 | `inspect_dataset` | `dataset`, `chat_limit?` | One dataset: cell chain, sample, recent agent chat, next actions |
 | `query_dataset` | `dataset`, `sql`, `cell?`, `limit?` | Read-only SQL over one ran cell |
-| `create_dataset_from_traces` | `name`, `trace_ids?`, `filters?`, `search?`, `limit?`, `intent?`, `capability?` | Land a dataset, one row per trace; the selection is counted first and refused when empty. Returns a task receipt |
+| `create_dataset_from_traces` | `name`, `trace_ids?`, `filters?`, `search?`, `limit?`, `intent?`, `capability?`, `split?` | Land a dataset, one row per trace; the selection is counted first and refused when empty. `split` lands disjoint `<name> train` and `<name> eval` datasets instead of one with an intent. Returns a task receipt |
 | `message_dataset_agent` | `dataset`, `message` | Queue one agent turn for an idle dataset. Returns a job receipt |
 | `run_dataset` | `dataset`, `proposal_cell?` | Run the dataset, optionally accepting one proposal. Returns a job receipt |
 
@@ -93,10 +105,10 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 
 | Tool | Arguments | Effect |
 | --- | --- | --- |
-| `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `mode?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
+| `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `mode?`, `variants?`, `judge_model?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
 | `create_eval_set` | `name`, `evaluator_ids`, `capability?` | Atomically create an eval set and its members in their applicable roles; does not activate it or launch a run |
 | `upsert_evaluator` | `evaluator?`, `name?`, `kind?`, `capability?`, `scope?`, `score_type?`, `display_name?`, `description?`, `rubric_md?`, `evaluation_prompt?`, `checklist?`, `judge_model?`, `score_min?`, `score_max?`, `pass_threshold?`, `requires_reference?`, `variable_mapping?`, `config?`, `applicable_roles?`, `surface?`, `choices?` | Create or update an evaluator |
-| `run_evaluation` | `name`, `dataset`, `eval_set?`, `cell?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?` | Create and launch an eval run. Returns a job receipt |
+| `run_evaluation` | `name`, `dataset`, `eval_set?`, `cell?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?`, `judge_model?` | Create and launch an eval run. Returns a job receipt |
 | `compare_evaluations` | `run`, `baseline` | Compare a run with a project-scoped baseline |
 | `annotate_evaluation_sample` | `annotation?`, `sample?`, `evaluator?`, `value?`, `label?`, `note?` | Create or update a human annotation, attributed to the key's owner |
 
@@ -107,9 +119,11 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | `get_model_catalog` | `has_tool_calling?`, `max_context?` | Models available for fine-tuning: tiers, context limits, training methods, tool-calling, batch bounds |
 | `check_finetune_readiness` | `dataset`, `capability?`, `cell?`, `version?` | Prerequisites, train/eval dataset shape, recommended models, evaluators, credits |
 | `estimate_finetune` | `dataset`, `base_model`, `n_epochs?`, `use_lora?`, `cell?`, `version?` | Real-token cost and duration estimate; creates nothing |
-| `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?` | Validate and queue a training job. Returns a job receipt |
+| `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?`, `baseline_model?`, `eval_judge_model?`, `eval_incumbent_before?`, `eval_incumbent_after?`, `eval_model_before?`, `eval_model_after?` | Validate and queue a training job. `baseline_model` overrides the capability's benchmark for this job; the `eval_*` flags choose which comparison evaluations run. Returns a job receipt |
+| `prepare_training_data` | `dataset`, `base_model`, `context_length`, `training_type?`, `validation_dataset?`, `cell?`, `retry_failed?` | Run exact tokenization for a model and context length; returns a cached preparation report. Poll with `get_job(kind="training_preparation")` |
 | `retry_deployment` | `deployment` | Retry a failed or deleted deployment. Returns a job receipt |
 | `set_active_model` | `capability`, `deployment?` | Verify a ready deployment, then switch the alias; poll the returned `model_activation` job. Omit deployment to clear routing |
+| `set_benchmark_model` | `capability`, `deployment?` | Choose a ready trained deployment as the capability's default training benchmark; omit deployment to use the codebase incumbent. Does not change serving |
 | `run_inference` | `deployment`, `messages`, `temperature?`, `max_tokens?` | One chat completion against a ready deployment using production output budgets, with usage, latency and finish reason |
 | `get_model_swap_prompt` | `finetune`, `pin?` | A copy-paste prompt that points the capability's code at a successful fine-tune; the agent applies it locally |
 
@@ -128,27 +142,27 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | Tool | Arguments | Effect |
 | --- | --- | --- |
 | `inspect_connectors` | `connector?`, `include_source_projects?`, `preview?`, `preview_source_project_id?`, `preview_lookback_days?`, `max_runs?` | List or inspect connectors: configuration, mappings, provider capabilities, sync status |
-| `configure_connector` | `connector`, `source_project_id?`, `lookback_days?`, `backfill_from?`, `backfill_to?`, `capability_mapping?`, `auto_sync_enabled?`, `poll_interval_seconds?` | Save source project, lookback, capability mapping and polling settings |
+| `configure_connector` | `connector`, `source_project_id?`, `lookback_days?`, `backfill_from?`, `backfill_to?`, `capability_mapping?`, `auto_sync_enabled?`, `poll_interval_seconds?`, `confirm_mapping?` | Save source project, lookback, capability mapping and polling settings; `confirm_mapping` confirms the reviewed mapping |
 | `sync_connector` | `connector` | Queue the configured import. Returns a task receipt |
 
-A connector is created, with its provider credentials, in the Console under Integrations; until that form is complete the tools answer with the `connector_setup_required` action.
+A connector is created with its provider credentials through `overmind connector add` or the Console under Integrations; until then the tools answer with the `connector_setup_required` action.
 
 ### Instrumentation
 
 | Tool | Arguments | Returns |
 | --- | --- | --- |
 | `get_instrumentation_plan` | `capability?`, `behaviour?` | The registered placement tickets for a capability or behaviour |
-| `verify_instrumentation` | `capability?`, `spans` | Bind and grade a caller-supplied span list without writing traces or scores |
+| `verify_instrumentation` | `capability?`, `trace_id` or `spans` | Bind and grade an ingested trace by id, or a caller-supplied span list, without writing traces or scores |
 
 ### Jobs
 
-Background work returns a **job receipt** — `kind`, `id`, `status` and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `connector_sync`, `eval_run`, `finetune` (alias `finetune_job`), `optimizer` (aliases `optimizer_run`, `optimizer_experiment`) and `deployment`.
+Background work returns a **job receipt** — `kind`, `id`, `status` and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `connector_sync`, `eval_run`, `training_preparation`, `finetune` (alias `finetune_job`), `optimizer` (aliases `optimizer_run`, `optimizer_experiment`), `deployment` and `model_activation`.
 
 Names resolve within the project: capability arguments take an id, key or name; connectors take an id or name; dataset tools prefer the UUID `list_datasets` returned because dataset names are not unique.
 
 ## Prompts
 
-Eleven prompts compose the tools into multi-step workflows with human checkpoints:
+Twelve prompts compose the tools into multi-step workflows with human checkpoints:
 
 | Prompt | Arguments | What it drives |
 | --- | --- | --- |
@@ -163,14 +177,15 @@ Eleven prompts compose the tools into multi-step workflows with human checkpoint
 | `upload-dataset-file` | `path`, `intent?`, `project_id?` | `overmind dataset upload` in the terminal, then verify through MCP |
 | `export-dataset` | `dataset` | `overmind dataset export` to the local filesystem |
 | `download-checkpoint` | `deployment` | `overmind model download-checkpoint` to the local filesystem |
+| `connect-traces` | `connector_type` | `overmind connector add` in the terminal, then configure, confirm the mapping and sync through MCP |
 
 ## Resources
 
-Read-only, project-scoped entity state under `overmind://`. Static:
+Read-only project entity state under `overmind://`. Account connections add `?project_id=ID`; follow returned links to preserve scope. Static:
 
 | URI | Content |
 | --- | --- |
-| `overmind://project/current` | The authenticated project identity and safe metadata |
+| `overmind://project/current` | The authenticated project identity, provenance, safe metadata and ordinary `console_url` |
 | `overmind://dataset-upload` | CLI guidance for uploading local dataset bytes |
 | `overmind://dataset-export` | CLI guidance for downloading a committed dataset |
 | `overmind://checkpoint-download` | CLI guidance for downloading an archived checkpoint |
@@ -186,6 +201,21 @@ Each deployment resource also includes a current `worker` section: `state` (`war
 
 Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; repository discovery is `/overmind setup` then `overmind sync`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key is entered with `overmind connector add` in a terminal. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
 
-## The skill
+## Workflow skills
 
-`overmind init` installs the `overmind` skill next to the MCP entry, and on Cursor and Claude Code the `/overmind` slash commands (`onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise`, `backtest`) that load its references. The skill holds the conventions the tools assume — list first, poll jobs with `get_job`, the dataset contracts that gate every run — and is the only place the local scan workflow (`/overmind setup`) lives; the native prompts cover the server-side workflows.
+`overmind init` installs the workflow skills next to the MCP entry, and the optional plugin bundles the same files. The main `overmind` skill covers setup, repository discovery and work that spans several surfaces. Each focused skill covers one surface:
+
+| Skill | Workflow |
+| --- | --- |
+| `overmind-agent` | Capability map, behaviour coverage and repository provenance |
+| `overmind-observability` | Trace investigations, failures, latency and instrumentation gaps |
+| `overmind-datasets` | Data Workshop preparation, proposals, generation and export |
+| `overmind-evaluations` | Evaluators, eval sets, runs and baseline comparisons |
+| `overmind-optimiser` | Prompt and code experiments, and model comparisons |
+| `overmind-training` | Exact data preparation, costs, fine-tuning and held-out evaluation |
+| `overmind-inference` | Serving metrics, worker state, live routing and activation |
+| `overmind-integrations` | Tracing providers, boundary mappings and verified imports |
+
+`overmind skills list --verbose` prints the installed catalog. `overmind skills sync <names> --ide <client>` refreshes the named skills, and `overmind init --ide <client>` installs the full set.
+
+`/overmind onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise` and `backtest` load the main skill's references: Cursor through command files, Claude Code through the skill itself. In OpenCode and Codex, ask for the step by name. The main skill is the only place the local scan (`/overmind setup`) lives; the native prompts cover the server-side workflows.

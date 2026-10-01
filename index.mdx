@@ -1,6 +1,6 @@
 ---
 title: "Introduction"
-description: "Overmind continuously improves production AI agents with their own data: traces in, trained models out."
+description: "Overmind improves production AI agents with their own data: traces in; datasets, evals, optimisation runs and trained models out."
 ---
 
 import { Ascii } from "/snippets/ascii.jsx";
@@ -33,20 +33,22 @@ import { Ascii } from "/snippets/ascii.jsx";
   ]}
 />
 
-Overmind ingests OpenTelemetry traces, scores them as they arrive, turns them into curated datasets, to be used for evaluations, optimisations and model training benchmarked against what you currently have.
+Overmind ingests OpenTelemetry traces, scores them as they arrive and turns them into datasets. Those datasets drive evals, optimisation runs and training runs, and every result is benchmarked against the agent you ship today.
 
-The platform can be used as [cloud hosted](https://console.overmindlab.ai) or [self-hosted](/platform/self-hosting) with Docker Compose. The platform is AGPL-3.0; the SDK is MIT. See [Licensing](/platform/licensing).
+Use the [hosted Console](https://console.overmindlab.ai) or [self-host](/platform/self-hosting) the same code with Docker Compose. The platform is AGPL-3.0 and the SDK is MIT; see [Licensing](/platform/licensing).
 
-Overmind is built on top of standard protocols so no matter what agent you use, you can use Overmind to improve it, with little to no effort.
+Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, [MCP](/platform/mcp) for coding agents and OpenAI-compatible serving for models. The Python SDK instruments OpenAI, Anthropic, Gemini, Agno and LangChain, and any OpenTelemetry exporter can send to the same endpoint.
 
 What Overmind does:
-- [Capability scan](/core/capabilities): Scanning your codebase for AI agents and different agentic capabilities.
-- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the agent's eval set
-- [Datasets from traces](/core/datasets): traces from real environments become eval and training data, no synthetic data, no data poisoning, no hallucinations.
-- [Evaluations](/agent-testing/eval): your in house quality control loop, measured using a typed score, ensuring the agent is always improving.
-- [Optimiser](/agent-testing/optimisers): An AI Engineer running experiments on your repository, trying to improve the agent's performance while adhering to your quality control loop.
-- [Models](/models/training): Finetuned models that you own, built on top of your custom data.
-- [Inference](/models/inference): OpenAI-compatible API for your trained models and frontier models
+
+- [Capability scan](/core/capabilities): your coding agent maps the repository into capabilities
+- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the capability's eval set
+- [Datasets](/core/datasets): traces and files become eval and training data, shaped by the dataset's own agent
+- [Eval](/agent-testing/eval): variants measured against a baseline with typed scores
+- [Optimiser](/agent-testing/optimisers): candidate code changes replayed in your repository and scored; the winning diff is yours to apply
+- [Training](/models/training): fine-tuned models you own, trained on Modal from your data
+- [Inference](/models/inference): an OpenAI-compatible API for your trained models and frontier models
+- [MCP](/platform/mcp) and [CLI](/platform/cli): the same workflows from Cursor, Claude Code, OpenCode or Codex
 
 ## Guides
 

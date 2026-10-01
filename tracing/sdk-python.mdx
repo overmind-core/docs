@@ -10,7 +10,7 @@ pip install "overmind[tracing]"   # the tracing SDK, every provider instrumentor
 pip install overmind              # the `overmind` CLI and the inference client only
 ```
 
-The base package is the [CLI](/platform/cli) and the OpenAI-compatible [inference client](/models/inference#calling-your-model). Tracing is the one extra: on a bare install, accessing `overmind.init` or any tracing name raises `ImportError` with the install line to run. There are no other extras.
+The base package is the [CLI](/platform/cli) and the OpenAI-compatible [inference client](/models/inference#calling-your-model). Tracing is the one extra: on a bare install, accessing `overmind.init` or any tracing name raises `ImportError` with the install line to run. There are no other extras. Install steps for macOS, Linux and Windows are on the [CLI page](/platform/cli#install).
 
 ## `init()`
 
@@ -164,7 +164,7 @@ Two identity forms tie code to a capability declared in `overmind.toml`:
 - `overmind.init(capability_id="<slug>")` (or `run(capability_id=...)`) — ingest binds by the capability's UUID; a slug resolves server-side.
 - `@overmind.capability("<slug>", id="...")` on an entry function — at runtime the name is a label only; pass `id=` or set `capability_id` in `init()` to bind.
 
-Verification is a bounded, read-only MCP smoke: run with a unique `conversation_id`, flush, find the trace with `query_traces(session=..., all_spans=true)`, read `overmind://traces/{trace_id}`, and hand its spans to `verify_instrumentation`, which checks capability attribution, nesting, inputs and outputs, usage, and timing without writing traces or scores.
+Verification is a bounded, read-only MCP smoke: run with a unique `conversation_id`, flush, find the trace with `query_traces(session=..., all_spans=false)`, and pass its `trace_id` to `verify_instrumentation`, which grades the ingested spans on the server and checks capability attribution, nesting, inputs and outputs, usage, and timing without writing traces or scores.
 
 ### `task()` — carve a run into units
 
@@ -205,7 +205,7 @@ for i, doc in enumerate(documents):
 
 ### LangChain / LangGraph
 
-`providers=["langchain"]` (or `"auto"`) mounts the OpenInference LangChain instrumentor that ships with `overmind[tracing]`, which covers LangGraph: every chain, model, and tool invocation gets a span with model, token, and cost evidence. For the scoring semantics no instrumentor can know, `overmind.integrations.langgraph.bind` maps graph nodes to behaviour units — call it on the `StateGraph` after `add_node()`, before `compile()`:
+`providers=["langchain"]` (or `"auto"`) mounts the OpenInference LangChain instrumentor that ships with `overmind[tracing]`, which covers LangGraph: every chain, model, and tool invocation gets a span with model and token evidence, and Overmind prices it at ingest. For the scoring semantics no instrumentor can know, `overmind.integrations.langgraph.bind` maps graph nodes to behaviour units — call it on the `StateGraph` after `add_node()`, before `compile()`:
 
 ```python
 from overmind.integrations import langgraph as overmind_langgraph

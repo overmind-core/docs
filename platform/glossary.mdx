@@ -17,9 +17,9 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Scan snapshot** — the server's record of one `overmind sync`: the toml capabilities, cards, and repo summary. `GET /api/v1/sync?project_id=` reads it back.
 
-**Cluster** — one group of functions reachable from an entry point with the same prompt set; the unit the coding agent names as a capability.
+**Tool cluster** — a group of a capability's tools that serve similar tasks, named on the card; the trajectory map renders each cluster together.
 
-**Mode** — one distinct model call inside a capability, with its own system prompt: the roles inside an orchestration. Each mode becomes one behaviour on sync.
+**Mode** — one task or role inside a capability, with its own prompt: a stage of a pipeline or a worker in an orchestration. A trajectory-map entry for a mode shares its name, so the behaviour minted from it carries that identity.
 
 **Card** — the agent-authored description of a capability in `overmind.toml` (`[capabilities.<slug>.capability_card]`): task, modality, input schema, output fields, expected output, success criteria, failure modes, constraints, tool protocol, and a trajectory map of anchors — each with source provenance. Filled by `/overmind setup` from source, merged onto the capability and its behaviours on `overmind sync`.
 
@@ -27,15 +27,15 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **API key** — an `ovr_...` credential (stored hashed, shown once at creation) that authenticates the SDK, OTLP ingest, the REST API, MCP, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`. **Project-scoped** keys see one project; **account-scoped** keys reach every project the user is in.
 
-**MCP** — the project-scoped Model Context Protocol server at `/api/mcp/`: the agent surface a coding agent uses for every workflow that does not need the filesystem. See [MCP](/platform/mcp).
+**MCP** — the Model Context Protocol server at `/api/mcp/`: the agent surface a coding agent uses for every workflow that does not need the filesystem. See [MCP](/platform/mcp).
 
-**Skill** — the `overmind` agent skill `overmind init` installs, with the `/overmind` commands and one reference per workflow. See [CLI](/platform/cli).
+**Skill** — the agent skills `overmind init` installs: the main `overmind` skill, with the `/overmind` commands and one reference per workflow, and focused workflow skills. See [CLI](/platform/cli).
 
 ## Observability
 
 **Trace** — one end-to-end run of an agent: the set of spans sharing a `trace_id`. There is no separate trace record; the root span (the one with no parent) represents the trace in lists.
 
-**Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed by `overmind.span_type`: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`; an untyped span is classified from its attributes and name and defaults to `llm_call`.
+**Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed by `overmind.span.type`: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`; an untyped span is classified from its attributes and name and defaults to `llm_call`.
 
 **Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` or `run(conversation_id=...)` in the SDK. Carries a **session score** folded from the conversation ledger. See [Trace scoring](/agent-testing/trace-scoring#session-scores).
 
@@ -53,7 +53,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Task execution** — one unit bound to a behaviour, with its verdicts, execution score, route flags, and session score. Binding source is `declared` (the span carried the identity), `anchor_join` (matched on anchors) or `unbound`. Status `completed`, `error` or `interrupted`. The default row of Observability.
 
-**Instrumentation plan** — the placement tickets (file, qualname, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or behaviour; `verify_instrumentation` grades a supplied span list against them.
+**Instrumentation plan** — the placement tickets (file, qualname, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or behaviour; `verify_instrumentation` grades an ingested trace, or a supplied span list, against them.
 
 ## Data
 
@@ -111,7 +111,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Training run** — one or more parallel experiments over a training dataset, each producing a candidate model (API resource: `finetuning-jobs`). See [Models](/models/training).
 
-**Baseline (training)** — the capability's production model, scored on the eval dataset at submit time; the reference every trained model's delta is measured against.
+**Benchmark model (training)** — the model a training run compares against: the codebase incumbent or a ready trained model, chosen per run. The headline delta uses the untouched base before training when that evaluation is selected, otherwise the benchmark.
 
 **Deployed model** — a served trained model with a copyable reference (`ft-...`) callable via the OpenAI-compatible API. Status: `queued`, `deploying`, `warming`, `ready`, `failed`, `deleting`, `deleted`. See [Inference](/models/inference).
 

@@ -11,8 +11,8 @@ The Console model list shows deployments from training runs. Base-model deployme
 
 A deployment moves through `queued → deploying → warming → ready`, or ends `failed`, `deleting`, `deleted`. Two shapes:
 
-- A dense model trained on Modal with LoRA is served as an **adapter on a shared BF16 base**; deployments of the same base share one process and skip the `quantizing` stage.
-- Everything else — full fine-tunes, mixture-of-experts models, models whose family has no adapter support — is **merged and quantised into a private checkpoint** (FP8 where the base supports it) and served from its own vLLM process.
+- A dense or explicitly supported mixture-of-experts model trained on Modal with LoRA is served as an **adapter on a shared BF16 base**; deployments of the same base share one process and skip the `quantizing` stage.
+- Everything else — full fine-tunes, other mixture-of-experts models, models whose family has no adapter support — is **merged and quantised into a private checkpoint** (FP8 where the base supports it) and served from its own vLLM process.
 
 Each process scales to zero when idle: two minutes without traffic for most models, fifteen for the largest. The first request after that cold-boots the model in two to seven minutes; the response is held open with an idle ping every 15 seconds so the connection survives.
 
@@ -112,7 +112,7 @@ Through MCP, call `set_active_model` and poll its `model_activation` receipt wit
 
 The list shows **Model**, **Base model**, **Capability**, **Training job**, **Reference**, **Status**, **Requests**, **Tokens**, **Throughput**, **Latency** and **Last active**; latency and throughput are medians over warm calls. Status shows the deployment status until it is `ready`; a ready model shows its serving state from `live/` — **Warm** when its worker pool has running containers or it served successful traffic in the last 90 seconds, **Warming** while a cold boot is in progress, **Asleep** when its measured pool has no containers, and **Unknown** only when worker measurements are unavailable and there is no recent serving signal. The list and detail page refresh this state every five seconds; checking status does not wake the model. The separate **Live model** badge identifies the capability’s selected route, independently of worker warmth.
 
-The model page focuses on **Inference performance**: request volume, success rate, end-to-end p50 and p95 response time, median warm generation speed, and estimated serving cost. The reporting period applies to both headline metrics and charts: **Last hour**, **Last 24 hours**, **Last 7 days**, **Last 30 days** or **All time**. **Application traffic** includes API-key requests to either the capability alias or a pinned model ID; **All traffic** also includes internal calls and historical requests whose source is unknown. Metrics refresh every 15 seconds while the page is open.
+The model page focuses on **Inference performance**: request volume, success rate, end-to-end p50 and p95 response time, median warm generation speed, and estimated serving cost. The reporting period applies to both headline metrics and charts: **Last hour**, **Last 24 hours**, **Last 7 days**, **Last 30 days** or **All time**. **Application traffic** includes API-key requests to either the capability alias or a pinned model ID; **All traffic** also includes internal calls and requests with an unknown source. Metrics refresh every 15 seconds while the page is open.
 
 The charts show request traffic and failures, response-time percentiles, and generation speed. Empty traffic buckets are zero; missing timing measurements remain gaps. Failed calls do not contribute to latency or speed distributions. A single empty state replaces the charts when the selected period has no requests. Refresh errors are visible and do not turn into zero traffic. The latest failure includes its request ID.
 

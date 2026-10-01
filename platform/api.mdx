@@ -19,10 +19,10 @@ Three ways to authenticate; the first is right for almost all programmatic use:
 | Method | How | Use for |
 | --- | --- | --- |
 | **API key** | `X-Api-Key: ovr_...`, `Authorization: Bearer ovr_...`, or `Authorization: Api-Key ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, MCP, inference, `overmind sync` |
-| **JWT** | `POST /api/auth/token/` with `email` and `password` → access token (1 day) + refresh token (7 days, `POST /api/auth/token/refresh/`) | Accounts created with `POST /api/auth/register/`; guest sessions |
+| **JWT** | `POST /api/auth/token/` with `email` and `password` → access token (1 day) + refresh token (7 days, `POST /api/auth/token/refresh/`) | Self-hosted accounts (`POST /api/auth/local/` signs in and creates the account on first use); guest sessions |
 | **Clerk session** | `Authorization: Bearer <Clerk session token>` | The Console |
 
-A key has a **scope**: `project` pins it to one project, `account` reaches every project the user is a member of. MCP and `.overmind/credentials.toml` use a project-scoped key; of the two, only an account-scoped key can `POST /api/projects/`. Keys are created and revoked under **Projects → your project → API keys** or via the API:
+A key has a **scope**: `project` pins it to one project, `account` reaches every project the user is a member of. `.overmind/credentials.toml` holds a project-scoped key; only an account-scoped key can `POST /api/projects/`. Keys are created and revoked under **Projects → your project → API keys** or via the API:
 
 ```bash
 # Create (the key is returned once), inspect the calling key, list, revoke
@@ -86,7 +86,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run variants |
 | `GET /api/public/models/`, `GET /api/public/models/{slug}/` | The public model library, unauthenticated |
 | `GET /health` | Health check (no auth) |
-| `/api/auth/register/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Account, onboarding state, guest workspaces |
+| `POST /api/auth/local/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Self-hosted sign-in, account, onboarding state, guest workspaces |
 | `/api/billing/subscription/`, `ledger/`, `checkout/`, `topup/`, `cancel/`, `renew/`, `webhook/` | Plans, the credits ledger, Stripe |
 
 ## Building a dataset

@@ -3,30 +3,85 @@ title: CLI
 description: The overmind command — init, sync, chassis, dataset upload and export, connectors, the optimise loop, model checkpoints, and skills.
 ---
 
-The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does. The package is MIT.
+The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the workflow skills and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does. The package is MIT.
+
+## Install
+
+Install the CLI into a virtual environment, or as a standalone tool with `uv` or `pipx`. Both put `overmind` on `PATH`.
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install overmind
+    overmind --help
+    ```
+
+    As a standalone tool, outside any project:
+
+    ```bash
+    uv tool install overmind          # or: pipx install overmind
+    ```
+
+    Homebrew's Python refuses a global `pip install` with `externally-managed-environment`. Use a virtual environment or a tool install.
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install overmind
+    overmind --help
+    ```
+
+    As a standalone tool, outside any project:
+
+    ```bash
+    uv tool install overmind          # or: pipx install overmind
+    ```
+
+    Debian and Ubuntu mark the system Python as externally managed, so a global `pip install` fails with `externally-managed-environment`. Use a virtual environment or a tool install.
+  </Tab>
+  <Tab title="Windows">
+    Install into a virtual environment. It puts `overmind` on `PATH` while it is active:
+
+    ```powershell
+    python -m venv .venv
+    .venv\Scripts\Activate.ps1          # cmd.exe: .venv\Scripts\activate.bat
+    pip install overmind
+    overmind --help
+    ```
+
+    If PowerShell refuses to run `Activate.ps1`, allow local scripts for your user once:
+
+    ```powershell
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+    ```
+
+    A global `pip install` puts `overmind.exe` in the interpreter's `Scripts` folder, which is not on `PATH` by default. The command is then not found; `python -m overmind` runs the same CLI.
+  </Tab>
+</Tabs>
+
+The base package is the CLI and the inference client. The `tracing` extra adds the tracing SDK and every provider instrumentor:
 
 ```bash
-pip install overmind              # the CLI and the inference client
-pip install "overmind[tracing]"   # plus the tracing SDK and every provider instrumentor
+pip install "overmind[tracing]"
 ```
 
-```bash
-uv tool install overmind
-# or
-pipx install overmind
-```
+When Overmind is a project dependency, run commands through that project's environment (`uv run overmind`, `poetry run overmind`, or its virtual-environment executable). An editable installation does not update skill copies already in a repository. Refresh the installed skill with `uv run overmind skills sync overmind --ide <cursor|claude|opencode|codex>` using the appropriate project runner, then start a new conversation so the coding agent reads it.
+
+## First run
 
 Every command that talks to the API resolves its key in the same order: `--api-key`, then the project credential in `.overmind/credentials.toml` (written by `overmind sync`), then `OVERMIND_API_KEY`. The base URL comes from `--api-url`, `OVERMIND_API_URL`, or `base-url` in `overmind.toml`; the hosted default is `https://api.overmindlab.ai`. Keys go over the wire as `X-Api-Key`. `overmind --version` prints the package version; `overmind <command> --help` prints flags.
 
 ```bash
-export OVERMIND_API_KEY=<your-api-key>
+export OVERMIND_API_KEY=<your-api-key>    # PowerShell: $env:OVERMIND_API_KEY = "<your-api-key>"
+export OVERMIND_API_URL=<your-api-url>    # self-hosted only, e.g. http://localhost:8000
 overmind init --ide cursor        # or claude | opencode | codex
 overmind sync                     # create the project, save the project key
 ```
 
-Then in your coding agent, `/overmind setup` scans the repository, writes capabilities into `overmind.toml`, and runs `overmind sync` to push them. The installed skill recognises the repository and verified connection, previews the onboarding roadmap, and reports repository-specific findings alongside the current stage out of ten, completed stages, and stages still to follow. A pre-sync handoff names the destination, included data, credential checks performed, and configuration to review. The finish reports the synced result, outstanding verification, and one recommended next action without automatically starting it. There is no `overmind scan` command.
-
-When Overmind is a project dependency, run commands through that project's environment (`uv run overmind`, `poetry run overmind`, or its virtual-environment executable). An editable installation does not update skill copies already in a repository. Refresh the installed skill with `uv run overmind skills sync overmind --ide <cursor|claude|opencode|codex>` using the appropriate project runner, then start a new conversation so the coding agent reads it.
+Then in your coding agent, `/overmind setup` scans the repository, writes capabilities into `overmind.toml`, and runs `overmind sync` to push them. The installed skill recognises the repository and verified connection, previews the onboarding roadmap, and reports repository-specific findings alongside the current stage out of ten, completed stages, and stages still to follow. A pre-sync handoff names the destination, included data, credential checks performed, and configuration to review. The finish reports the synced result, outstanding verification, and one recommended next action without automatically starting it.
 
 ## `overmind init`
 
@@ -41,18 +96,18 @@ overmind init --ide claude --env local
 | `--env` | `production` | `production`, `staging`, or `local` (`http://localhost:8000`) |
 | `--api-url` | `$OVERMIND_API_URL` | Base URL; overrides `--env` for both the MCP entry and `overmind.toml` |
 
-Installs the `overmind` skill under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor and Claude Code only: `.cursor/commands/` or `.claude/commands/`), adds the Overmind MCP entry to the client's own config file, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
+Installs the workflow skills under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor only: `.cursor/commands/`), adds the Overmind MCP entry to the client's own config, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
 
 | Client | MCP config | Skill install |
 | --- | --- | --- |
 | Cursor | `.cursor/mcp.json` | `.cursor/skills` |
-| Claude Code | `.mcp.json` | `.claude/skills` |
+| Claude Code | `~/.claude.json`, local scope for this directory | `.claude/skills` |
 | OpenCode | `opencode.json` | `.opencode/skills` |
 | Codex | `.codex/config.toml` | `.agents/skills` |
 
-The MCP entry is written with the saved project key when `.overmind/credentials.toml` already exists; otherwise it is written without a key and `overmind sync` fills it in. Any file that receives a key is added to `.git/info/exclude` and set to mode `0600`; the CLI refuses to write a key into a tracked file. Codex is limited to `production` and `staging` unless `--api-url` is set. `init` does not persist the bootstrap account key.
+The MCP entry is written with the saved project key when `.overmind/credentials.toml` already exists; otherwise it is written without a key and `overmind sync` fills it in. Claude Code's entry is a local-scope server in `~/.claude.json` (or `$CLAUDE_CONFIG_DIR/.claude.json`), so it needs no `.mcp.json` approval and a committed `.mcp.json` is left untouched. Any repository file that receives a key is added to `.git/info/exclude` and set to mode `0600`; the CLI refuses to write a key into a tracked file. `init` does not persist the bootstrap account key.
 
-Slash commands written for Cursor and Claude Code: `/overmind`, `/overmind onboard`, `/overmind setup`, `/overmind ensure-tracing`, `/overmind dataset`, `/overmind finetune`, `/overmind optimise`, `/overmind backtest`.
+Slash commands: `/overmind`, `/overmind onboard`, `/overmind setup`, `/overmind ensure-tracing`, `/overmind dataset`, `/overmind finetune`, `/overmind optimise`, `/overmind backtest`. Cursor gets a command file for each; Claude Code passes the word after `/overmind` to the skill, which opens the matching reference.
 
 ## `overmind sync`
 
@@ -90,7 +145,7 @@ Skipped directories: `.git`, `.venv`, `venv`, `node_modules`, `__pycache__`, `.t
 ## `overmind dataset`
 
 ```bash
-overmind dataset upload rows.jsonl --intent eval --json
+overmind dataset upload rows.jsonl --intent eval --wait --json
 overmind dataset upload traffic.parquet --split 20 --split-position random
 overmind dataset export <dataset-id> --format csv --cell <cell-id> --output triage.csv
 ```
@@ -104,7 +159,7 @@ overmind dataset export <dataset-id> --format csv --cell <cell-id> --output tria
 | `--capability` | none | Capability UUID to align the dataset with |
 | `--split` | off | Land a train dataset and an eval dataset; the eval share in percent (1–99). Drop `--intent`. |
 | `--split-position` | `tail` | Where the eval rows come from: `head`, `tail`, or `random` |
-| `--wait` | off | Wait for landing to finish; exit 1 if it fails |
+| `--wait` | off | Wait for the landing and the agent's first preparation; exit 1 with the dataset's error if either fails |
 | `--api-key`, `--api-url`, `--path` | resolved | Credentials; `--path` points at `overmind.toml` |
 | `--json` | off | Print one machine-readable object |
 
@@ -209,7 +264,3 @@ overmind skills sync overmind --ide cursor
 ## JSON output
 
 `--json` on `dataset upload`, `dataset export`, `connector add` and `model download-checkpoint` prints one machine-readable object and nothing else; on failure they print `{"error": "..."}` and exit 1. `optimise status --json` prints the experiment. This is how the `/overmind` commands hand a local step to the CLI and read the result back.
-
-## Not a command
-
-There is no `overmind scan`. Discovery is `/overmind setup` in your coding agent: it runs `overmind chassis`, authors capability cards into `overmind.toml`, then `overmind sync` uploads them. See [Agent & Capabilities](/core/capabilities#the-scan).
