@@ -820,7 +820,7 @@ html[data-page-mode="wide"] #content-area {
 }
 
 /* Block rhythm: every block element takes the same vertical margin. */
-#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-ascii) {
+#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-ascii-frame) {
   margin-top: 1.25rem !important;
   margin-bottom: 1.25rem !important;
 }
@@ -1562,28 +1562,39 @@ ul.toc .toc-item[data-active-deepest] > a {
 
 /* ─── Diagrams — box-drawing art (snippets/ascii.jsx) ───────────────────
  * The boxes carry their own frame and hatched shadow, so the pre is bare:
- * body mono, no wrap, stone-100 on the canvas. Two stacked diagrams read as
- * one figure. */
+ * body mono, no wrap, stone-100 on the canvas. The frame is a size container
+ * and the component sets --om-ascii-cols to the widest line, so the type
+ * scales until the whole diagram fits the column: 13px where there is room,
+ * never below 6px, and a scroll only past that floor. Geist Mono advances
+ * 0.6em per glyph. Two stacked diagrams share one cols value and read as one
+ * figure. */
 
-#content-area .om-ascii {
+#content-area .om-ascii-frame {
+  container-type: inline-size;
   margin: 1.25rem 0;
+}
+#content-area .om-ascii-frame + .om-ascii-frame {
+  margin-top: 0.75rem !important;
+}
+#content-area .om-ascii {
+  margin: 0 !important;
   padding: 0 !important;
   overflow-x: auto;
   background: transparent !important;
   border: 0;
   border-radius: 0;
   font-family: var(--font-mono);
-  font-size: 13px !important;
-  line-height: 17px !important; /* Geist Mono ascent+descent at 13px: the box glyphs meet */
+  font-size: clamp(6px, calc(100cqi / var(--om-ascii-cols, 80) / 0.6), 13px) !important;
+  /* Geist Mono's ascent+descent is 17/13 em. Rounding the line box down to whole
+     pixels lets box glyphs overlap by a fraction instead of leaving a gap. */
+  line-height: calc(17 / 13) !important;
+  line-height: round(down, calc(1em * 17 / 13), 1px) !important;
   letter-spacing: 0;
   color: var(--stone-100) !important;
   white-space: pre;
   tab-size: 4;
   font-variant-ligatures: none;
   scrollbar-width: thin;
-}
-#content-area .om-ascii + .om-ascii {
-  margin-top: 0.75rem !important;
 }
 
 /* ─── Search and assistant sheets stay on the same materials ────────────── */
