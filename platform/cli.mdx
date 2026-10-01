@@ -145,7 +145,7 @@ Skipped directories: `.git`, `.venv`, `venv`, `node_modules`, `__pycache__`, `.t
 ## `overmind dataset`
 
 ```bash
-overmind dataset upload rows.jsonl --intent eval --json
+overmind dataset upload rows.jsonl --intent eval --wait --json
 overmind dataset upload traffic.parquet --split 20 --split-position random
 overmind dataset export <dataset-id> --format csv --cell <cell-id> --output triage.csv
 ```
@@ -159,7 +159,7 @@ overmind dataset export <dataset-id> --format csv --cell <cell-id> --output tria
 | `--capability` | none | Capability UUID to align the dataset with |
 | `--split` | off | Land a train dataset and an eval dataset; the eval share in percent (1–99). Drop `--intent`. |
 | `--split-position` | `tail` | Where the eval rows come from: `head`, `tail`, or `random` |
-| `--wait` | off | Wait for landing to finish; exit 1 if it fails |
+| `--wait` | off | Wait for the landing and the agent's first preparation; exit 1 with the dataset's error if either fails |
 | `--api-key`, `--api-url`, `--path` | resolved | Credentials; `--path` points at `overmind.toml` |
 | `--json` | off | Print one machine-readable object |
 

@@ -83,13 +83,39 @@ Rows that cannot meet a technical contract are counted with the reason, never qu
 
 Training reports overlap without dropping selected rows. Checks include normalized inputs, trace/conversation identities, configured groups, case identifiers and synthetic seed lineage. Internal identity columns are hidden from the table, filters and column counts, not removed from stored data.
 
+### What valid rows look like
+
+<Tabs>
+  <Tab title="Train">
+    A `messages` column with a conversation that ends with the assistant, in OpenAI chat format. Rows that call tools also carry a `tools` column with the tool definitions.
+
+    ```json
+    {"messages": [
+      {"role": "system", "content": "You triage support tickets."},
+      {"role": "user", "content": "My card was declined twice."},
+      {"role": "assistant", "content": "Route to billing. Priority: high."}
+    ]}
+    ```
+  </Tab>
+  <Tab title="Eval">
+    An `input` on every row and an `expected_output` to score against. `input` can be text, an object or a conversation. Other columns are kept.
+
+    ```json
+    {"input": "My card was declined twice.", "expected_output": "billing"}
+    ```
+  </Tab>
+</Tabs>
+
+A file does not need to arrive in this shape; the agent converts it during preparation.
+
 ## From your coding agent
 
 `/overmind dataset` covers the loop: land a dataset from traces, inspect it, query it with SQL, ask its agent for a change, accept a proposal. Files and exports go through the CLI, because bytes don't travel over MCP:
 
 ```bash
-overmind dataset upload rows.jsonl --intent eval
-overmind dataset export <dataset-id> --format jsonl
+overmind dataset upload transcripts.jsonl --intent train --wait   # wait for landing and the first preparation
+overmind dataset upload tickets.jsonl --split 20 --wait           # one file as a train and an eval dataset
+overmind dataset export <dataset-id> --cell 1.2 --output rows.jsonl
 ```
 
 See [MCP](/platform/mcp) and the [CLI](/platform/cli#overmind-dataset).
@@ -106,6 +132,28 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" \
 An export is a plain download and never counts as a use, so it won't freeze anything. Local loops — the optimiser and backtests — pull the exact version they were given and cache it under `.overmind/datasets/`.
 
 Everything the workshop does is available over REST: create a dataset, add or edit a step, run the chain, message the agent, page through rows with their diff marks, and stream events as they happen. See [Building a dataset](/platform/api#building-a-dataset).
+
+## When something is refused
+
+| Message | Fix |
+| --- | --- |
+| `Row 12 has 3 cells; the header has 2.` | A CSV cell holds the delimiter. Quote it, or use JSONL |
+| `Column 'notes' appears twice.` | Rename one of the columns |
+| `The file is not UTF-8.` | Save the file as UTF-8 and upload it again |
+| `Line 40 is not valid JSON.` | Fix that line; the file lands only when every line parses |
+| `Two rows are needed to split.` | Add rows, or create a single dataset |
+| `no messages column` / `no input column` | Select **Ask Overmind to fix it** on the cell |
+| `Longest dataset row is ≈N tokens but this model's … context is M tokens` | Drop or shorten the long rows, or pick a model with a longer context |
+| `The dataset is busy.` | The agent or a run is working on it. Wait for it to finish |
+
+## Limits
+
+| Limit | Value |
+| --- | --- |
+| One uploaded file | 2 GB |
+| One `.json` document | 256 MB; use JSONL above that |
+| One value in a row | 200,000 characters; longer values become a preview marker |
+| One cell's run time | 300 seconds |
 
 ## Next steps
 
