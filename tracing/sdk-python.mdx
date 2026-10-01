@@ -205,7 +205,7 @@ for i, doc in enumerate(documents):
 
 ### LangChain / LangGraph
 
-`providers=["langchain"]` (or `"auto"`) mounts the OpenInference LangChain instrumentor that ships with `overmind[tracing]`, which covers LangGraph: every chain, model, and tool invocation gets a span with model, token, and cost evidence. For the scoring semantics no instrumentor can know, `overmind.integrations.langgraph.bind` maps graph nodes to behaviour units — call it on the `StateGraph` after `add_node()`, before `compile()`:
+`providers=["langchain"]` (or `"auto"`) mounts the OpenInference LangChain instrumentor that ships with `overmind[tracing]`, which covers LangGraph: every chain, model, and tool invocation gets a span with model and token evidence, and Overmind prices it at ingest. For the scoring semantics no instrumentor can know, `overmind.integrations.langgraph.bind` maps graph nodes to behaviour units — call it on the `StateGraph` after `add_node()`, before `compile()`:
 
 ```python
 from overmind.integrations import langgraph as overmind_langgraph

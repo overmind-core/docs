@@ -101,6 +101,8 @@ A project-scoped key pins every span to its project. Sending the same spans twic
 
 Overmind already understands the OTel GenAI, OpenLLMetry and OpenInference conventions, so models, providers, token counts, costs, tool names and message payloads from existing instrumentation land without any mapping of your own.
 
+Overmind prices each LLM span once, at ingest. A cost the span reports is kept; otherwise the cost comes from the model, token counts, cache reads and provider, at list prices for the span's start time. Spans from OTLP and from connectors are priced the same way.
+
 These are the ones you set:
 
 | Attribute | What it does |

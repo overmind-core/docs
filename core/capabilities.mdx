@@ -78,7 +78,7 @@ After code changes: run `/overmind setup` again; it includes the final `overmind
 
 A capability the push no longer includes becomes a **leftover**: it keeps its id and data, leaves the agent view, shows a **Not in latest scan** badge, and remounts in place when a later push reproduces it. `slug` in `overmind.toml` is the server identity — rename a capability by editing `name`, never `slug`.
 
-To remove a capability yourself, use **Delete capability** at the bottom of its page (`DELETE /api/capabilities/{id}/`). The record is soft-deleted: it leaves lists, scans and identity lookup, its traces, datasets and runs stay, and its inference alias stops serving. Because a deleted capability is invisible to later syncs, the next push of the same code mints a fresh record.
+To remove a capability yourself, use **Delete capability** at the bottom of its page (`DELETE /api/capabilities/{id}/`). The record is soft-deleted: it leaves lists, scans and identity lookup, its traces, datasets and runs stay, and its inference alias stops serving. Because a deleted capability is invisible to later syncs, the next push of the same code mints a fresh record with a new id, and `overmind sync` writes that id to `overmind.toml`. Code that sets the old UUID as `capability_id` needs the new one; a slug keeps binding.
 
 ### Telemetry
 
@@ -88,7 +88,7 @@ Ingest never creates a capability. An identity the project does not know leaves 
 
 ## The agent page
 
-**Agent** in the sidebar opens the product view: the capability grid, or the onboarding prompt while the project is still empty. Open a capability for its page.
+**Agent** in the sidebar opens the product view: the capability grid, or the onboarding prompt while the project is still empty. Open a capability for its page. The **Repository snapshot** in the header names the repository, branch and last scan time behind the map. A scan that recorded no revision reads **Revision unavailable**; a project with no scan reads **No repository scan**.
 
 <Frame caption="The Agent page: one card per capability with its model, traffic, and live score.">
   <img src="/images/platform/agent-home.jpg" alt="Agent page with the capability grid" />
