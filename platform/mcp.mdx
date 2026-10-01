@@ -1,9 +1,9 @@
 ---
 title: MCP
-description: The Overmind MCP server — setup per coding agent, authentication, the 32 tools, 11 prompts and the resources, and the CLI handoff for local work.
+description: The Overmind MCP server — setup per coding agent, authentication, the 36 tools, workflow prompts and the resources, and the CLI handoff for local work.
 ---
 
-MCP is the platform's first-class agent surface: a project-scoped [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
+MCP is the platform's first-class agent surface: an account-aware [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
 
 ## Setup
 
@@ -44,17 +44,39 @@ claude mcp add --scope local --transport http overmind https://api.overmindlab.a
 
 Codex takes the same entry in `.codex/config.toml`. Claude Code keeps the key in local scope (`~/.claude.json`), outside the repository. Self-hosted: replace the URL with your API host plus `/api/mcp/`, for example `http://localhost:8000/api/mcp/` (`overmind init --env local`, or `--api-url`).
 
+## Optional plugin
+
+The Cursor, Claude Code and Codex plugins bundle the MCP connection, Overmind branding and the [workflow skills](#workflow-skills). MCP alone is the complete integration: tool descriptions, operating guidance, resources and prompts reach every client, with or without a plugin.
+
+The plugin's `.mcp.json` points at the hosted API and signs in with OAuth. The connection reaches every active project your account can access, including projects you join later. For a self-hosted deployment, run `overmind init --env local --ide <client>` and `overmind sync` instead. Keep one active Overmind MCP connection per client.
+
+Start with `list_projects`. To see a project in the browser, read `overmind://project/current?project_id=ID` and open its `console_url`, which the server builds from `FRONTEND_URL`. The browser needs its own Console sign-in, and opening a page grants no write access.
+
 ## Authentication
 
-The key must be **project-scoped** — pinned to exactly one active project the key's owner is a member of — and carry `read` and/or `write` permission. The project is bound from the key; no tool accepts a project id. A key with only `read` sees the read-only tools; the rest need `write`. A key with an IP allowlist is refused from other addresses. `Authorization: Bearer ovr_…` is accepted as an alternative to `X-Api-Key`.
+OAuth connections and account API keys discover authorized projects through `list_projects`. Pass the chosen `project_id` on every project tool and as a query parameter on resource URIs. Membership is checked for each operation. There is no shared selected-project state, so concurrent work cannot switch another request's project. Returned resource links retain the project ID. A project API key can only use its configured project and can omit `project_id`.
 
-The server answers `401` for authentication errors and `403` otherwise, without a `WWW-Authenticate: Bearer` challenge, so MCP clients never start OAuth registration against it. Requests must be `POST` with `application/json`, from an allowed host and origin, and at most the protocol's default body size. Errors are JSON-RPC values, never exceptions: `{"error": {code, message, retryable, fields}}`.
+Read access exposes read-only tools; mutations require write access. API keys retain expiry, active-user and IP-allowlist checks. OAuth grants request `overmind:read` and/or `overmind:write` and require Console sign-in and explicit consent. Tokens use S256 PKCE, exact redirect matching, one-time codes and resource binding; OAuth tokens are accepted only by MCP. Access tokens expire after one hour. Connections remain authorized until revoked, with no refresh-token time limit. Refresh tokens still rotate; reuse revokes the connection's token family. Disabled accounts and lost project memberships continue to lose access.
+
+Set `MCP_SERVER_URL` to the canonical HTTPS `/api/mcp/` endpoint on a hosted deployment, with `FRONTEND_URL` pointing at its Console. HTTP is accepted only for local loopback development. Configured servers advertise OAuth discovery, public-client registration (`token_endpoint_auth_method: none`), authorization, token and revocation endpoints. API-key connections continue to use `X-Api-Key` or `Authorization: Bearer`.
+
+To publish the server as an OpenAI app, set `OPENAI_APPS_CHALLENGE` to the portal's ownership token; the API serves it at `/.well-known/openai-apps-challenge`.
+
+MCP transport requests use `POST` with `application/json`, from an allowed host and origin, within the protocol's body limit. Authentication failures return `401`; authorization failures return `403`. Tool errors are structured results: `{"error": {code, message, retryable, fields}}`.
 
 The public surface is read and write only. There are no delete, cancel or generic API tools; `retry_deployment` is the one lifecycle exception and covers exactly the failed-or-deleted deployment case.
 
 ## Tools
 
-Thirty-two tools, all project-scoped, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
+Thirty-six tools, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
+
+Project tools also accept `project_id`, required for account connections. `list_projects` and `get_model_catalog` do not need a project.
+
+### Projects
+
+| Tool | Arguments | Returns |
+| --- | --- | --- |
+| `list_projects` | `limit?`, `offset?` | Authorized active projects, Console/resource links and pagination |
 
 ### Observability
 
@@ -157,11 +179,11 @@ Twelve prompts compose the tools into multi-step workflows with human checkpoint
 
 ## Resources
 
-Read-only, project-scoped entity state under `overmind://`. Static:
+Read-only project entity state under `overmind://`. Account connections add `?project_id=ID`; follow returned links to preserve scope. Static:
 
 | URI | Content |
 | --- | --- |
-| `overmind://project/current` | The authenticated project identity and safe metadata |
+| `overmind://project/current` | The authenticated project identity, provenance, safe metadata and ordinary `console_url` |
 | `overmind://dataset-upload` | CLI guidance for uploading local dataset bytes |
 | `overmind://dataset-export` | CLI guidance for downloading a committed dataset |
 | `overmind://checkpoint-download` | CLI guidance for downloading an archived checkpoint |
@@ -177,6 +199,21 @@ Each deployment resource also includes a current `worker` section: `state` (`war
 
 Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; repository discovery is `/overmind setup` then `overmind sync`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key is entered with `overmind connector add` in a terminal. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
 
-## The skill
+## Workflow skills
 
-`overmind init` installs the `overmind` skill next to the MCP entry. `/overmind onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise` and `backtest` load its references: Cursor through command files, Claude Code through the skill itself. The skill holds the conventions the tools assume — list first, poll jobs with `get_job`, the dataset contracts that gate every run — and is the only place the local scan workflow (`/overmind setup`) lives; the native prompts cover the server-side workflows.
+`overmind init` installs the workflow skills next to the MCP entry, and the optional plugin bundles the same files. The main `overmind` skill covers setup, repository discovery and work that spans several surfaces. Each focused skill covers one surface:
+
+| Skill | Workflow |
+| --- | --- |
+| `overmind-agent` | Capability map, behaviour coverage and repository provenance |
+| `overmind-observability` | Trace investigations, failures, latency and instrumentation gaps |
+| `overmind-datasets` | Data Workshop preparation, proposals, generation and export |
+| `overmind-evaluations` | Evaluators, eval sets, runs and baseline comparisons |
+| `overmind-optimiser` | Prompt and code experiments, and model comparisons |
+| `overmind-training` | Exact data preparation, costs, fine-tuning and held-out evaluation |
+| `overmind-inference` | Serving metrics, worker state, live routing and activation |
+| `overmind-integrations` | Tracing providers, boundary mappings and verified imports |
+
+`overmind skills list --verbose` prints the installed catalog. `overmind skills sync <names> --ide <client>` refreshes the named skills, and `overmind init --ide <client>` installs the full set.
+
+`/overmind onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise` and `backtest` load the main skill's references: Cursor through command files, Claude Code through the skill itself. In OpenCode and Codex, ask for the step by name. The main skill is the only place the local scan (`/overmind setup`) lives; the native prompts cover the server-side workflows.
