@@ -515,13 +515,6 @@ body,
 #navbar div.lg\:hidden.items-center.gap-3 > button::after {
   display: none;
 }
-@media (max-width: 1023px) {
-  #navbar a[href="/"] {
-    left: 12px;
-    transform: translate(0, -50%);
-  }
-}
-
 /* "More actions" opens the theme's mobile menu, a popup dialog carrying the
  * navbar links and Login. It takes the website MobileMenu's order: Talk to
  * the team and Login first, then the list, each row a full-width PixelButton. */
@@ -587,27 +580,42 @@ body,
   overflow: visible;
 }
 
-/* Mobile row: the sidebar toggle, labelled with the page only (the group
- * label is the same eyebrow the desktop header drops). */
+/* Below lg the bar is one row, like the website's: the sidebar toggle as a
+ * menu icon on the left, the eye in the centre, search and More actions on
+ * the right. The theme renders the toggle as a second row carrying the page
+ * title; the h1 already names the page, so only the icon stays. */
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden {
-  height: auto !important;
-  padding: 0 12px 12px !important;
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 52px !important;
+  padding: 0 !important;
+  justify-content: center;
   border: 0 !important;
   background: transparent !important;
-  font-family: var(--font-body);
-  font-size: 14px;
   color: var(--text-3);
   clip-path: none;
 }
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden:hover {
   background: transparent !important;
+  color: var(--text);
 }
-#navbar > div.max-w-8xl > div.relative > button.lg\:hidden div.space-x-3.shrink-0 {
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden > :not(:first-child) {
   display: none !important;
 }
-#navbar > div.max-w-8xl > div.relative > button.lg\:hidden div.font-semibold {
-  font-weight: 400 !important;
-  color: var(--text) !important;
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The theme offsets the page for its two-row mobile bar (10rem). One row needs
+ * the desktop spacing: the 64px bar plus 40px. */
+@media (max-width: 1023px) {
+  div[class*="pt-[calc(10rem"] {
+    padding-top: calc(6.5rem + var(--banner-height, 0px)) !important;
+  }
 }
 
 /* ─── Sidebar — plain rail, current row inverted ────────────────────────── */
