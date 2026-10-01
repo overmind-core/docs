@@ -97,7 +97,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 | `list_datasets` | `capability?`, `intent?`, `state?`, `search?`, `limit?`, `offset?` | List project datasets |
 | `inspect_dataset` | `dataset`, `chat_limit?` | One dataset: cell chain, sample, recent agent chat, next actions |
 | `query_dataset` | `dataset`, `sql`, `cell?`, `limit?` | Read-only SQL over one ran cell |
-| `create_dataset_from_traces` | `name`, `trace_ids?`, `filters?`, `search?`, `limit?`, `intent?`, `capability?` | Land a dataset, one row per trace; the selection is counted first and refused when empty. Returns a task receipt |
+| `create_dataset_from_traces` | `name`, `trace_ids?`, `filters?`, `search?`, `limit?`, `intent?`, `capability?`, `split?` | Land a dataset, one row per trace; the selection is counted first and refused when empty. `split` lands disjoint `<name> train` and `<name> eval` datasets instead of one with an intent. Returns a task receipt |
 | `message_dataset_agent` | `dataset`, `message` | Queue one agent turn for an idle dataset. Returns a job receipt |
 | `run_dataset` | `dataset`, `proposal_cell?` | Run the dataset, optionally accepting one proposal. Returns a job receipt |
 
@@ -105,10 +105,10 @@ Project tools also accept `project_id`, required for account connections. `list_
 
 | Tool | Arguments | Effect |
 | --- | --- | --- |
-| `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `mode?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
+| `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `mode?`, `variants?`, `judge_model?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
 | `create_eval_set` | `name`, `evaluator_ids`, `capability?` | Atomically create an eval set and its members in their applicable roles; does not activate it or launch a run |
 | `upsert_evaluator` | `evaluator?`, `name?`, `kind?`, `capability?`, `scope?`, `score_type?`, `display_name?`, `description?`, `rubric_md?`, `evaluation_prompt?`, `checklist?`, `judge_model?`, `score_min?`, `score_max?`, `pass_threshold?`, `requires_reference?`, `variable_mapping?`, `config?`, `applicable_roles?`, `surface?`, `choices?` | Create or update an evaluator |
-| `run_evaluation` | `name`, `dataset`, `eval_set?`, `cell?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?` | Create and launch an eval run. Returns a job receipt |
+| `run_evaluation` | `name`, `dataset`, `eval_set?`, `cell?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?`, `judge_model?` | Create and launch an eval run. Returns a job receipt |
 | `compare_evaluations` | `run`, `baseline` | Compare a run with a project-scoped baseline |
 | `annotate_evaluation_sample` | `annotation?`, `sample?`, `evaluator?`, `value?`, `label?`, `note?` | Create or update a human annotation, attributed to the key's owner |
 
@@ -119,7 +119,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 | `get_model_catalog` | `has_tool_calling?`, `max_context?` | Models available for fine-tuning: tiers, context limits, training methods, tool-calling, batch bounds |
 | `check_finetune_readiness` | `dataset`, `capability?`, `cell?`, `version?` | Prerequisites, train/eval dataset shape, recommended models, evaluators, credits |
 | `estimate_finetune` | `dataset`, `base_model`, `n_epochs?`, `use_lora?`, `cell?`, `version?` | Real-token cost and duration estimate; creates nothing |
-| `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?` | Validate and queue a training job. Returns a job receipt |
+| `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?`, `baseline_model?`, `eval_judge_model?`, `eval_incumbent_before?`, `eval_incumbent_after?`, `eval_model_before?`, `eval_model_after?` | Validate and queue a training job. `baseline_model` overrides the capability's benchmark for this job; the `eval_*` flags choose which comparison evaluations run. Returns a job receipt |
 | `prepare_training_data` | `dataset`, `base_model`, `context_length`, `training_type?`, `validation_dataset?`, `cell?`, `retry_failed?` | Run exact tokenization for a model and context length; returns a cached preparation report. Poll with `get_job(kind="training_preparation")` |
 | `retry_deployment` | `deployment` | Retry a failed or deleted deployment. Returns a job receipt |
 | `set_active_model` | `capability`, `deployment?` | Verify a ready deployment, then switch the alias; poll the returned `model_activation` job. Omit deployment to clear routing |
@@ -142,7 +142,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 | Tool | Arguments | Effect |
 | --- | --- | --- |
 | `inspect_connectors` | `connector?`, `include_source_projects?`, `preview?`, `preview_source_project_id?`, `preview_lookback_days?`, `max_runs?` | List or inspect connectors: configuration, mappings, provider capabilities, sync status |
-| `configure_connector` | `connector`, `source_project_id?`, `lookback_days?`, `backfill_from?`, `backfill_to?`, `capability_mapping?`, `auto_sync_enabled?`, `poll_interval_seconds?` | Save source project, lookback, capability mapping and polling settings |
+| `configure_connector` | `connector`, `source_project_id?`, `lookback_days?`, `backfill_from?`, `backfill_to?`, `capability_mapping?`, `auto_sync_enabled?`, `poll_interval_seconds?`, `confirm_mapping?` | Save source project, lookback, capability mapping and polling settings; `confirm_mapping` confirms the reviewed mapping |
 | `sync_connector` | `connector` | Queue the configured import. Returns a task receipt |
 
 A connector is created with its provider credentials through `overmind connector add` or the Console under Integrations; until then the tools answer with the `connector_setup_required` action.
