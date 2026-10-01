@@ -62,7 +62,7 @@ Quality and capability-alignment findings remain advisory, including train/eval 
 
 Ask explicitly for synthetic examples. Validated batches accumulate in one active generated version, with no draft or Apply step. Retries do not add duplicate rows; interrupted generation keeps completed batches and can continue to the same target. Used versions cannot receive more batches. Seed lineage, capability context, instructions and generation engine are recorded. Synthetic answers still need independent review and cannot be split away from their seeds into held-out evaluation. Automatic preparation never generates synthetic rows.
 
-Chat activity is chronological, with expandable thinking and approval checkpoints. Clearing chat does not remove applied versions. The agent uses the first configured engine: Cursor, OpenRouter, then OpenAI, Anthropic or Gemini. With no key, the workshop opens and reports that the agent is unavailable; see [Self-hosting](/platform/self-hosting#the-data-workshop-agent).
+Chat activity is chronological, with expandable thinking and approval checkpoints. Clearing chat does not remove applied versions. The agent runs on OpenRouter, or as a Cursor Composer session when `CURSOR_API_KEY` is set (recommended); see [Self-hosting](/platform/self-hosting#the-data-workshop-agent).
 
 ## Versions
 

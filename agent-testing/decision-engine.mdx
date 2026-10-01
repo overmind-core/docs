@@ -28,7 +28,7 @@ Configurable rubric judges default to **generative**. Jev is an explicit opt-in
 after validation on representative labelled examples for that rubric. A high
 confidence value is not proof of correctness or agreement with the existing judge.
 Fixed grounding, capability classification and workshop semantic services use
-Jev with generative fallback. Existing explicit policies and snapshots are preserved.
+Jev with generative fallback.
 
 The Console's evaluator editor exposes **Decision engine** and **Minimum confidence**.
 The REST authoring request accepts `decision_policy`. General evaluator writes and
@@ -48,7 +48,7 @@ MCP `upsert_evaluator` accept the same policy under `config.decision`:
 Set `backend` to `generative` to use the generative judge throughout that evaluator.
 The policy is frozen in new evaluator snapshots and included in verdict identities.
 The requested Jev release is pinned; the provider's actual served revision is
-recorded with each response. Historical results are not relabelled or rescored.
+recorded with each response. Changing a policy does not rescore earlier results.
 
 Responses must cover every question, use only declared options, and return valid
 probability distributions. Low-confidence answers, invalid responses, unavailable

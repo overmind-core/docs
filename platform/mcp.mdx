@@ -96,8 +96,10 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | `check_finetune_readiness` | `dataset`, `capability?`, `cell?`, `version?` | Prerequisites, train/eval dataset shape, recommended models, evaluators, credits |
 | `estimate_finetune` | `dataset`, `base_model`, `n_epochs?`, `use_lora?`, `cell?`, `version?` | Real-token cost and duration estimate; creates nothing |
 | `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?` | Validate and queue a training job. Returns a job receipt |
+| `prepare_training_data` | `dataset`, `base_model`, `context_length`, `training_type?`, `validation_dataset?`, `cell?`, `retry_failed?` | Run exact tokenization for a model and context length; returns a cached preparation report. Poll with `get_job(kind="training_preparation")` |
 | `retry_deployment` | `deployment` | Retry a failed or deleted deployment. Returns a job receipt |
 | `set_active_model` | `capability`, `deployment?` | Verify a ready deployment, then switch the alias; poll the returned `model_activation` job. Omit deployment to clear routing |
+| `set_benchmark_model` | `capability`, `deployment?` | Choose a ready trained deployment as the capability's default training benchmark; omit deployment to use the codebase incumbent. Does not change serving |
 | `run_inference` | `deployment`, `messages`, `temperature?`, `max_tokens?` | One chat completion against a ready deployment using production output budgets, with usage, latency and finish reason |
 | `get_model_swap_prompt` | `finetune`, `pin?` | A copy-paste prompt that points the capability's code at a successful fine-tune; the agent applies it locally |
 
@@ -119,7 +121,7 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 | `configure_connector` | `connector`, `source_project_id?`, `lookback_days?`, `backfill_from?`, `backfill_to?`, `capability_mapping?`, `auto_sync_enabled?`, `poll_interval_seconds?` | Save source project, lookback, capability mapping and polling settings |
 | `sync_connector` | `connector` | Queue the configured import. Returns a task receipt |
 
-A connector is created, with its provider credentials, in the Console under Integrations; until that form is complete the tools answer with the `connector_setup_required` action.
+A connector is created with its provider credentials through `overmind connector add` or the Console under Integrations; until then the tools answer with the `connector_setup_required` action.
 
 ### Instrumentation
 
@@ -130,13 +132,13 @@ A connector is created, with its provider credentials, in the Console under Inte
 
 ### Jobs
 
-Background work returns a **job receipt** — `kind`, `id`, `status` and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `connector_sync`, `eval_run`, `finetune` (alias `finetune_job`), `optimizer` (aliases `optimizer_run`, `optimizer_experiment`) and `deployment`.
+Background work returns a **job receipt** — `kind`, `id`, `status` and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `connector_sync`, `eval_run`, `training_preparation`, `finetune` (alias `finetune_job`), `optimizer` (aliases `optimizer_run`, `optimizer_experiment`), `deployment` and `model_activation`.
 
 Names resolve within the project: capability arguments take an id, key or name; connectors take an id or name; dataset tools prefer the UUID `list_datasets` returned because dataset names are not unique.
 
 ## Prompts
 
-Eleven prompts compose the tools into multi-step workflows with human checkpoints:
+Twelve prompts compose the tools into multi-step workflows with human checkpoints:
 
 | Prompt | Arguments | What it drives |
 | --- | --- | --- |
@@ -151,6 +153,7 @@ Eleven prompts compose the tools into multi-step workflows with human checkpoint
 | `upload-dataset-file` | `path`, `intent?`, `project_id?` | `overmind dataset upload` in the terminal, then verify through MCP |
 | `export-dataset` | `dataset` | `overmind dataset export` to the local filesystem |
 | `download-checkpoint` | `deployment` | `overmind model download-checkpoint` to the local filesystem |
+| `connect-traces` | `connector_type` | `overmind connector add` in the terminal, then configure, confirm the mapping and sync through MCP |
 
 ## Resources
 
