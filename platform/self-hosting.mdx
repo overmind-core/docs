@@ -32,6 +32,13 @@ Use any login credentials to sign in, self hosted mode doesn't require any email
 
 Start by creating a project by following the [Quickstart](/quickstart).
 
+For Codex on this machine, `overmind init --ide codex --env local` configures
+`http://localhost:8000/api/mcp/`. Then run `overmind sync` with the temporary
+account key from the Console. Sync saves a project-scoped key; reload Codex
+once to connect. For another self-hosted address, set `OVERMIND_API_URL` before
+both commands.
+
+
 For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed:
 
 ```bash
