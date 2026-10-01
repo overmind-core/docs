@@ -57,6 +57,8 @@ One run can launch several experiments at once, so you can try two learning rate
 
 Your coding agent can do the whole thing: `/overmind finetune` checks you're ready, estimates the cost, launches the run, and follows it to the end.
 
+`overmind finetune --models … --since 7d` is the CI path. It builds the train and eval datasets from stored `llm_call` spans, starts one job per catalog model, prints the job ids, and does not wait. The application is not run. See [CLI](/platform/cli#overmind-finetune).
+
 ## Watch it train
 
 <Frame caption="A finished experiment: train and validation loss per step, the learning-rate schedule, token accuracy and gradient norm.">
