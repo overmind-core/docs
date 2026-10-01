@@ -3,31 +3,85 @@ title: CLI
 description: The overmind command — init, sync, chassis, dataset upload and export, connectors, the optimise loop, model checkpoints, and skills.
 ---
 
-The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the skill and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does. The package is MIT.
+The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the workflow skills and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does. The package is MIT.
+
+## Install
+
+Install the CLI into a virtual environment, or as a standalone tool with `uv` or `pipx`. Both put `overmind` on `PATH`.
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install overmind
+    overmind --help
+    ```
+
+    As a standalone tool, outside any project:
+
+    ```bash
+    uv tool install overmind          # or: pipx install overmind
+    ```
+
+    Homebrew's Python refuses a global `pip install` with `externally-managed-environment`. Use a virtual environment or a tool install.
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install overmind
+    overmind --help
+    ```
+
+    As a standalone tool, outside any project:
+
+    ```bash
+    uv tool install overmind          # or: pipx install overmind
+    ```
+
+    Debian and Ubuntu mark the system Python as externally managed, so a global `pip install` fails with `externally-managed-environment`. Use a virtual environment or a tool install.
+  </Tab>
+  <Tab title="Windows">
+    Install into a virtual environment. It puts `overmind` on `PATH` while it is active:
+
+    ```powershell
+    python -m venv .venv
+    .venv\Scripts\Activate.ps1          # cmd.exe: .venv\Scripts\activate.bat
+    pip install overmind
+    overmind --help
+    ```
+
+    If PowerShell refuses to run `Activate.ps1`, allow local scripts for your user once:
+
+    ```powershell
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+    ```
+
+    A global `pip install` puts `overmind.exe` in the interpreter's `Scripts` folder, which is not on `PATH` by default. The command is then not found; `python -m overmind` runs the same CLI.
+  </Tab>
+</Tabs>
+
+The base package is the CLI and the inference client. The `tracing` extra adds the tracing SDK and every provider instrumentor:
 
 ```bash
-pip install overmind              # the CLI and the inference client
-pip install "overmind[tracing]"   # plus the tracing SDK and every provider instrumentor
+pip install "overmind[tracing]"
 ```
 
-```bash
-uv tool install overmind
-# or
-pipx install overmind
-```
+When Overmind is a project dependency, run commands through that project's environment (`uv run overmind`, `poetry run overmind`, or its virtual-environment executable). An editable installation does not update skill copies already in a repository. Refresh the installed skill with `uv run overmind skills sync overmind --ide <cursor|claude|opencode|codex>` using the appropriate project runner, then start a new conversation so the coding agent reads it.
+
+## First run
 
 Every command that talks to the API resolves its key in the same order: `--api-key`, then the project credential in `.overmind/credentials.toml` (written by `overmind sync`), then `OVERMIND_API_KEY`. The base URL comes from `--api-url`, `OVERMIND_API_URL`, or `base-url` in `overmind.toml`; the hosted default is `https://api.overmindlab.ai`. Keys go over the wire as `X-Api-Key`. `overmind --version` prints the package version; `overmind <command> --help` prints flags.
 
 ```bash
-export OVERMIND_API_KEY=<your-api-key>
-export OVERMIND_API_URL=<your-api-url>   # self-hosted only, e.g. http://localhost:8000
+export OVERMIND_API_KEY=<your-api-key>    # PowerShell: $env:OVERMIND_API_KEY = "<your-api-key>"
+export OVERMIND_API_URL=<your-api-url>    # self-hosted only, e.g. http://localhost:8000
 overmind init --ide cursor        # or claude | opencode | codex
 overmind sync                     # create the project, save the project key
 ```
 
 Then in your coding agent, `/overmind setup` scans the repository, writes capabilities into `overmind.toml`, and runs `overmind sync` to push them. The installed skill recognises the repository and verified connection, previews the onboarding roadmap, and reports repository-specific findings alongside the current stage out of ten, completed stages, and stages still to follow. A pre-sync handoff names the destination, included data, credential checks performed, and configuration to review. The finish reports the synced result, outstanding verification, and one recommended next action without automatically starting it.
-
-When Overmind is a project dependency, run commands through that project's environment (`uv run overmind`, `poetry run overmind`, or its virtual-environment executable). An editable installation does not update skill copies already in a repository. Refresh the installed skill with `uv run overmind skills sync overmind --ide <cursor|claude|opencode|codex>` using the appropriate project runner, then start a new conversation so the coding agent reads it.
 
 ## `overmind init`
 
@@ -42,7 +96,7 @@ overmind init --ide claude --env local
 | `--env` | `production` | `production`, `staging`, or `local` (`http://localhost:8000`) |
 | `--api-url` | `$OVERMIND_API_URL` | Base URL; overrides `--env` for both the MCP entry and `overmind.toml` |
 
-Installs the `overmind` skill under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor only: `.cursor/commands/`), adds the Overmind MCP entry to the client's own config, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
+Installs the workflow skills under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor only: `.cursor/commands/`), adds the Overmind MCP entry to the client's own config, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
 
 | Client | MCP config | Skill install |
 | --- | --- | --- |
