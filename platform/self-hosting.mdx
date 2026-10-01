@@ -8,7 +8,7 @@ The platform is one repository, [overmind-core/overmind](https://github.com/over
 ## Requirements
 
 Docker with Compose, and [uv](https://docs.astral.sh/uv/) for anything Python outside the containers.
-> The API needs one key to start: `OPENROUTER_API_KEY` (or `CURSOR_API_KEY`). Training and serving are optional; until their keys are set, fine-tuning readiness lists the missing variables and job creation is refused — see [Training and serving](#training-and-serving).
+> The API needs one key to start: `OPENROUTER_API_KEY`. Training and serving are optional; until their keys are set, fine-tuning readiness lists the missing variables and job creation is refused — see [Training and serving](#training-and-serving).
 
 ## Start the stack
 
@@ -44,12 +44,12 @@ docker compose exec api python manage.py seed_demo --owner you@example.com
 | `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials. Unset, one is derived from `DJANGO_SECRET_KEY`; the API prints a warning at startup when `DJANGO_DEBUG=False` |
 | `FRONTEND_URL` | Where the Console lives (default `http://localhost:5173`), for links in prompts and emails |
 | `TRACE_SETTLE_SECONDS` | How long a trace with no root span stays `live` before it reads `interrupted` (default `600`) |
-| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference. Required at startup unless `CURSOR_API_KEY` is set. If the key is rejected, the capability's Evaluators tab shows `Judge authoring failed`; fix the key, then run `overmind sync` again |
+| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference and the Data Workshop agent. Required at startup. If the key is rejected, the capability's Evaluators tab shows `Judge authoring failed`; fix the key, then run `overmind sync` again |
 
 
 ### The Data Workshop agent
 
-The dataset agent runs on the first key it finds, in this order: `CURSOR_API_KEY` (a Cursor Composer session), `OPENROUTER_API_KEY`, then `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` with a native tool-calling loop. Both engines take the same tools and emit the same events. The API does not start without `CURSOR_API_KEY` or `OPENROUTER_API_KEY`. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
+The dataset agent runs on OpenRouter. Set `CURSOR_API_KEY` to run it as a Cursor Composer session instead. Both engines take the same tools and emit the same events. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
 
 ### Decision engine
 
