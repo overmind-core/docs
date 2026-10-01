@@ -982,6 +982,54 @@ html[data-page-mode="wide"] #content-area {
   word-break: normal;
   hyphens: none;
 }
+/* On a phone each row stacks into a block: the first cell is the row's title,
+ * and every other cell is captioned with its column (data-label, set by
+ * table-labels.js). A table whose cells carry no label keeps the sideways scroll. */
+@media (max-width: 639px) {
+  #content-area table:has(td[data-label]),
+  #content-area table:has(td[data-label]) :is(tbody, tr, td) {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #content-area table:has(td[data-label]) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  #content-area table:has(td[data-label]) tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--frame);
+  }
+  #content-area table:has(td[data-label]) tbody tr:last-child {
+    border-bottom: 0;
+  }
+  #content-area table:has(td[data-label]) td {
+    padding: 2px 0 !important;
+    border: 0 !important;
+  }
+  #content-area table:has(td[data-label]) td:first-child {
+    color: var(--text);
+  }
+  #content-area table:has(td[data-label]) td:not(:first-child)[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-caption);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  #content-area table:has(td[data-label]) td:empty {
+    display: none;
+  }
+  #content-area table:has(td[data-label]) tbody tr:hover td {
+    background: transparent !important;
+  }
+}
 #content-area table tbody tr:hover td {
   background: var(--surface) !important;
 }
