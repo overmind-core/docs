@@ -1422,6 +1422,10 @@ html[data-page-mode="wide"] #content-area {
   box-shadow: none !important;
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
 }
+/* The arrow carries its own dimmer gray; both glyphs take the button's colour. */
+#page-context-menu button svg {
+  color: inherit !important;
+}
 #page-context-menu button[class*="rounded-l"] {
   border-right-width: 0 !important;
 }
@@ -1443,7 +1447,7 @@ html[data-page-mode="wide"] #content-area {
  * assistant is on; its label stays as the accessible name. */
 @container page-header (width < 520px) {
   #header > div:first-child > div {
-    padding-right: 84px; /* the 76px control and 8px of air */
+    padding-right: 76px; /* the two 34px squares and 8px of air */
   }
   #page-context-menu {
     position: absolute;
@@ -1451,6 +1455,17 @@ html[data-page-mode="wide"] #content-area {
     right: 0;
     min-width: 0 !important;
     margin: 0 !important;
+  }
+  #page-context-menu > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+  }
+  #page-context-menu-button > div {
+    gap: 0;
   }
   #page-context-menu-button > div > :not(svg) {
     position: absolute;
