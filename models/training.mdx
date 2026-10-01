@@ -27,10 +27,7 @@ Independent train and eval data gives meaningful held-out scores. Overmind repor
   <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
 </Frame>
 
-For MCP `start_finetune`, omit `hyperparameters` to derive model-specific defaults.
-When supplying settings, use `"training_type": {"type": "Lora"}` or
-`"training_type": {"type": "Full"}`. A string training type is rejected before
-job creation with a field-level validation error.
+Over MCP, `start_finetune` derives model-specific defaults when `hyperparameters` is omitted. To set the method yourself, pass `"training_type": {"type": "Lora"}` or `{"type": "Full"}`; a plain string is refused before the job is created, with a field-level error.
 
 ## Exact preprocessing
 

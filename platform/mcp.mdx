@@ -1,6 +1,6 @@
 ---
 title: MCP
-description: The Overmind MCP server — setup per coding agent, authentication, the 36 tools, workflow prompts and the resources, and the CLI handoff for local work.
+description: The Overmind MCP server — setup per coding agent, the optional plugin, authentication, the 36 tools, 12 prompts, resources, workflow skills and the CLI handoff for local work.
 ---
 
 MCP is the platform's first-class agent surface: an account-aware [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
@@ -54,15 +54,17 @@ Start with `list_projects`. To see a project in the browser, read `overmind://pr
 
 ## Authentication
 
-OAuth connections and account API keys discover authorized projects through `list_projects`. Pass the chosen `project_id` on every project tool and as a query parameter on resource URIs. Membership is checked for each operation. There is no shared selected-project state, so concurrent work cannot switch another request's project. Returned resource links retain the project ID. A project API key can only use its configured project and can omit `project_id`.
+**Account connections.** OAuth connections and account API keys find the projects you can access with `list_projects`. Pass the chosen `project_id` to every project tool, and as a query parameter on resource URIs. Membership is checked on every operation, and there is no shared "current project", so parallel work cannot switch another request's project. Returned resource links keep the project id.
 
-Read access exposes read-only tools; mutations require write access. API keys retain expiry, active-user and IP-allowlist checks. OAuth grants request `overmind:read` and/or `overmind:write` and require Console sign-in and explicit consent. Tokens use S256 PKCE, exact redirect matching, one-time codes and resource binding; OAuth tokens are accepted only by MCP. Access tokens expire after one hour. Connections remain authorized until revoked, with no refresh-token time limit. Refresh tokens still rotate; reuse revokes the connection's token family. Disabled accounts and lost project memberships continue to lose access.
+**Project API keys** reach only their own project and can omit `project_id`.
 
-Set `MCP_SERVER_URL` to the canonical HTTPS `/api/mcp/` endpoint on a hosted deployment, with `FRONTEND_URL` pointing at its Console. HTTP is accepted only for local loopback development. Configured servers advertise OAuth discovery, public-client registration (`token_endpoint_auth_method: none`), authorization, token and revocation endpoints. API-key connections continue to use `X-Api-Key` or `Authorization: Bearer`.
+**Permissions.** Read access exposes the read-only tools; writes need write access. API keys keep their expiry, active-user and IP-allowlist checks, and authenticate as `X-Api-Key` or `Authorization: Bearer`.
 
-To publish the server as an OpenAI app, set `OPENAI_APPS_CHALLENGE` to the portal's ownership token; the API serves it at `/.well-known/openai-apps-challenge`.
+**OAuth.** A grant asks for `overmind:read` and/or `overmind:write`, and needs Console sign-in and explicit consent. Tokens use S256 PKCE, exact redirect matching, one-time codes and resource binding, and only MCP accepts them. Access tokens expire after one hour. A connection stays authorized until it is revoked: refresh tokens have no time limit, but they rotate, and reusing an old one revokes the connection. A disabled account or a lost project membership ends access.
 
-MCP transport requests use `POST` with `application/json`, from an allowed host and origin, within the protocol's body limit. Authentication failures return `401`; authorization failures return `403`. Tool errors are structured results: `{"error": {code, message, retryable, fields}}`.
+**Hosting.** On a public deployment, set `MCP_SERVER_URL` to the HTTPS `/api/mcp/` endpoint and `FRONTEND_URL` to the Console. Plain HTTP is accepted only on local loopback. The server then advertises OAuth discovery, public-client registration (`token_endpoint_auth_method: none`), and the authorization, token and revocation endpoints. To publish the server as an OpenAI app, set `OPENAI_APPS_CHALLENGE` to the portal's ownership token; the API serves it at `/.well-known/openai-apps-challenge`.
+
+**Transport.** Requests are `POST` with `application/json`, from an allowed host and origin, within the protocol's body limit. Authentication failures return `401` and authorization failures `403`. Tool errors are structured results: `{"error": {code, message, retryable, fields}}`.
 
 The public surface is read and write only. There are no delete, cancel or generic API tools; `retry_deployment` is the one lifecycle exception and covers exactly the failed-or-deleted deployment case.
 
