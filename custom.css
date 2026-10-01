@@ -427,6 +427,11 @@ body,
 #navbar [style*="mask-image"] {
   background-color: currentColor !important;
 }
+/* The assistant's sparkle is a stroked SVG with its own dimmer gray; it takes
+ * the button's colour like the masked search and menu glyphs. */
+#navbar button svg:not([style*="mask-image"]) {
+  color: inherit !important;
+}
 #navbar div.gap-x-2 svg {
   width: 14px;
   height: 14px;
@@ -595,12 +600,15 @@ body,
   justify-content: center;
   border: 0 !important;
   background: transparent !important;
-  color: var(--text-3);
+  color: var(--stone-300) !important;
   clip-path: none;
 }
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden:hover {
   background: transparent !important;
-  color: var(--text);
+  color: var(--text) !important;
+}
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden :is(div, svg) {
+  color: inherit !important;
 }
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden > :not(:first-child) {
   display: none !important;
@@ -1431,7 +1439,8 @@ html[data-page-mode="wide"] #content-area {
 }
 /* In a header narrower than 520px the theme drops the control under the
  * description as a stray strip. It moves to the end of the title row instead,
- * icon only; the copy button keeps "Copy page" as its accessible name. */
+ * icon only. The primary button is Copy page, or Ask Assistant where the
+ * assistant is on; its label stays as the accessible name. */
 @container page-header (width < 520px) {
   #header > div:first-child > div {
     padding-right: 84px; /* the 76px control and 8px of air */
@@ -1443,7 +1452,7 @@ html[data-page-mode="wide"] #content-area {
     min-width: 0 !important;
     margin: 0 !important;
   }
-  #page-context-menu-button span.grid {
+  #page-context-menu-button > div > :not(svg) {
     position: absolute;
     width: 1px;
     height: 1px;
