@@ -22,18 +22,6 @@ MCP is the platform's first-class agent surface: a project-scoped [Model Context
 }
 ```
 
-```json Claude Code (.mcp.json)
-{
-  "mcpServers": {
-    "overmind": {
-      "type": "http",
-      "url": "https://api.overmindlab.ai/api/mcp/",
-      "headers": { "X-Api-Key": "ovr_…" }
-    }
-  }
-}
-```
-
 ```json OpenCode (opencode.json)
 {
   "$schema": "https://opencode.ai/config.json",
@@ -48,13 +36,13 @@ MCP is the platform's first-class agent surface: a project-scoped [Model Context
 }
 ```
 
-```bash Claude Code (one line)
-claude mcp add --transport http overmind https://api.overmindlab.ai/api/mcp/ --header "X-Api-Key: ovr_…"
+```bash Claude Code
+claude mcp add --scope local --transport http overmind https://api.overmindlab.ai/api/mcp/ --header "X-Api-Key: ovr_…"
 ```
 
 </CodeGroup>
 
-Codex takes the same entry in `.codex/config.toml`. Self-hosted: replace the URL with `http://localhost:8000/api/mcp/` (`overmind init --env local`).
+Codex takes the same entry in `.codex/config.toml`. Claude Code keeps the key in local scope (`~/.claude.json`), outside the repository. Self-hosted: replace the URL with your API host plus `/api/mcp/`, for example `http://localhost:8000/api/mcp/` (`overmind init --env local`, or `--api-url`).
 
 ## Authentication
 
@@ -138,7 +126,7 @@ A connector is created, with its provider credentials, in the Console under Inte
 | Tool | Arguments | Returns |
 | --- | --- | --- |
 | `get_instrumentation_plan` | `capability?`, `behaviour?` | The registered placement tickets for a capability or behaviour |
-| `verify_instrumentation` | `capability?`, `spans` | Bind and grade a caller-supplied span list without writing traces or scores |
+| `verify_instrumentation` | `capability?`, `trace_id` or `spans` | Bind and grade an ingested trace by id, or a caller-supplied span list, without writing traces or scores |
 
 ### Jobs
 
@@ -188,4 +176,4 @@ Three things never cross MCP: file bytes, repository edits, and provider secrets
 
 ## The skill
 
-`overmind init` installs the `overmind` skill next to the MCP entry, and on Cursor and Claude Code the `/overmind` slash commands (`onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise`, `backtest`) that load its references. The skill holds the conventions the tools assume — list first, poll jobs with `get_job`, the dataset contracts that gate every run — and is the only place the local scan workflow (`/overmind setup`) lives; the native prompts cover the server-side workflows.
+`overmind init` installs the `overmind` skill next to the MCP entry. `/overmind onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise` and `backtest` load its references: Cursor through command files, Claude Code through the skill itself. The skill holds the conventions the tools assume — list first, poll jobs with `get_job`, the dataset contracts that gate every run — and is the only place the local scan workflow (`/overmind setup`) lives; the native prompts cover the server-side workflows.

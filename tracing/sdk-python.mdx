@@ -164,7 +164,7 @@ Two identity forms tie code to a capability declared in `overmind.toml`:
 - `overmind.init(capability_id="<slug>")` (or `run(capability_id=...)`) — ingest binds by the capability's UUID; a slug resolves server-side.
 - `@overmind.capability("<slug>", id="...")` on an entry function — at runtime the name is a label only; pass `id=` or set `capability_id` in `init()` to bind.
 
-Verification is a bounded, read-only MCP smoke: run with a unique `conversation_id`, flush, find the trace with `query_traces(session=..., all_spans=true)`, read `overmind://traces/{trace_id}`, and hand its spans to `verify_instrumentation`, which checks capability attribution, nesting, inputs and outputs, usage, and timing without writing traces or scores.
+Verification is a bounded, read-only MCP smoke: run with a unique `conversation_id`, flush, find the trace with `query_traces(session=..., all_spans=false)`, and pass its `trace_id` to `verify_instrumentation`, which grades the ingested spans on the server and checks capability attribution, nesting, inputs and outputs, usage, and timing without writing traces or scores.
 
 ### `task()` — carve a run into units
 

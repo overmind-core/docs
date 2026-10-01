@@ -20,6 +20,7 @@ Every command that talks to the API resolves its key in the same order: `--api-k
 
 ```bash
 export OVERMIND_API_KEY=<your-api-key>
+export OVERMIND_API_URL=<your-api-url>   # self-hosted only, e.g. http://localhost:8000
 overmind init --ide cursor        # or claude | opencode | codex
 overmind sync                     # create the project, save the project key
 ```
@@ -41,18 +42,18 @@ overmind init --ide claude --env local
 | `--env` | `production` | `production`, `staging`, or `local` (`http://localhost:8000`) |
 | `--api-url` | `$OVERMIND_API_URL` | Base URL; overrides `--env` for both the MCP entry and `overmind.toml` |
 
-Installs the `overmind` skill under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor and Claude Code only: `.cursor/commands/` or `.claude/commands/`), adds the Overmind MCP entry to the client's own config file, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
+Installs the `overmind` skill under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor only: `.cursor/commands/`), adds the Overmind MCP entry to the client's own config, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
 
 | Client | MCP config | Skill install |
 | --- | --- | --- |
 | Cursor | `.cursor/mcp.json` | `.cursor/skills` |
-| Claude Code | `.mcp.json` | `.claude/skills` |
+| Claude Code | `~/.claude.json`, local scope for this directory | `.claude/skills` |
 | OpenCode | `opencode.json` | `.opencode/skills` |
 | Codex | `.codex/config.toml` | `.agents/skills` |
 
-The MCP entry is written with the saved project key when `.overmind/credentials.toml` already exists; otherwise it is written without a key and `overmind sync` fills it in. Any file that receives a key is added to `.git/info/exclude` and set to mode `0600`; the CLI refuses to write a key into a tracked file. Codex is limited to `production` and `staging` unless `--api-url` is set. `init` does not persist the bootstrap account key.
+The MCP entry is written with the saved project key when `.overmind/credentials.toml` already exists; otherwise it is written without a key and `overmind sync` fills it in. Claude Code's entry is a local-scope server in `~/.claude.json` (or `$CLAUDE_CONFIG_DIR/.claude.json`), so it needs no `.mcp.json` approval and a committed `.mcp.json` is left untouched. Any repository file that receives a key is added to `.git/info/exclude` and set to mode `0600`; the CLI refuses to write a key into a tracked file. `init` does not persist the bootstrap account key.
 
-Slash commands written for Cursor and Claude Code: `/overmind`, `/overmind onboard`, `/overmind setup`, `/overmind ensure-tracing`, `/overmind dataset`, `/overmind finetune`, `/overmind optimise`, `/overmind backtest`.
+Slash commands: `/overmind`, `/overmind onboard`, `/overmind setup`, `/overmind ensure-tracing`, `/overmind dataset`, `/overmind finetune`, `/overmind optimise`, `/overmind backtest`. Cursor gets a command file for each; Claude Code passes the word after `/overmind` to the skill, which opens the matching reference.
 
 ## `overmind sync`
 

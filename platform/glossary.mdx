@@ -53,7 +53,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Task execution** — one unit bound to a behaviour, with its verdicts, execution score, route flags, and session score. Binding source is `declared` (the span carried the identity), `anchor_join` (matched on anchors) or `unbound`. Status `completed`, `error` or `interrupted`. The default row of Observability.
 
-**Instrumentation plan** — the placement tickets (file, qualname, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or behaviour; `verify_instrumentation` grades a supplied span list against them.
+**Instrumentation plan** — the placement tickets (file, qualname, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or behaviour; `verify_instrumentation` grades an ingested trace, or a supplied span list, against them.
 
 ## Data
 
