@@ -427,6 +427,11 @@ body,
 #navbar [style*="mask-image"] {
   background-color: currentColor !important;
 }
+/* The assistant's sparkle is a stroked SVG with its own dimmer gray; it takes
+ * the button's colour like the masked search and menu glyphs. */
+#navbar button svg:not([style*="mask-image"]) {
+  color: inherit !important;
+}
 #navbar div.gap-x-2 svg {
   width: 14px;
   height: 14px;
@@ -515,13 +520,6 @@ body,
 #navbar div.lg\:hidden.items-center.gap-3 > button::after {
   display: none;
 }
-@media (max-width: 1023px) {
-  #navbar a[href="/"] {
-    left: 12px;
-    transform: translate(0, -50%);
-  }
-}
-
 /* "More actions" opens the theme's mobile menu, a popup dialog carrying the
  * navbar links and Login. It takes the website MobileMenu's order: Talk to
  * the team and Login first, then the list, each row a full-width PixelButton. */
@@ -587,27 +585,45 @@ body,
   overflow: visible;
 }
 
-/* Mobile row: the sidebar toggle, labelled with the page only (the group
- * label is the same eyebrow the desktop header drops). */
+/* Below lg the bar is one row, like the website's: the sidebar toggle as a
+ * menu icon on the left, the eye in the centre, search and More actions on
+ * the right. The theme renders the toggle as a second row carrying the page
+ * title; the h1 already names the page, so only the icon stays. */
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden {
-  height: auto !important;
-  padding: 0 12px 12px !important;
+  position: absolute;
+  top: 0;
+  left: 12px;
+  z-index: 2;
+  width: 40px;
+  height: 52px !important;
+  padding: 0 !important;
+  justify-content: center;
   border: 0 !important;
   background: transparent !important;
-  font-family: var(--font-body);
-  font-size: 14px;
-  color: var(--text-3);
+  color: var(--stone-300) !important;
   clip-path: none;
 }
 #navbar > div.max-w-8xl > div.relative > button.lg\:hidden:hover {
   background: transparent !important;
+  color: var(--text) !important;
 }
-#navbar > div.max-w-8xl > div.relative > button.lg\:hidden div.space-x-3.shrink-0 {
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden :is(div, svg) {
+  color: inherit !important;
+}
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden > :not(:first-child) {
   display: none !important;
 }
-#navbar > div.max-w-8xl > div.relative > button.lg\:hidden div.font-semibold {
-  font-weight: 400 !important;
-  color: var(--text) !important;
+#navbar > div.max-w-8xl > div.relative > button.lg\:hidden svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The theme offsets the page for its two-row mobile bar (10rem). One row needs
+ * the desktop spacing: the 64px bar plus 40px. */
+@media (max-width: 1023px) {
+  div[class*="pt-[calc(10rem"] {
+    padding-top: calc(6.5rem + var(--banner-height, 0px)) !important;
+  }
 }
 
 /* ─── Sidebar — plain rail, current row inverted ────────────────────────── */
@@ -820,7 +836,7 @@ html[data-page-mode="wide"] #content-area {
 }
 
 /* Block rhythm: every block element takes the same vertical margin. */
-#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-ascii) {
+#content-area :is(.code-block, .code-group, table, [data-table-wrapper], .callout, figure.frame, .card-group, .steps, .tabs, .accordion-group, .om-ascii-frame) {
   margin-top: 1.25rem !important;
   margin-bottom: 1.25rem !important;
 }
@@ -982,6 +998,54 @@ html[data-page-mode="wide"] #content-area {
   word-break: normal;
   hyphens: none;
 }
+/* On a phone each row stacks into a block: the first cell is the row's title,
+ * and every other cell is captioned with its column (data-label, set by
+ * table-labels.js). A table whose cells carry no label keeps the sideways scroll. */
+@media (max-width: 639px) {
+  #content-area table:has(td[data-label]),
+  #content-area table:has(td[data-label]) :is(tbody, tr, td) {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #content-area table:has(td[data-label]) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  #content-area table:has(td[data-label]) tr {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--frame);
+  }
+  #content-area table:has(td[data-label]) tbody tr:last-child {
+    border-bottom: 0;
+  }
+  #content-area table:has(td[data-label]) td {
+    padding: 2px 0 !important;
+    border: 0 !important;
+  }
+  #content-area table:has(td[data-label]) td:first-child {
+    color: var(--text);
+  }
+  #content-area table:has(td[data-label]) td:not(:first-child)[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-caption);
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  #content-area table:has(td[data-label]) td:empty {
+    display: none;
+  }
+  #content-area table:has(td[data-label]) tbody tr:hover td {
+    background: transparent !important;
+  }
+}
 #content-area table tbody tr:hover td {
   background: var(--surface) !important;
 }
@@ -1110,6 +1174,10 @@ html[data-page-mode="wide"] #content-area {
   background: transparent !important;
   padding: 16px 18px !important;
   transition: color 150ms ease;
+}
+/* The theme pads the card's inner box again; the tile's own padding is the one inset. */
+#content-area .card > div {
+  padding: 0 !important;
 }
 #content-area .card::before,
 #content-area .card::after {
@@ -1354,6 +1422,10 @@ html[data-page-mode="wide"] #content-area {
   box-shadow: none !important;
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
 }
+/* The arrow carries its own dimmer gray; both glyphs take the button's colour. */
+#page-context-menu button svg {
+  color: inherit !important;
+}
 #page-context-menu button[class*="rounded-l"] {
   border-right-width: 0 !important;
 }
@@ -1361,6 +1433,48 @@ html[data-page-mode="wide"] #content-area {
   background: var(--surface) !important;
   color: var(--text) !important;
   border-color: var(--frame-strong) !important;
+}
+
+/* The theme stacks the title row below 640px, which drops a wide header's
+ * control under the title; it stays at the end of the row. */
+#header > div:first-child > div {
+  flex-direction: row !important;
+  align-items: center !important;
+}
+/* In a header narrower than 520px the theme drops the control under the
+ * description as a stray strip. It moves to the end of the title row instead,
+ * icon only. The primary button is Copy page, or Ask Assistant where the
+ * assistant is on; its label stays as the accessible name. */
+@container page-header (width < 520px) {
+  #header > div:first-child > div {
+    padding-right: 76px; /* the two 34px squares and 8px of air */
+  }
+  #page-context-menu {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+  #page-context-menu > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+  }
+  #page-context-menu-button > div {
+    gap: 0;
+  }
+  #page-context-menu-button > div > :not(svg) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 
 [role="menu"] {
@@ -1562,28 +1676,39 @@ ul.toc .toc-item[data-active-deepest] > a {
 
 /* ─── Diagrams — box-drawing art (snippets/ascii.jsx) ───────────────────
  * The boxes carry their own frame and hatched shadow, so the pre is bare:
- * body mono, no wrap, stone-100 on the canvas. Two stacked diagrams read as
- * one figure. */
+ * body mono, no wrap, stone-100 on the canvas. The frame is a size container
+ * and the component sets --om-ascii-cols to the widest line, so the type
+ * scales until the whole diagram fits the column: 13px where there is room,
+ * never below 6px, and a scroll only past that floor. Geist Mono advances
+ * 0.6em per glyph. Two stacked diagrams share one cols value and read as one
+ * figure. */
 
-#content-area .om-ascii {
+#content-area .om-ascii-frame {
+  container-type: inline-size;
   margin: 1.25rem 0;
+}
+#content-area .om-ascii-frame + .om-ascii-frame {
+  margin-top: 0.75rem !important;
+}
+#content-area .om-ascii {
+  margin: 0 !important;
   padding: 0 !important;
   overflow-x: auto;
   background: transparent !important;
   border: 0;
   border-radius: 0;
   font-family: var(--font-mono);
-  font-size: 13px !important;
-  line-height: 17px !important; /* Geist Mono ascent+descent at 13px: the box glyphs meet */
+  font-size: clamp(6px, calc(100cqi / var(--om-ascii-cols, 80) / 0.6), 13px) !important;
+  /* Geist Mono's ascent+descent is 17/13 em. Rounding the line box down to whole
+     pixels lets box glyphs overlap by a fraction instead of leaving a gap. */
+  line-height: calc(17 / 13) !important;
+  line-height: round(down, calc(1em * 17 / 13), 1px) !important;
   letter-spacing: 0;
   color: var(--stone-100) !important;
   white-space: pre;
   tab-size: 4;
   font-variant-ligatures: none;
   scrollbar-width: thin;
-}
-#content-area .om-ascii + .om-ascii {
-  margin-top: 0.75rem !important;
 }
 
 /* ─── Search and assistant sheets stay on the same materials ────────────── */
