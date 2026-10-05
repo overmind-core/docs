@@ -48,7 +48,15 @@ Codex takes the same entry in `.codex/config.toml`. Claude Code keeps the key in
 
 The Cursor, Claude Code and Codex plugins bundle the MCP connection, Overmind branding and the [workflow skills](#workflow-skills). MCP alone is the complete integration: tool descriptions, operating guidance, resources and prompts reach every client, with or without a plugin.
 
-The plugin's `.mcp.json` points at the hosted API and signs in with OAuth. The connection reaches every active project your account can access, including projects you join later. For a self-hosted deployment, run `overmind init --env local --ide <client>` and `overmind sync` instead. Keep one active Overmind MCP connection per client.
+Install it from the `overmind-core/overmind` repository:
+
+| Client | Install |
+| --- | --- |
+| Claude Code | `/plugin marketplace add overmind-core/overmind`, then `/plugin install overmind@overmind` |
+| Codex | `codex plugin marketplace add overmind-core/overmind`, then enable Overmind in `/plugins` |
+| Cursor | Add `overmind-core/overmind` as a plugin marketplace, then install Overmind |
+
+The plugin's MCP entry points at the hosted API and signs in with OAuth. The connection reaches every active project your account can access, including projects you join later. For a self-hosted deployment, run `overmind init --env local --ide <client>` and `overmind sync` instead. Keep one active Overmind MCP connection per client.
 
 Start with `list_projects`. To see a project in the browser, read `overmind://project/current?project_id=ID` and open its `console_url`, which the server builds from `FRONTEND_URL`. The browser needs its own Console sign-in, and opening a page grants no write access.
 
