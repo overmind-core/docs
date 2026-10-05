@@ -96,11 +96,11 @@ overmind init --ide claude --env local
 | `--env` | `production` | `production`, `staging`, or `local` (`http://localhost:8000`) |
 | `--api-url` | `$OVERMIND_API_URL` | Base URL; overrides `--env` for both the MCP entry and `overmind.toml` |
 
-Installs the workflow skills under the client's directory (`.cursor/skills/`, `.claude/skills/`, `.opencode/skills/`, `.agents/skills/`), writes the `/overmind` slash commands (Cursor only: `.cursor/commands/`), adds the Overmind MCP entry to the client's own config, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged.
+Installs the workflow skills under the client's directory (`.agents/skills/` for Cursor and Codex, `.claude/skills/`, `.opencode/skills/`), writes the `/overmind` slash commands (Cursor only: `.cursor/commands/`), adds the Overmind MCP entry to the client's own config, and seeds `overmind.toml` when it is missing. Other configured MCP servers are left untouched. An existing `overmind.toml` is left unchanged. For Cursor, Overmind skill copies left in `.cursor/skills/` by an earlier version are removed, so Cursor does not list them twice.
 
 | Client | MCP config | Skill install |
 | --- | --- | --- |
-| Cursor | `.cursor/mcp.json` | `.cursor/skills` |
+| Cursor | `.cursor/mcp.json` | `.agents/skills` |
 | Claude Code | `~/.claude.json`, local scope for this directory | `.claude/skills` |
 | OpenCode | `opencode.json` | `.opencode/skills` |
 | Codex | `.codex/config.toml` | `.agents/skills` |
@@ -259,7 +259,7 @@ overmind skills list --verbose
 overmind skills sync overmind --ide cursor
 ```
 
-`list` prints the installed and available agent skills. `sync NAME...` writes one or more skills into the client directory chosen by `--ide` (default `cursor`). `overmind init` runs `sync overmind` for you.
+`list` prints the installed and available agent skills. `sync NAME...` replaces one or more skills in the client directory chosen by `--ide` (default `cursor`), so files removed from a skill do not stay behind. `overmind init` runs `sync overmind` for you.
 
 ## JSON output
 
