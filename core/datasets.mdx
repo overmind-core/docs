@@ -36,6 +36,12 @@ Nothing is reshaped on the way in. Your rows land exactly as they arrived, and e
 A single value longer than 200,000 characters — a tool call carrying a serialised agent state, say — is replaced with a preview marker. The rest of the row lands intact.
 </Warning>
 
+### Retry an interrupted import
+
+Imports use a dedicated worker queue. If an import waits too long or its worker stops, the dataset shows an error and keeps its uploaded source. Select **Retry import** to resume the saved import. You do not need to upload the file again unless the error says the source is missing or has changed.
+
+Waiting for a worker and reading the source have separate time limits. Retrying preserves the original source and split settings. The attempt limit prevents repeated failures from running indefinitely. The dataset's chat becomes available after the source has landed.
+
 ## Shape it by asking
 
 Opening a dataset puts you in the Data Workshop: your versions down the left, the chain of steps in the middle, and the dataset's agent on the right.
