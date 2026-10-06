@@ -35,7 +35,7 @@ To instrument by hand:
         service_name="research-agent",
         environment="production",
         providers="auto",  # instrument every provider SDK you have installed
-        capability_id="research-agent",  # the capability's UUID, or its key from overmind.toml
+        capability_id="research-agent",  # the capability's UUID, or its slug
     )
 
     @overmind.run(intent=lambda question: question)
@@ -110,17 +110,17 @@ These are the ones you set:
 | `overmind.unit_kind` | `run` on the span that brackets one agent run, `turn` on a phase you want scored on its own |
 | `overmind.delivery` | `true` on the span carrying the run's result — what judges grade |
 | `conversation.id` | Groups the traces of one multi-turn exchange into a session |
-| `code.namespace`, `code.function.name` | How a run matches the behaviour the scan found in your code |
+| `code.namespace`, `code.function.name` | How a run matches the behaviour declared in decorated code |
 | `overmind.behaviour.key` | Names the behaviour explicitly instead of matching on code |
 
 The Python SDK sets all of these for you.
 
 ### Reaching the right capability
 
-`overmind.capability.id` takes the capability's UUID or the `key` it has in `overmind.toml`. Both survive renames. A span-level value beats the resource-level one, so one process can serve several capabilities.
+`overmind.capability.id` takes the capability's UUID. Ingest also resolves `overmind.capability.slug` and the span's entrypoint qualname against `Capability.entrypoint_fn`. A span-level value beats the resource-level one, so one process can serve several capabilities.
 
 <Warning>
-An id Overmind doesn't recognise never creates a capability. The span still arrives and is browsable under the **Unbound** filter, but it belongs to no capability, no evaluators score it, and it joins no dataset until the id resolves. Push your scan first, then copy the id or key into `init()`.
+An id Overmind doesn't recognise never creates a capability. The span still arrives and is browsable under the **Unbound** filter, but it belongs to no capability, no evaluators score it, and it joins no dataset until the id resolves. Sync your decorated entry points first, then copy the id or slug into `init()`.
 </Warning>
 
 `overmind.capability.name` is a display label. It never binds anything on its own.
@@ -209,6 +209,6 @@ Because a Console filter is the same query string, you can copy a URL out of you
     Turn the runs you selected into eval or training data.
   </Card>
   <Card title="Read your capabilities" href="/core/capabilities">
-    What the scan found in your repository and how traces attach to it.
+    What decorated code declared and how traces attach to it.
   </Card>
 </CardGroup>

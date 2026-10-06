@@ -13,17 +13,13 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Capability** — one purpose the agent serves, and Overmind's record of it: code structure from the scan joined with runtime behaviour from telemetry. Status is `current`, `leftover` (the latest push did not reproduce it; it returns when the code does) or `deleted` (a hand delete, which keeps its data). Ingest never creates one. See [Agent & Capabilities](/core/capabilities).
 
-**Scan** — the local discovery `/overmind setup` runs in your coding agent: `overmind chassis` prints the AST digest, the agent authors capability cards into `overmind.toml`, and `overmind sync` POSTs the snapshot to `/api/v1/sync`. See [Agent & Capabilities](/core/capabilities#the-scan).
+**Scan** — local discovery: decorate `@capability` / `@observe` / `task()` in code, then `overmind sync` AST-scans call sites and POSTs an AgentManifest to `/api/v1/sync`. The server derives the card and behaviours. See [Agent & Capabilities](/core/capabilities#the-scan).
 
-**Scan snapshot** — the server's record of one `overmind sync`: the toml capabilities, cards, and repo summary. `GET /api/v1/sync?project_id=` reads it back.
+**Manifest** — the AgentManifest pushed by sync: declared symbols, signatures, literal prompts/expectations, call-graph edges, and repository fingerprint.
 
-**Cluster** — one group of functions reachable from an entry point with the same prompt set; the unit the coding agent names as a capability.
+**Card** — the server-derived description of a capability (task, modality, input schema, output fields, expected output, success criteria, failure modes, constraints, tool protocol, trajectory map). Authored from decorator facts plus one generative fill after sync; not stored in `overmind.toml`.
 
-**Mode** — one distinct model call inside a capability, with its own system prompt: the roles inside an orchestration. Each mode becomes one behaviour on sync.
-
-**Card** — the agent-authored description of a capability in `overmind.toml` (`[capabilities.<slug>.capability_card]`): task, modality, input schema, output fields, expected output, success criteria, failure modes, constraints, tool protocol, and a trajectory map of anchors — each with source provenance. Filled by `/overmind setup` from source, merged onto the capability and its behaviours on `overmind sync`.
-
-**`overmind.toml`** — the repository's manifest: `project-id`, `project-name`, `base-url`, plus one `[capabilities.<slug>]` table per declared capability (`slug`, `name`, `description`, `id`, `entrypoint_fn`, and nested `capability_card`). `slug` is the server identity; `overmind sync` writes ids back. `.overmind/credentials.toml` beside it holds the project key and stays ignored.
+**`overmind.toml`** — the repository's connection file: `project-id`, `project-name`, `base-url`. Capability graph lives in decorated source + the server, not in toml. `.overmind/credentials.toml` beside it holds the project key and stays ignored.
 
 **API key** — an `ovr_...` credential (stored hashed, shown once at creation) that authenticates the SDK, OTLP ingest, the REST API, MCP, the CLI, and inference. Sent as `X-Api-Key` or `Authorization: Bearer`. **Project-scoped** keys see one project; **account-scoped** keys reach every project the user is in.
 

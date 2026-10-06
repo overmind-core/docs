@@ -23,7 +23,7 @@ overmind.init(
     service_name="my-service",
     environment="production",
     providers="auto",
-    capability_id="support-triage",  # the capability's UUID, or its slug from overmind.toml
+    capability_id="support-triage",  # the capability's UUID, or its slug
 )
 ```
 
@@ -34,7 +34,7 @@ overmind.init(
 | `environment` | `str \| None` | `deployment.environment` on the resource; falls back to `OVERMIND_ENVIRONMENT`, `ENVIRONMENT`, then `development` |
 | `providers` | `list[str] \| str \| None` | `"auto"` instruments every provider whose library and instrumentor are both installed; a list pins the set (`"openai"`, `"anthropic"`, `"google"`, `"agno"`, `"langchain"`); `[]` enables all known; omit to enable none |
 | `overmind_base_url` | `str \| None` | Falls back to `OVERMIND_API_URL`, `overmind.toml` `base-url`, then `https://api.overmindlab.ai` |
-| `capability_id` | `str \| None` | Stamped as `overmind.capability.id`, the only key ingest binds by. Accepts the capability's UUID or its slug from `overmind.toml`; without a local manifest the slug is sent as-is and resolves server-side. Falls back to `OVERMIND_CAPABILITY_ID` |
+| `capability_id` | `str \| None` | Stamped as `overmind.capability.id`. Accepts the capability's UUID or its slug; without a local lookup the slug is sent as-is and resolves server-side (id, then slug, then entrypoint qualname). Falls back to `OVERMIND_CAPABILITY_ID` |
 | `capability` | `str \| None` | Display label, stamped as `overmind.capability.name`; never resolves a capability. Falls back to `OVERMIND_CAPABILITY_NAME` |
 | `project_id` | `str \| None` | Project UUID (`overmind.project.id`), only needed for account-scoped keys or session auth; falls back to `OVERMIND_PROJECT_ID`, then `overmind.toml` |
 | `redact_keys` | `Iterable[str] \| None` | Extra dict keys (exact match, case-insensitive) redacted from captured payloads, beyond the built-in secret-name patterns |
@@ -111,7 +111,7 @@ The value lands in `overmind.span.type`; ingest stores it verbatim.
 
 ### Decorators
 
-`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, and `@retrieval` are typed shortcuts. All work on sync and async functions, record duration and status, and re-raise exceptions after recording them. An `@entry_point` interrupted by `KeyboardInterrupt` or cancellation force-flushes before re-raising, so the run still lands.
+`@observe` is the general decorator; `@entry_point`, `@workflow`, `@tool`, and `@retrieval` are typed shortcuts. All work on plain functions, coroutines, generators, and async generators — also through `functools.partial`, callable instances, and `staticmethod` / `classmethod` in either decorator order — record status, and re-raise exceptions after recording them. An `@entry_point` interrupted by `KeyboardInterrupt` or cancellation force-flushes before re-raising, so the run still lands.
 
 ```python
 import overmind
@@ -133,13 +133,16 @@ def research(topic: str) -> str:
 | `type` | A `SpanType`, its wire value (`"tool_call"`), or its short name (`"tool"`, `"llm"`, `"entry_point"`) |
 | `capture` | `"auto"` (scrubbed args and result — the default), `"none"`, or `"messages"` (normalise the `messages` argument and a list result into role/content chat evidence) |
 | `ignore` | Argument names never captured (sessions, clients, model handles) |
-| `format_input` / `format_output` | `fn(bound_args)` / `fn(result, bound_args)` hooks that replace the captured payload |
+| `input_key` | Capture only this argument as `inputs`; must name a parameter (or the function takes `**kwargs`) and is exclusive with `format_input` |
+| `expectations` | `Expectation` instances emitted as `overmind.eval.expectation` events on every call; validated when the decorator is applied. `scope` defaults to `"trace"` on a run or turn boundary and `"span"` elsewhere |
+| `format_input` / `format_output` | `fn(bound_args)` / `fn(result, bound_args)` hooks that replace the captured payload; for a generator, `result` is the list of yielded items |
 | `provenance` | Evidence class for judges: `user`, `agent`, `environment`, `harness`. Tool and retrieval spans get `environment` and LLM spans `agent` automatically |
 | `unit` | `"turn"` marks the span as an independently scored unit; `"run"` is set by `entry_point` |
 | `capability` | Capability slug or display name for the scope, stamped as `overmind.capability.name`; a differing identity mid-trace marks a handoff. It never binds on its own |
-| `capability_id` | The capability's UUID — the key ingest binds the span and its children by |
+| `capability_id` | The capability's UUID or slug — ingest binds by id, then slug, then entrypoint qualname |
+| `prompt` | Literal or module-level constant stamped as the span's prompt template |
 
-Captured arguments land in the `inputs` attribute and the return value in `outputs`, both as JSON. Payloads are scrubbed: keys containing `password`, `secret`, `token`, `credential`, `authorization`, `api_key`, `apikey`, or `sensitive` are redacted, data URLs and base64-looking strings of 512+ characters become placeholders, byte strings over 256 bytes become placeholders, dataclasses and Pydantic models are dumped, and text is kept in full. For code that handles credentials, use `capture="none"` — and prefer masking values before they reach traced functions. `normalize_messages` is exported for callers that build chat evidence themselves.
+Captured arguments land in the `inputs` attribute and the return value in `outputs`, both as JSON. `**kwargs` are flattened into the argument map; `self` / `cls` are dropped. A payload over 32 KiB is replaced by `{"truncated": true, "bytes": n, "preview": "..."}` and the span carries `overmind.inputs.truncated` / `overmind.outputs.truncated`. Payloads are scrubbed: keys containing `password`, `secret`, `token`, `credential`, `authorization`, `api_key`, `apikey`, or `sensitive` are redacted, data URLs and base64-looking strings of 512+ characters become placeholders, byte strings over 256 bytes become placeholders, dataclasses and Pydantic models are dumped, and text is kept in full. For code that handles credentials, use `capture="none"` — and prefer masking values before they reach traced functions. `normalize_messages` is exported for callers that build chat evidence themselves.
 
 The span name may be a callable receiving the call's arguments — for a polymorphic dispatcher, each invocation then emits its own tool span and `tool.name` follows the resolved action:
 
@@ -149,7 +152,31 @@ class Tools:
     def act(self, action, **params): ...
 ```
 
-Every decorated span carries the function's `code.namespace` / `code.function.name`; tool spans add `tool.name` and `tool.arg_keys`.
+Every decorated span carries the function's `code.namespace`, `code.function.name`, `code.file.path`, and `code.line.number`; tool spans add `tool.name`. Every span in a trace carries `overmind.step`, a per-trace counter assigned at start: a span that happened before another has the smaller step, across threads and — through [`carrier()`](#carrier--continue_trace--other-threads-and-processes) — processes.
+
+#### Generators
+
+A generator's span stays open from the first `next()` to exhaustion, but it is current only while the body runs: work the consumer does between items is not parented to it. `send()`, `throw()`, and the return value pass through, so `yield from` works. `overmind.stream.items` counts the yields. A generator the consumer closes before exhaustion ends with `overmind.status = "aborted"` (OTel status unset — the function did not fail) and keeps what was streamed so far.
+
+With `capture="messages"` on an `llm` generator, yielded text deltas, OpenAI stream chunks (`choices[0].delta`, including fragmented `tool_calls`), and message-shaped items fold into one assistant message in `outputs`:
+
+```python
+@overmind.observe(type="llm", capture="messages")
+def complete(messages: list[dict]):
+    for chunk in client.chat.completions.create(messages=messages, stream=True):
+        yield chunk
+```
+
+#### `tool_call()` — bind a tool span to the model's request
+
+An observed `llm` span remembers the tool-call ids its output requested (from a returned message, a completion, or the stream). Running the tool inside `tool_call(call_id)` stamps the next tool span with `gen_ai.tool.call.id` and links it to the LLM span that asked for it, so the graph shows which model turn caused which tool execution. The binding is one-shot and context-local: enter it in the task or thread that runs the tool.
+
+```python
+response = plan(messages)  # @observe(type="llm")
+for call in response.choices[0].message.tool_calls:
+    with overmind.tool_call(call.id):
+        run_tool(call.function.name, call.function.arguments)  # @overmind.tool(...)
+```
 
 <Tip>
 Decorate every function the scan anchors on. An undecorated anchor emits no `code.namespace` / `code.function.name`, so the behaviour it belongs to never binds and its step judges skip it.
@@ -159,10 +186,10 @@ Decorate every function the scan anchors on. An undecorated anchor emits no `cod
 
 After `overmind sync`, each capability's behaviours carry the anchors trace scoring binds to. The `get_instrumentation_plan` MCP tool turns them into tickets: call it with no capability for project-wide work, or with a capability and optional behaviour for a scoped change. Each ticket names the target file and qualname, import line, required scope, required decorators, capability id, behaviour key, version, and grain. Apply the placements verbatim so the resulting spans bind to the pushed contracts; the `/overmind ensure-tracing` command does exactly this. A missing registry means capabilities have not been synced — run `/overmind setup` then `overmind sync` first.
 
-Two identity forms tie code to a capability declared in `overmind.toml`:
+Two identity forms tie code to a capability declared by `@capability` / sync:
 
-- `overmind.init(capability_id="<slug>")` (or `run(capability_id=...)`) — ingest binds by the capability's UUID; a slug resolves server-side.
-- `@overmind.capability("<slug>", id="...")` on an entry function — at runtime the name is a label only; pass `id=` or set `capability_id` in `init()` to bind.
+- `overmind.init(capability_id="<slug>")` (or `run(capability_id=...)`) — ingest binds by UUID, then slug, then entrypoint qualname.
+- `@overmind.capability("<slug>")` on an entry function — stamps `overmind.capability.slug` (and name); pass `id=` when the UUID is known.
 
 Verification is a bounded, read-only MCP smoke: run with a unique `conversation_id`, flush, find the trace with `query_traces(session=..., all_spans=true)`, read `overmind://traces/{trace_id}`, and hand its spans to `verify_instrumentation`, which checks capability attribution, nesting, inputs and outputs, usage, and timing without writing traces or scores.
 
@@ -203,6 +230,20 @@ for i, doc in enumerate(documents):
         set_tag("doc.tokens", result.tokens)
 ```
 
+### `carrier()` / `continue_trace()` — other threads and processes
+
+`asyncio` tasks inherit the trace. Threads, worker pools, queues, Celery task bodies, and subprocesses do not, so the hop carries it explicitly: `carrier()` returns header-safe strings (`traceparent` plus `baggage` with the capability identity, behaviour key, conversation id, and step) for the current span — `{}` when none is current — and `continue_trace(carrier)` makes spans inside the block children of that span, with the same capability stamps and a step after the sender's. Keys are matched case-insensitively, so `os.environ` is a valid carrier; a process started with `env={**os.environ, **overmind.carrier()}` continues the trace from `init()` on.
+
+```python
+headers = overmind.carrier()
+
+def worker():
+    with overmind.continue_trace(headers):
+        rank(candidates)  # a child of the span that produced `headers`
+
+threading.Thread(target=worker).start()
+```
+
 ### LangChain / LangGraph
 
 `providers=["langchain"]` (or `"auto"`) mounts the OpenInference LangChain instrumentor that ships with `overmind[tracing]`, which covers LangGraph: every chain, model, and tool invocation gets a span with model, token, and cost evidence. For the scoring semantics no instrumentor can know, `overmind.integrations.langgraph.bind` maps graph nodes to behaviour units — call it on the `StateGraph` after `add_node()`, before `compile()`:
@@ -230,6 +271,7 @@ These declare evidence the platform evaluates server-side; each is a span event 
 | --- | --- |
 | `intent(text, *, source="declared")` | What the user asked for in this run. Undeclared runs fall back to the first user message |
 | `expect(kind, spec, *, id=None, scope="trace", gate=False)` | A runtime expectation — `"contains"` or `"regex"` over the output, `"schema"` with required keys, `"constraint"` with a plain-language rule, or `"checkpoints"` with an ordered list of names — checked when the trace is scored; `scope` is `span`, `trace`, or `conversation`; `gate=True` makes a miss cap the score. `id` defaults to a hash of kind and spec; an unknown `kind` or `scope` raises `ValueError` |
+| `Expectation(kind, spec, *, id=None, scope=None, gate=False)` | The same declaration as a value, for `@observe(expectations=[...])`; the platform keeps the first 64 per unit |
 | `checkpoint(name)` | A named trajectory milestone the run must reach |
 | `eval_context(**facts)` | Facts the judge may use; values are coerced like `set_tag` |
 | `end_conversation()` | Signals the conversation is complete and triggers conversation-scope scoring |
@@ -241,6 +283,11 @@ with overmind.run("triage", intent=question) as run:
     result = triage(question)
     overmind.checkpoint("classified")
     run.deliver(result)
+
+
+@overmind.entry_point(expectations=[overmind.Expectation("constraint", "Never promise a refund amount.", gate=True)])
+def triage_run(question: str) -> dict:  # the same expectation, declared once at the boundary
+    ...
 ```
 
 How the platform uses them is on [Trace scoring](/agent-testing/trace-scoring#runtime-expectations-from-the-sdk).
