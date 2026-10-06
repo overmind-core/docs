@@ -111,6 +111,8 @@ Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_
 
 For ECS deployments, `docker/worker-topology.json` defines worker commands and `scripts/plan_landing_capacity.py` generates the infrastructure plan. Deploy a healthy landing consumer before producers. Configure queue-age, blocked-import and missing-monitor alarms. The generated scaling plan has explicit capacity bounds and disables automatic scale-in; drain work before reducing capacity.
 
+Workshop turns and cell runs use `interactive`. `scripts/plan_workshop_capacity.py` generates a bounded scaling plan from queued and running dataset operations, using the process count in `docker/worker-topology.json`. CPU and memory alone do not measure occupied agent slots. Queue-age and monitor alarms expose demand beyond the configured maximum. The plan suspends dynamic scale-in, including scale-in requested by older policies. Drain busy workers before replacing or removing them. Follow `scripts/workshop-rollout.md` for the first upgrade to persisted workshop execution clocks; old queued tasks cannot be assigned an owner from chat history.
+
 ## Developing on it
 
 ```bash

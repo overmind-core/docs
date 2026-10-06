@@ -40,7 +40,7 @@ A single value longer than 200,000 characters — a tool call carrying a seriali
 
 Imports use a dedicated worker queue. If an import waits too long or its worker stops, the dataset shows an error and keeps its uploaded source. Select **Retry import** to resume the saved import. You do not need to upload the file again unless the error says the source is missing or has changed.
 
-Waiting for a worker and reading the source have separate time limits. Retrying preserves the original source and split settings. The attempt limit prevents repeated failures from running indefinitely. The dataset's chat becomes available after the source has landed.
+Waiting for a worker and reading the source have separate time limits. Retrying preserves the original source and split settings. The attempt limit prevents repeated failures from running indefinitely. After the source lands, **Agent queued** means preparation is waiting for a workshop worker; the source is already readable. You can draft a message while the agent is queued or working and send it when the current turn finishes. Workshop queue waiting and execution also have separate time limits.
 
 ## Shape it by asking
 
