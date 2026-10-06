@@ -34,7 +34,7 @@ Fine-tuning and serving also need the Modal workers deployed — see [Training a
 git clone https://github.com/overmind-core/overmind.git
 cd overmind
 cp .env.example .env      # set the required keys above
-docker compose up -d      # API, Console, Postgres, Redis, four Celery workers, beat, Grafana
+docker compose up -d      # API, Console, Postgres, Redis, five Celery workers, beat, Grafana
 ```
 
 The Console is at [http://localhost:5173](http://localhost:5173) and the API at `http://localhost:8000`. Sign in with any email and password; self-hosted mode creates the account on first use and needs no email verification. Leave `CLERK_API_SECRET_KEY` blank.
@@ -100,6 +100,16 @@ Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: ever
 
 `GRAFANA_ADMIN_PASSWORD` (default `admin`) and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel; `DJANGO_LOG_LEVEL` and `OVERBAE_LOG_LEVEL` (default `INFO`).
 
+
+## Background capacity
+
+Keep the `celery-landing-worker` service running. It consumes only `landing`, with one prefork process, so evaluation generation cannot occupy import capacity. The other worker queues remain `control`, `io`, `io_traces`, `batch` and `interactive`.
+
+Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_IN_FLIGHT` limits admitted work across the deployment (default `12`); `EVAL_MAX_IN_FLIGHT_PER_RUN` limits each run (default `2`). Admission rotates across projects and runs. Coordinate these limits with worker capacity and provider limits. Increasing the worker count alone does not raise the admission budget.
+
+`DATASET_IMPORT_MAX_QUEUE_SECONDS` sets the maximum import wait (default `900`). An expired wait retains the source and exposes **Retry import**. Execution starts its own deadline when a worker claims the import. Keep beat and the control worker running so publication retries and interrupted imports are reconciled.
+
+For ECS deployments, `docker/worker-topology.json` defines worker commands and `scripts/plan_landing_capacity.py` generates the infrastructure plan. Deploy a healthy landing consumer before producers. Configure queue-age, blocked-import and missing-monitor alarms. The generated scaling plan has explicit capacity bounds and disables automatic scale-in; drain work before reducing capacity.
 
 ## Developing on it
 
