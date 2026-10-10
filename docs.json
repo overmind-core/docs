@@ -343,6 +343,7 @@
          "agent-testing/eval",
           "agent-testing/decision-engine",
           "agent-testing/trace-scoring",
+          "agent-testing/span-scripts",
           "agent-testing/optimisers"
         ]
       },

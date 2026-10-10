@@ -1,0 +1,80 @@
+---
+title: Span scripts
+description: Import-free Python scripts that grade every matching span during live trace scoring.
+---
+
+A **script** evaluator grades live spans with pure Python. No imports, no network, no files — only the span graph for one trace.
+
+## What you write
+
+```python
+def evaluate(span):
+    if span.parent is None:
+        return None
+    cost = span.attributes.get('genai.cost', 0)
+    tools = [c for c in span.children if c.span_type == 'tool_call']
+    if any(s.status_code == 'ERROR' for s in span.siblings):
+        return 0.0, 'sibling errored'
+    return cost < 0.01 and len(tools) <= 3
+```
+
+Store the source in `config.source`. Optionally filter which spans run:
+
+```json
+{
+  "source": "def evaluate(span):\n    return True\n",
+  "span_filter": {"span_type": "llm_call"}
+}
+```
+
+`span_filter` may set `span_type` and/or `operation`. Omit it to run on every span in the trace.
+
+Scripts always use `scope=step`, `surface=harness`, and the `trace_scoring` role. They do not run on generate-mode eval runs.
+
+## Span API
+
+Each `span` is read-only and exposes:
+
+| Field | Meaning |
+| --- | --- |
+| `span_id`, `trace_id`, `parent_span_id` | Identity |
+| `span_type`, `operation`, `service_name` | Classification |
+| `status_code` | `"UNSET"`, `"OK"`, or `"ERROR"` |
+| `status_message` | Status text |
+| `start_time_ns`, `end_time_ns`, `duration_ns` | Timing |
+| `attributes`, `events`, `resource_attrs` | Frozen payloads |
+| `parent` | Parent span, or `None` for the root |
+| `children` | Direct children (tuple) |
+| `siblings` | Other children of the same parent (tuple) |
+
+Neighbours are the same type, so `span.parent.parent` works. Everything stays inside the one trace.
+
+## Return contract
+
+| Return | Outcome |
+| --- | --- |
+| `True` / `False` | Scored pass/fail (`1.0` / `0.0`) |
+| number in `[0, 1]` | Scored numeric |
+| `(score, reason)` | Scored with explanation |
+| `None` | Abstained |
+| anything else, or an exception | Error for that span only |
+
+## Forbidden constructs
+
+Authoring and execution reject:
+
+- Any `import` / `from … import`
+- Attributes or names starting with `_`, plus escapes such as `__class__`, `format`, `format_map`
+- Calls to `open`, `eval`, `exec`, `getattr`, `type`, `globals`, `vars`, and similar builtins
+
+Allowed builtins are a short whitelist (`abs`, `all`, `any`, `bool`, `dict`, `enumerate`, `filter`, `float`, `int`, `isinstance`, `len`, `list`, `map`, `max`, `min`, `range`, `reversed`, `round`, `set`, `sorted`, `str`, `sum`, `tuple`, `zip`, and common exception classes).
+
+Execution runs in a `python3 -I` child under a 5 s CPU limit, 512 MB address space, and a 15 s wall timeout per trace. One sandbox call grades every matching span in the trace. Traces above 2,000 spans record `not_applicable` for script members.
+
+## Surfaces
+
+- Console: **New evaluator → Script**
+- REST: `POST /api/evaluators/` with `kind=script`
+- MCP: `upsert_evaluator` with `kind=script` and `config.source`
+
+Each matching span gets its own `Verdict` (`annotator_kind=code`, identifier `script:<source-hash>`). Editing the source starts a new series; an unchanged source re-run is idempotent.

@@ -16,7 +16,7 @@ claim-support and per-turn decisions can opt into [Jev with generative
 fallback](/agent-testing/decision-engine). Authoring and holistic reasoning remain
 generative. Evaluator policies and score provenance identify which path ran.
 
-An evaluator is one reusable, versioned scorer — editing one writes a new `version` row, so past runs keep meaning what they meant. Five kinds exist:
+An evaluator is one reusable, versioned scorer — editing one writes a new `version` row, so past runs keep meaning what they meant. Six kinds exist:
 
 <Tabs>
   <Tab title="LLM judge (llm_judge)">
@@ -24,6 +24,9 @@ An evaluator is one reusable, versioned scorer — editing one writes a new `ver
   </Tab>
   <Tab title="Deterministic (deterministic)">
     A fixed rule, no model involved. Checks: `exact_match`, `contains`, `regex`, `json_schema_valid`, `schema_field_conformance`, `field_present`, `reference_field_compare`, `canonical_fields`, `tool_selection` (precision/recall/F1 over called tools), `tool_args_match`, `goal_state_match`, `card_constraints`, `latency`, `cost`, and `turn_count`.
+  </Tab>
+  <Tab title="Script (script)">
+    Import-free pure Python that grades every matching span on a live trace. Write `def evaluate(span): ...` in `config.source`; optional `config.span_filter` narrows by `span_type` and/or `operation`. The script sees `span.parent`, `span.children`, `span.siblings`, and the span's attributes — nothing else, and no imports. Return `True`/`False`, a number in `[0, 1]`, `(score, reason)`, or `None` to abstain. Scripts use `scope=step` and `surface=harness`, run only during [trace scoring](/agent-testing/trace-scoring#span-scripts), and write one `Verdict` per matching span. Full contract: [span scripts](/agent-testing/span-scripts).
   </Tab>
   <Tab title="Trajectory (trajectory)">
     Judges the path the agent took, not just the output. Two modes: **match** compares the tool-call sequence against a reference with `strict`, `unordered`, `subset`, `superset`, or `subsequence` semantics (with per-tool argument-match overrides), or **judge** hands the trajectory to an LLM.

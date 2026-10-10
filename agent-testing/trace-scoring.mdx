@@ -81,6 +81,10 @@ Each verdict is stored as its own `Verdict` row: evaluator, target span, typed o
 
 `_execution.score` (0–1) is the composite the Console shows as the **Score** column. A trace with several entry-point invocations scores each unit onto its own span; the root span gets only an `invocations` summary entry (`"2/2 invocations passed"`) and an `_execution` that averages the unit scores.
 
+## Span scripts
+
+Alongside the per-unit judges, [script evaluators](/agent-testing/span-scripts) run once per matching span in the trace. They do not participate in the unit composite: each matching span gets its own `Verdict` row, visible on that span in the trace detail. One sandbox call per trace grades every script member against the full parent/children/siblings graph.
+
 Verdict outcomes are `scored`, `abstained`, `not_applicable`, or `error`, and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing; a member skipped for its grain, a behaviour filter, or an interrupted run persists a retryable `not_applicable` row whose `unmet` list carries `skip:grain`, `skip:behaviour-filter`, or `skip:interrupted`. A skip row never settles its series: it is overwritten when the member dispatches on that unit. An interrupted skip is the one case that overwrites a real verdict, since a delivery grade on a run that never delivered is stale by rule.
 
 <Frame caption="An execution in the Console: the intent, the route through the behaviour's anchors, and every verdict with its reasoning.">
