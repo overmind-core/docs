@@ -72,7 +72,7 @@ Start with `list_projects`. To see a project in the browser, read `overmind://pr
 
 **Hosting.** On a public deployment, set `MCP_SERVER_URL` to the HTTPS `/api/mcp/` endpoint and `FRONTEND_URL` to the Console. Plain HTTP is accepted only on local loopback. The server then advertises OAuth discovery, public-client registration (`token_endpoint_auth_method: none`), and the authorization, token and revocation endpoints. To publish the server as an OpenAI app, set `OPENAI_APPS_CHALLENGE` to the portal's ownership token; the API serves it at `/.well-known/openai-apps-challenge`.
 
-**Transport.** Requests are `POST` with `application/json`, from an allowed host and origin, within the protocol's body limit. Authentication failures return `401` and authorization failures `403`. Tool errors are structured results: `{"error": {code, message, retryable, fields}}`.
+**Transport.** Requests are `POST` with `application/json`, from an allowed host and origin, within the protocol's body limit. Authentication failures return `401` and authorization failures `403`. When a server process is at capacity, a request waits up to 10 seconds for a slot and then gets `503` with `Retry-After` and the retryable `server_busy` error; retry after that delay. Tool errors are structured results: `{"error": {code, message, retryable, fields}}`.
 
 The public surface is read and write only. There are no delete, cancel or generic API tools; `retry_deployment` is the one lifecycle exception and covers exactly the failed-or-deleted deployment case.
 
