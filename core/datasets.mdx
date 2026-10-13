@@ -93,6 +93,7 @@ Overmind measures every version against what its purpose needs, and shows on the
 | --- | --- | --- | --- |
 | **Training** | A `messages` column, every row a chat transcript with an assistant turn (`tools` optional) | Task instructions and tools are preserved; model-specific formatting is checked during training preparation | [Model training](/models/training) |
 | **Evaluation** | An `input` on every row and an `expected_output` column with real references | Model transcripts retain task context and evidence; application entry-point objects carry the declared input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
+| **Decision** (training or evaluation) | A `state` and `questions` in every `input`, an answer for every question in `expected_output` | Each answer is a valid option or a spread of option weights | [Decision models](/models/decision-models) only |
 
 Rows that cannot meet a technical contract are counted with the reason, never filled in with a default; add a version that repairs them. Only unreadable or technically incompatible data blocks a run. Capability mismatch and train/eval overlap are warnings. Overmind measures technical fit; task suitability is for you and your agent to judge from the rows.
 
@@ -117,6 +118,16 @@ Training reports overlap without dropping selected rows. Checks include normalis
 
     ```json
     {"input": "My card was declined twice.", "expected_output": "billing"}
+    ```
+  </Tab>
+  <Tab title="Decision">
+    A System One request in `input` and its answers in `expected_output`. See [Decision rows](/models/decision-models#decision-rows).
+
+    ```json
+    {"input": {"state": "My card was declined twice.",
+               "questions": {"route": {"type": "choice", "instructions": "Which team?",
+                                       "criteria": {"billing": "Billing", "shipping": "Shipping"}}}},
+     "expected_output": {"route": "billing"}}
     ```
   </Tab>
 </Tabs>

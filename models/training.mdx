@@ -7,7 +7,7 @@ mode: wide
 
 import { ModelCatalog } from "/snippets/model-catalog.jsx";
 
-Fine-tune an open-weight model on the data your agent has already produced. You pick the model, Overmind runs the training on GPUs, streams the loss curves while it goes, and scores your selected before/after models on the same evaluation data — with the same judges you use everywhere else.
+Fine-tune an open-weight model on the data your agent has already produced. To train a model that answers classification questions with probabilities instead of writing text, see [Decision models](/models/decision-models). You pick the model, Overmind runs the training on GPUs, streams the loss curves while it goes, and scores your selected before/after models on the same evaluation data — with the same judges you use everywhere else.
 
 The model is yours. Its weights are downloadable, and it serves through an [OpenAI-compatible API](/models/inference#calling-your-model) you call with your existing client.
 

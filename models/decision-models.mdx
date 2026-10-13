@@ -1,0 +1,104 @@
+---
+title: Decision models
+sidebarTitle: Decision models
+description: Train a model that answers choice, yes/no and score questions with calibrated probabilities.
+---
+
+A decision model reads a **state** — a ticket, a document, a conversation — and answers **questions** about it with a probability for every option. It does not write text. Use it where your agent classifies, routes, approves or rates: it is faster and cheaper than a chat model, and its probabilities tell you how sure it is.
+
+You train one the way you train a chat model: shape a dataset in the [Data Workshop](/core/datasets), start a job, and compare the trained model with its base on held-out data.
+
+## Models
+
+| Model | Family | Parameters |
+| --- | --- | --- |
+| `Cloudflare/clef` | Clef | 27.4B |
+| `Cloudflare/clef-flash` | Clef | 9.4B |
+| `OvermindLab/qwen-3.5-2B-decision` | Clef | 2B |
+| `OvermindLab/qwen-3.5-0.8B-decision` | Clef | 0.8B |
+| `vllm-sr/d3` | D3 | 26.1B |
+| `vllm-sr/d3-flash` | D3 | 8.4B |
+| `vllm-sr/d3-mini` | D3 | 4.5B |
+| `vllm-sr/d3-nano` | D3 | 2.2B |
+| `vllm-sr/d3-lite` | D3 | 0.9B |
+| `vllm-sr/d3-edge` | D3 | 0.6B |
+
+Every model reads up to 32,768 tokens of state and questions. `GET /api/decision-models/` returns the list.
+
+## Decision rows
+
+A decision row puts the request in `input` and the answers in `expected_output`:
+
+```json
+{"input": {
+   "state": "Ticket: I was charged twice for order 1002. Fix it now!",
+   "questions": {
+     "route":  {"type": "choice", "instructions": "Which team handles this ticket?",
+                "criteria": {"billing": "Billing and payments", "shipping": "Delivery"}},
+     "urgent": {"type": "noul",   "instructions": "Is the customer asking for urgent help?"},
+     "mood":   {"type": "score",  "instructions": "How upset is the customer?",
+                "criteria": ["calm", "annoyed", "angry"]}}},
+ "expected_output": {"route": "billing", "urgent": "true", "mood": 2}}
+```
+
+| Question | Criteria | Answer |
+| --- | --- | --- |
+| `choice` | An object of option keys and their descriptions (2–255) | An option key |
+| `noul` | Optional descriptions of `true` and `false` | `true` or `false` |
+| `score` | A list of levels, lowest first (2–255) | The level's index: `0`, `1`, … |
+
+An answer can also be a spread of weights, such as `{"billing": 3, "shipping": 1}`; Overmind normalises it. Every question needs an answer, and a row has at most 100 questions.
+
+The dataset page shows **Ready for decision training** (or **evaluation**) when every row is valid, and otherwise names the first row that is not and why. Decision rows are only for decision models: chat training, eval runs and the optimiser refuse them. A coding agent connected over [MCP](/platform/mcp) reads the format from `overmind://decision-models`.
+
+## Train
+
+<Steps>
+  <Step title="Shape the data">
+    A **training** dataset of decision rows, and optionally an **evaluation** dataset of decision rows with different examples.
+  </Step>
+  <Step title="Start a job">
+    On the dataset page, select **Train a decision model**, or open **Training → Decision models → New decision job**. Choose the training data, the evaluation data and a base model. Over MCP, call `start_decision_job`; over REST, `POST /api/decision-jobs/`.
+  </Step>
+  <Step title="Follow it">
+    The job runs **Queued → Running → Evaluating → Succeeded**. Its versions are frozen when it starts, so later versions do not change it. Cancel stops it at any point.
+  </Step>
+</Steps>
+
+Training runs on one H100 and is charged for its GPU time, from start to finish, when the job ends.
+
+## Evaluation
+
+With evaluation data, the job scores the base model and the trained model on every row once training ends:
+
+| Metric | Meaning |
+| --- | --- |
+| **Accuracy** | How often the most likely option is the right one |
+| **Log loss** | How much probability the model gave the right answer; lower is better |
+| **Brier** | How far the probabilities are from the answers; lower is better |
+
+Each question also gets its own accuracy and a per-option precision, recall and confusion matrix.
+
+## Use the model
+
+A succeeded job answers System One requests:
+
+```bash
+curl https://api.overmindlab.ai/api/decision-jobs/$JOB_ID/systemone/ \
+  -H "Authorization: Bearer $OVERMIND_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"state": "Ticket: where is my parcel?",
+       "questions": {"route": {"type": "choice", "instructions": "Which team handles this?",
+                               "criteria": {"billing": "Billing", "shipping": "Shipping"}}}}'
+```
+
+```json
+{"model": "OvermindLab/qwen-3.5-0.8B-decision",
+ "answers": {"route": {"type": "choice", "choice": "shipping", "confidence": 0.94,
+                       "probabilities": {"billing": 0.06, "shipping": 0.94}}},
+ "usage": {"input_tokens": 61, "output_tokens": 0}}
+```
+
+`POST /api/decision-models/{model}/systemone` (with `project` in the body) answers with a catalog model as published, without training. A `noul` answer is `{"noul": p}`, the probability of `true`; a `score` answer carries `score` (the expected level), `confidence` and `probabilities` by level index.
+
+A model that has not served for a few minutes starts again on its first request: the request returns **503** with `Retry-After`, and the retry is answered. Each request is charged for the GPU time it uses, at least one second.

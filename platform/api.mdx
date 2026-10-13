@@ -74,6 +74,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Optimisation runs | `/api/optimizer-experiments/` | `GET`, `POST` (credit-gated), `DELETE`; `?capability=`; `GET .../iterations/`, `GET .../commands/?status=`, `POST .../cancel/`, and the client-loop actions the CLI posts: `POST .../template/`, `POST .../add-iteration/`, `POST .../results/`, `POST .../evaluate/`, `POST .../complete/` |
 | Candidates | `/api/optimizer-candidates/` | read |
 | Training runs | `/api/finetuning-jobs/` | create launches (credit-gated); `GET runs/` (jobs grouped by `group_id`, whole runs per page), `GET datasets/`, `GET base-models/`, `GET models/` (the catalog by tier), `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `POST model-defaults/`, `GET dataset-overlap/?dataset=&eval_dataset=`, `GET .../events/`, `GET .../loss-curves/`, `POST .../cancel/`, `POST .../retry/`, `GET .../model-swap-prompt/?pin=` |
+| Decision models | `/api/decision-models/` | `GET` (the catalog), `POST {model}/systemone` (answer with a catalog model; credit-gated) |
+| Decision jobs | `/api/decision-jobs/` | `GET`, `POST` (train on `dataset` + optional `version`, `eval_dataset`, `eval_version`; credit-gated), `?project=`; `POST .../cancel/`, `POST .../systemone/` (answer with the trained model; 503 with `Retry-After` while it starts) |
 | Deployed models | `/api/deployed-models/` | `GET`, `DELETE`; `POST .../deploy/`, `POST .../retry/` (both credit-gated), `POST .../undeploy/`, `GET .../metrics/`, `GET .../activity/`, `GET .../live/`, `GET .../checkpoints/` (a presigned download link) |
 
 ### Special endpoints

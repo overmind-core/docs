@@ -142,6 +142,7 @@ Script runs are idempotent. A call that returns `queued` or `running` is still w
 | `set_active_model` | `capability`, `deployment?` | Verify a ready deployment, then switch the alias; poll the returned `model_activation` job. Omit deployment to clear routing |
 | `set_benchmark_model` | `capability`, `deployment?` | Choose a ready trained deployment as the capability's default training benchmark; omit deployment to use the codebase incumbent. Does not change serving |
 | `run_inference` | `deployment`, `messages`, `temperature?`, `max_tokens?` | One chat completion against a ready deployment using production output budgets, with usage, latency and finish reason |
+| `start_decision_job` | `model`, `dataset`, `eval_dataset?` | Train a [decision model](/models/decision-models) on the active version of a dataset of decision rows; with `eval_dataset`, score the base and trained model on it. Returns a `decision_job` receipt |
 | `get_model_swap_prompt` | `finetune`, `pin?` | A copy-paste prompt that points the capability's code at a successful fine-tune; the agent applies it locally |
 
 `run_inference` uses the production serving output reservation when `max_tokens` is omitted or null (currently 8,192 tokens). Explicit positive integer budgets have no MCP-specific ceiling. The model server validates the templated input plus reserved output against the deployment's context; an oversized request returns `context_length_exceeded` without silently reducing its budget. Generation exhaustion is reported by `finish_reason` and `truncated`. The MCP response's `content` is separately bounded to 32,000 characters, with `content_clipped` indicating any response clipping.
@@ -173,7 +174,7 @@ A connector is created with its provider credentials through `overmind connector
 
 ### Jobs
 
-Background work returns a **job receipt** — `kind`, `id`, `status` and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `connector_sync`, `eval_run`, `training_preparation`, `finetune` (alias `finetune_job`), `optimizer` (aliases `optimizer_run`, `optimizer_experiment`), `deployment` and `model_activation`.
+Background work returns a **job receipt** — `kind`, `id`, `status` and an `overmind://jobs/{kind}/{id}` resource — that `get_job` reads back. Kinds: `dataset_run`, `connector_sync`, `eval_run`, `training_preparation`, `finetune` (alias `finetune_job`), `optimizer` (aliases `optimizer_run`, `optimizer_experiment`), `deployment`, `model_activation` and `decision_job`.
 
 Names resolve within the project: capability arguments take an id, key or name; connectors take an id or name; dataset tools prefer the UUID `list_datasets` returned because dataset names are not unique.
 
@@ -206,6 +207,7 @@ Read-only project entity state under `overmind://`. Account connections add `?pr
 | `overmind://project/current` | The authenticated project identity, provenance, safe metadata and ordinary `console_url` |
 | `overmind://dataset-upload` | CLI guidance for uploading local dataset bytes |
 | `overmind://dataset-export` | CLI guidance for downloading a committed dataset |
+| `overmind://decision-models` | Trainable decision models and the decision row format |
 | `overmind://checkpoint-download` | CLI guidance for downloading an archived checkpoint |
 | `overmind://connector-setup` | CLI guidance for `overmind connector add` — provider keys never cross MCP |
 
