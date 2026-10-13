@@ -70,7 +70,7 @@ docker compose exec api python manage.py seed_demo --owner you@example.com
 
 The Data Workshop has no agent. Coding agents add dataset versions with Python scripts over MCP, and the `sandbox` service runs them and extracts uploaded documents (`python -m sandbox`, the same image). Only the landing and interactive workers reach it, over the Compose `sandbox_net` network, which has no route out. The sandbox holds no secrets other than `SANDBOX_TOKEN` and no data volume.
 
-It runs as root so each run gets its own uid, and it needs `CAP_SYS_PTRACE` to count the memory a run holds in files no directory lists; Compose adds it. Runs hold no capability. Each run reserves memory before its input is stored; `SANDBOX_MEMORY_BYTES` overrides the budget, which defaults to 60% of the container's memory. `/tmp` is a tmpfs (8 GB in Compose). Document extraction uses Tesseract with English language data, which the image installs.
+It runs as root so each run gets its own uid, and it needs `CAP_SYS_PTRACE` to count the memory a run holds in files no directory lists. Compose adds it, keeps only the capabilities the server uses (`CHOWN`, `DAC_OVERRIDE`, `FOWNER`, `KILL`, `SETGID`, `SETUID`) and sets `no-new-privileges`. Runs hold no capability. Each run reserves memory before its input is stored; `SANDBOX_MEMORY_BYTES` overrides the budget, which defaults to 60% of the container's memory. `/tmp` is a tmpfs (8 GB in Compose). Document extraction uses Tesseract with English language data, which the image installs.
 
 | Variable | Purpose |
 | --- | --- |
