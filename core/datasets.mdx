@@ -43,7 +43,7 @@ A single value longer than 200,000 characters — a tool call carrying a seriali
 
 ### Retry an interrupted import
 
-Imports use a dedicated worker queue. If an import waits too long, its worker stops, or the sandbox is busy or unavailable while extracting a document, the dataset shows the error and keeps its uploaded source. Select **Retry import** to resume it. You do not need to upload the file again unless the error says the source is missing or has changed.
+Imports use a dedicated worker queue. If an import waits too long, its worker stops, or the sandbox is busy or unavailable while extracting a document, the dataset shows the error and keeps its uploaded source. Select **Retry import** to resume it. You do not need to upload the file again unless the error says the source is missing or has changed. An error in the source itself, such as an unreadable document, offers no retry: fix the file and upload it again.
 
 ## Shape it from your agent
 
@@ -55,7 +55,7 @@ Overmind has no dataset agent. Your coding agent shapes a dataset with scripts, 
 4. `add_dataset_version` runs the script on a parent version and stores the result as a new, **inactive** version with its impact.
 5. `activate_dataset_version` makes a version the one runs read, after you agree.
 
-A script reads `df` (a copy of the parent version) and `source` (the parent, unchanged) and leaves a new `df`. pandas, numpy and `prepare_examples` are loaded; the standard library and libraries such as pyarrow, DuckDB, scikit-learn, rapidfuzz and tiktoken can be imported. There is no network and no file access. A run stops after 300 seconds, 120 seconds of CPU, or when it outgrows the memory reserved for its parent.
+A script reads `df` (a copy of the parent version) and `source` (the parent, unchanged) and leaves a new `df`. pandas, numpy and `prepare_examples` are loaded; common standard library modules and libraries such as pyarrow, DuckDB, scikit-learn, rapidfuzz and tiktoken can be imported, and a refused import names the module. There is no network, and a run cannot see other runs or your other data. A run stops after 300 seconds, 120 seconds of CPU, or when it outgrows the memory reserved for its parent; files it writes count toward that memory.
 
 `prepare_examples(df, intent="train" | "eval")` builds `messages`, or `input` and `expected_output`, from common shapes. Keep the `source_row` column: it is row identity across versions, and diffs and impact rely on it.
 
@@ -77,7 +77,7 @@ Opening a dataset shows its versions as a tree of cards: each card under its par
 
 A card shows the script (read only), what it printed, its **Changes** against the parent, and its rows. The table marks new rows and shows changed values as a word-level diff against the parent. On the active card, a chip names the first contract that fails and how to fix it. Other cards have **Set active**.
 
-The Console changes only the dataset's settings: **Dataset settings** sets the name, intent and capability, and **Set active** picks the active version. It does not add versions. With only `v0`, the canvas shows **No versions yet** and **Connect an agent**. The workshop status reads **Running N scripts** while runs are queued or running; open it for the last 20 runs, with their errors. The folder button lists the project's datasets beside the canvas.
+The Console changes only the dataset's settings: **Rename dataset** sets the name, the fit chip on the active card offers a matching intent or a better capability, and **Set active** picks the active version. Other changes go through `update_dataset`. The Console does not add versions. With only `v0`, the canvas shows **No versions yet** and **Connect an agent**. The workshop status reads **Running N scripts** while runs are queued or running; open it for the last 20 runs, with their errors. The folder button lists the project's datasets beside the canvas.
 
 ## Versions
 
@@ -163,6 +163,8 @@ Over REST you can create a dataset, read its versions and runs, page through row
 | `The document could not be extracted. Check that it is readable and not password protected.` | Remove the password, or export a readable copy |
 | `No text was found after OCR. Check that the document contains legible text.` | Use a clearer scan or the source document |
 | `Two rows are needed to split.` | Add rows, or create a single dataset |
+| `Two documents are needed to split.` | Upload a second document, or create a single dataset |
+| `All rows are one group (…). A split needs two.` | The rows share one input, conversation, trace, document or seed; add independent rows |
 | `no messages column` / `no input column` | Add a version that builds the column, for example with `prepare_examples` |
 | `Longest dataset row is ≈N tokens but this model's … context is M tokens` | Add a version that shortens the long rows, or pick a model with a longer context |
 | `The source is still landing.` | Wait for landing to finish |
