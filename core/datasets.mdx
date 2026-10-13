@@ -5,13 +5,13 @@ description: Turn your production traffic and documents into the eval and traini
 
 A dataset is the data your eval runs, optimisation runs and training runs read. It is a landed source, `v0`, and a tree of immutable versions. Each version is a Python script that ran on one parent version; your coding agent adds versions over [MCP](/platform/mcp), and Overmind runs every script in an isolated sandbox. A version never changes after it exists.
 
-Two things say what a dataset is for: its **intent** (`train` or `eval`) and the **capability** it belongs to. Capability is optional. The intent can stay pending until you decide. Both are fixed once a run uses a version.
+Two things say what a dataset is for: its **purpose** (training or evaluation; `intent` in the API) and the **capability** it belongs to. Capability is optional. The purpose can stay unset until you decide. Both are fixed once a run uses a version.
 
 ## Create a dataset
 
-Select **New dataset** on the Datasets page, add files, enter a name, then choose a **Capability** (**Decide from the rows**, **None**, or a project capability) and a **Purpose**: **Choose in workshop** (the default; the intent stays pending), **Evaluation**, **Training**, or **Train + eval**.
+Select **New dataset** on the Datasets page, add files, enter a name, then choose a **Capability** (**Detect from the rows**, **None**, or a project capability) and a **Purpose**: **Decide later** (the default), **Training**, **Evaluation**, or **Split into training and evaluation**.
 
-**Train + eval** creates two datasets from the combined source. The evaluation share defaults to 30%; choose first, last or random rows. Exact duplicates are removed before splitting, while matching inputs, traces, conversations, documents and synthetic seed descendants stay together. Preview counts are estimates: grouping can change the final share, and at least two independent groups are required. Custom grouping and stratification are available through REST and MCP. Near-duplicate similarity is not checked.
+**Split into training and evaluation** creates two datasets from the combined source. The evaluation share defaults to 30%; take the evaluation rows from the first rows, the last rows or random rows. Exact duplicates are removed before splitting, while matching inputs, traces, conversations, documents and synthetic seed descendants stay together. Preview counts are estimates: grouping can change the final share, and at least two independent groups are required. Custom grouping and stratification are available through REST and MCP. Near-duplicate similarity is not checked.
 
 <Frame caption="The New dataset dialog: files, name, capability and purpose.">
   <img src="/images/platform/new-dataset-dialog.jpg" alt="New dataset dialog" />
@@ -75,9 +75,9 @@ Opening a dataset shows its versions as a tree of cards: each card under its par
   <img src="/images/platform/workshop.jpg" alt="Data Workshop canvas with version cards" />
 </Frame>
 
-A card shows the script (read only), what it printed, its **Changes** against the parent, and its rows. The table marks new rows and shows changed values as a word-level diff against the parent. On the active card, a chip names the first contract that fails and how to fix it. Other cards have **Set active**.
+A card shows its actions first, then the script (read only), what it printed, its changes against the parent, and its rows. The table marks new rows, shows changed values as a word-level diff against the parent, and shows a chat column as a conversation when you open a row. On the active card, a chip reads **Ready for training** or **Ready for evaluation**, or names the first check that fails and how to fix it. Other cards have **Set active**.
 
-The Console changes only the dataset's settings: **Rename dataset** sets the name, the fit chip on the active card offers a matching intent or a better capability, and **Set active** picks the active version. Other changes go through `update_dataset`. The Console does not add versions. With only `v0`, the canvas shows **No versions yet** and **Connect an agent**. The workshop status reads **Running N scripts** while runs are queued or running; open it for the last 20 runs, with their errors. The folder button lists the project's datasets beside the canvas.
+The Console changes only the dataset's settings: **Rename dataset** sets the name, the fit chip on the active card offers a matching intent or a better capability, and **Set active** picks the active version. Other changes go through `update_dataset`. The Console does not add versions. With only `v0`, the page reads **No versions yet** and links to connecting a coding agent. **Activity** reads **Running N scripts** while runs are queued or running; open it for the last 20 runs, with their errors. The folder button lists the project's datasets beside the canvas.
 
 ## Versions
 
@@ -87,12 +87,12 @@ A version a run uses is marked **Used**: it cannot be deleted, and the run links
 
 ## Contracts
 
-Overmind measures every version against what your intent needs, and shows on the page whether it fits:
+Overmind measures every version against what its purpose needs, and shows on the page whether it fits:
 
-| Intent | Shape | Per row | Feeds |
+| Purpose | Shape | Per row | Feeds |
 | --- | --- | --- | --- |
-| **Train** | A `messages` column, every row a chat transcript with an assistant turn (`tools` optional) | Task instructions and tools are preserved; model-specific formatting is checked during training preparation | [Model training](/models/training) |
-| **Eval** | An `input` on every row and an `expected_output` column with real references | Model transcripts retain task context and evidence; application entry-point objects carry the declared input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
+| **Training** | A `messages` column, every row a chat transcript with an assistant turn (`tools` optional) | Task instructions and tools are preserved; model-specific formatting is checked during training preparation | [Model training](/models/training) |
+| **Evaluation** | An `input` on every row and an `expected_output` column with real references | Model transcripts retain task context and evidence; application entry-point objects carry the declared input keys | [Eval runs](/agent-testing/eval), the [Optimiser](/agent-testing/optimisers), backtests |
 
 Rows that cannot meet a technical contract are counted with the reason, never filled in with a default; add a version that repairs them. Only unreadable or technically incompatible data blocks a run. Capability mismatch and train/eval overlap are warnings. Overmind measures technical fit; task suitability is for you and your agent to judge from the rows.
 
