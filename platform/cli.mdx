@@ -70,7 +70,7 @@ overmind sync up                   # same as default
 | `--path` | `overmind.toml` | Path to the connection file |
 | `--root` | `.` | Repository root to scan |
 
-`overmind sync` walks Python sources under `--root`, collects `@capability` / `@observe` / `task()` call sites (never imports the app), and POSTs the AgentManifest. The server derives capability cards, mints behaviours, stores invokes edges, and enqueues Default-set preload. When `project-id` is missing and the key is **account-scoped**, it creates a project named after `project-name` in the toml (seeded at init from the repo directory), writes `project-id`, saves a project-scoped key to `.overmind/credentials.toml`, and rewrites every configured MCP entry with it. Reload the coding agent once after that. Project-scoped keys cannot create a project — set `project-id` first.
+`overmind sync` walks Python sources under `--root`, collects `@capability` / `@observe` call sites (never imports the app), and POSTs the AgentManifest. The server derives capability cards, stores invokes edges, and keeps each capability's Default eval set: one LLM row per declared expectation plus the seeded checks. When `project-id` is missing and the key is **account-scoped**, it creates a project named after `project-name` in the toml (seeded at init from the repo directory), writes `project-id`, saves a project-scoped key to `.overmind/credentials.toml`, and rewrites every configured MCP entry with it. Reload the coding agent once after that. Project-scoped keys cannot create a project — set `project-id` first.
 
 `overmind.toml` holds connection settings only (`base-url`, `project-id`, `project-name`). Commit it. Do not commit `.overmind/credentials.toml`.
 
@@ -177,7 +177,7 @@ Each verb takes `--experiment`/`-e` (default: the active experiment) and posts i
 overmind backtest --models openai/gpt-5-mini,anthropic/claude-sonnet-4.5 --since 7d
 ```
 
-Scores candidate models on stored `llm_call` spans. It does not run the application or its tools. Each span becomes one eval row: the recorded request, and the recorded completion as the reference. The command waits, prints each model's score against that baseline, and exits 1 if any candidate regresses. Exit 2 means the wait budget ran out.
+Scores candidate models on stored `llm_call` spans. It does not run the application or its tools. Each span becomes one eval row: the recorded request, and the recorded completion as the reference. One [run group](/agent-testing/eval#run-an-evaluation), graded by the capability's active eval set, scores the recorded completions as the baseline and each model as a generate target. The command waits, prints each model's paired comparison against the baseline, and exits 1 if any candidate regresses. Exit 2 means the wait budget ran out.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -190,7 +190,7 @@ Scores candidate models on stored `llm_call` spans. It does not run the applicat
 | `--timeout` | `45m` | How long to wait for landing and scoring |
 | `--project-id`, `--api-key`, `--api-url`, `--path` | resolved | As for `dataset upload` |
 
-The capability needs an active eval set with generative evaluators. `overmind optimise` remains the path that reruns the repository.
+The capability needs an active eval set. `overmind optimise` remains the path that reruns the repository.
 
 ## `overmind finetune`
 

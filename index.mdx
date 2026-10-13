@@ -10,13 +10,13 @@ import { Ascii } from "/snippets/ascii.jsx";
     "╔═ Overmind ════════════════════════════════════════════════════════════════════════════╗",
     "║    ╔═════════════════════╗    ╔═══════════════════════════╗                           ║",
     "║ ┌─▶║     OTLP ingest     ╟───▶║     Spans in Postgres     ║                           ║",
-    "║ │  ║ POST /api/v1/traces ║    ║ scored per task execution ║                           ║",
+    "║ │  ║ POST /api/v1/traces ║    ║ scored live, span by span ║                           ║",
     "║ │  ╚═════════════════════╝    ╚═════════════╤═════════════╝                           ║",
     "║ │             ┌─────────────────────────────┘                                         ║",
     "║ │             ▼                                                                       ║",
     "║ │  ╔═════════════════════╗    ╔══════════════════════╗   ╔═════════════════════════╗  ║",
     "║ │  ║       Datasets      ╟─┬─▶║      Eval runs       ╟──▶║        Optimiser        ╟┐ ║",
-    "║ │  ║ curated from traces ║ │  ║ variants vs baseline ║   ║ diffs replayed + scored ║│ ║",
+    "║ │  ║ curated from traces ║ │  ║  targets vs baseline ║   ║ diffs replayed + scored ║│ ║",
     "║ │  ╚═════════════════════╝ │  ╚══════════════════════╝   ╚═════════════════════════╝│ ║",
     "║ │                          │                                                        │ ║",
     "║ │                          │  ╔════════════════════╗     ╔═══════════════════════╗  │ ║",
@@ -41,7 +41,8 @@ Overmind is built on top of standard protocols so no matter what agent you use, 
 
 What Overmind does:
 - [Capability scan](/core/capabilities): Scanning your codebase for AI agents and different agentic capabilities.
-- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the agent's eval set
+- [Live scoring](/agent-testing/trace-scoring): every span is scored against the eval matrix as it arrives, and every finished trace earns a trajectory score
+- [Signals](/agent-testing/signals): subscribed patterns over recent spans, such as falling scores, failing tools or cost spikes, raised in the Console
 - [Datasets from traces](/core/datasets): traces from real environments become eval and training data, no synthetic data, no data poisoning, no hallucinations.
 - [Evaluations](/agent-testing/eval): your in house quality control loop, measured using a typed score, ensuring the agent is always improving.
 - [Optimiser](/agent-testing/optimisers): An AI Engineer running experiments on your repository, trying to improve the agent's performance while adhering to your quality control loop.
@@ -60,11 +61,11 @@ What Overmind does:
   </Card>
 
   <Card title="Observability" href="/core/observability">
-    OTLP ingest, span model, attribute mapping, the executions view.
+    OTLP ingest, span model, attribute mapping, the traces view.
   </Card>
 
   <Card title="Python SDK" href="/tracing/sdk-python">
-    `init()`, the run boundary, decorators, tasks, runtime expectations.
+    `init()`, the run boundary, decorators, runtime expectations.
   </Card>
 
   <Card title="Agent & Capabilities" href="/core/capabilities">
@@ -76,11 +77,15 @@ What Overmind does:
   </Card>
 
   <Card title="Eval" href="/agent-testing/eval">
-    Evaluator kinds, claims, task bindings, eval runs.
+    Configure criteria, run them over datasets, compare with a baseline.
   </Card>
 
-  <Card title="Trace scoring" href="/agent-testing/trace-scoring">
-    Units, tasks, verdicts, execution and session scores.
+  <Card title="Live scores" href="/agent-testing/trace-scoring">
+    Span and trajectory scores on production traces, score history.
+  </Card>
+
+  <Card title="Signals" href="/agent-testing/signals">
+    The signal catalog, subscriptions, in-app events.
   </Card>
 
   <Card title="Optimisers" href="/agent-testing/optimisers">

@@ -48,10 +48,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Capabilities | `/api/capabilities/` | list is `status=current` unless `?status=leftover`; `PATCH` any field but `slug` (`name`, `description`, `model`, `active_model` — a `ready` deployment in the same project — the eval-spec fields); `DELETE` sets `status=deleted` and keeps traces, datasets and runs; `GET .../eval_spec/`; `GET .../prompts/` (selectable system prompts, paged) |
 | Agent graph | `GET /api/agent/?project=` | current capabilities plus `invokes` / `shares_tool` edges weighted by observed transitions |
 | Sync | `POST` / `GET /api/v1/sync` | what `overmind sync` sends: `{project_id, repo_summary, trace_provider, version, capabilities}`; API key only; project keys must match `project_id`; POST reconciles identity (carry / leftover / remount) and returns the snapshot with ids filled in; GET returns leftovers as `archived=true` |
-| Traces | `/api/traces/` | list returns one head span per trace (the root once it arrives) with `trace_status` (`live`, `completed`, `interrupted`), per-trace `total_tokens`/`total_cost`/`model`, `scoring_pending` and `feedback_score`; `?all_spans=true` lists spans instead; `GET /{trace_id}/` returns `root`, `span_count`, `trace_status`, `usage` and every span; `GET services/`, `GET models/` |
-| Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score`; `GET /{id}/` |
-| Task executions | `/api/task-executions/` | read-only; one row per unit bound to a behaviour — filters in [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api); `GET /{id}/` adds `observed_route`, `step_results`, `user_intent`, `execution_score` and `flow`; `GET conversation-turns/?conversation_id=` (one row per turn) |
-| Behaviours | `/api/behaviours/` | list only (`execution_count`, `avg_success_score`); `GET coverage/?capability=`; `GET /{id}/evaluators/` (the compiled step and outcome judges); `GET /{id}/authoring-context/` (the latest contract's steps, tool set and terminal). The Console labels this column "Task" |
+| Traces | `/api/traces/` | list returns one head span per trace (the root once it arrives) with `trace_status` (`live`, `completed`, `interrupted`), per-trace `total_tokens`/`total_cost`/`model` and the root's `eval_attributes` ([span and trajectory scores](/agent-testing/trace-scoring)); `?all_spans=true` lists spans instead; `GET /{trace_id}/` returns `root`, `span_count`, `trace_status`, `usage` and every span; `GET services/`, `GET models/` |
+| Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score` (the mean trajectory score of its traces); `GET /{id}/` |
 | Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, read (cells with versions, chat), patch (`name`, `intent`, `capability`, `active`; intent and capability are fixed once a version is used), delete (refused while a version is referenced); `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `POST .../cells/`, `PATCH/DELETE .../cells/{id}/`, `POST .../cells/{id}/accept/`, `POST .../run/`, `POST .../chat/`, `GET .../export/`, `GET .../events/` — see [Building a dataset](#building-a-dataset) |
 | Uploads | `/api/uploads/` | `POST` with `filename` reserves an upload → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; the id goes into a dataset `source.upload_id` |
 | Feedback | `POST /api/feedback/` | Console feedback |
@@ -61,11 +59,18 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
-| Evaluators | `/api/evaluators/` | `GET catalog/?project=&capability=&search=` (unpaged), `GET score-history/?capability=`, `POST author/` (an `llm_judge` from a prompt; optionally attached to an eval set), `PUT /{id}/author/` (edit in place), `POST generate-prompt/` (credit-gated) |
-| Eval sets | `/api/eval-sets/` | `POST .../members/` (`role` plus `evaluator_ids` and/or `specs`), `PATCH/DELETE .../members/{member_id}/`, `POST .../activate/` |
-| Eval runs | `/api/eval-runs/` | create launches (credit-gated); `GET datasets/` (datasets that have runs), `POST .../run/` (re-launch: deletes the run's samples and scores first), `POST .../cancel/`, `GET .../comparison/` |
-| Verdicts | `/api/verdicts/` | list only — one row per evaluator per target; filter by `trace_id`, `target_id`, `target_id__in`, `target_kind`, `evaluator_name`, `outcome` |
-| Samples / scores | `/api/eval-samples/`, `/api/eval-scores/` | read |
+| Eval matrix | `/api/eval-matrix/` | [matrix rows](/agent-testing/eval#the-eval-matrix); filters `project`, `capability` (that capability's and project-wide rows), `type`, `enabled`, `span_type`; deterministic sources are audited on write; rows are created and deleted, not patched |
+| Eval sets | `/api/eval-sets/` | `rows` (matrix row ids); `POST .../activate/` |
+| Eval runs | `/api/eval-runs/` | create takes `targets` and returns `{group, runs}` (credit-gated); filters `project`, `status`, `mode`, `dataset`, `group`, `is_baseline`, `capability`, `created_after`, `created_before`; `GET datasets/` (datasets that have runs), `POST context-check/`, `POST .../run/` (re-launch), `POST .../cancel/`, `GET .../comparison/` (against the group's baseline) |
+| Eval run rows | `/api/eval-run-rows/` | read; filters `run`, `state`, `degraded`, `row_index` |
+| Eval scores | `/api/eval-scores/` | read; the score history of spans, trajectories and run rows; filters `project`, `source_type`, `source_id`, `source_id__in`, `run`, `trace_id` |
+
+### Signals
+
+| Resource | Base path | Custom actions |
+| --- | --- | --- |
+| Signal subscriptions | `/api/signal-subscriptions/` | `GET catalog/` (every signal with its params and defaults); one subscription per project, capability and signal type |
+| Signal events | `/api/signal-events/` | read; filters `project`, `unseen`, `signal_type`, `capability`, `trace_id`, `conversation`; `POST mark-seen/` (`project`, optional `ids`) |
 
 ### Optimisation, training, serving
 
@@ -83,7 +88,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | `POST /api/v1/traces` (alias `/v1/traces`) | [OTLP trace ingest](/core/observability#the-otlp-endpoint) — protobuf, not JSON; never credit-gated |
 | `POST /api/mcp/` | The [MCP server](/platform/mcp) — Streamable HTTP |
 | `POST /api/v1/chat/completions`, `GET /api/v1/models`, `GET|DELETE /api/v1/models/{model_id}` | [OpenAI-compatible inference](/models/inference#calling-your-model) |
-| `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run variants |
+| `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run targets |
 | `GET /api/public/models/`, `GET /api/public/models/{slug}/` | The public model library, unauthenticated |
 | `GET /health` | Health check (no auth) |
 | `/api/auth/register/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Account, onboarding state, guest workspaces |

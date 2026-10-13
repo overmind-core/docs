@@ -56,7 +56,7 @@ Each step is Python you can read and edit yourself: it reads the previous table 
 
 ### Quality checks and synthetic data
 
-Deterministic quality checks execute against every row and record boolean-or-null results. The workshop can also run [semantic decision checks](/agent-testing/decision-engine#semantic-dataset-checks) for task alignment, input evidence and answer support. Jev uses separate evidence and answer columns with generative fallback. Batches of up to 200 rows resume against the same version and check contract; missing evidence and unprocessed rows remain unknown. An answer is never its own evidence. Audits do not authorize edits.
+Deterministic quality checks execute against every row and record boolean-or-null results. Ask the dataset's chat to check task alignment, input evidence or answer support and it reviews real rows against the columns you name; an answer is never its own evidence. Rows it could not check stay unknown. Checks report findings and never change rows.
 
 Quality and capability-alignment findings remain advisory, including train/eval overlap. Only unreadable or technically incompatible data blocks a consumer. Reports preserve measured coverage and provenance; unsupported labels are not guessed.
 
@@ -111,7 +111,7 @@ Everything the workshop does is available over REST: create a dataset, add or ed
 
 <CardGroup cols={2}>
   <Card title="Run an eval" href="/agent-testing/eval">
-    Measure variants against a baseline with the dataset you just built.
+    Measure targets against a baseline with the dataset you just built.
   </Card>
   <Card title="Train a model" href="/models/training">
     Fine-tune on your own traffic and benchmark it against what you ship today.

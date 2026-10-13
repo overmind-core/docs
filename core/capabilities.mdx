@@ -5,7 +5,7 @@ description: How Overmind models your agent — one graph per project, made of c
 
 import { Ascii } from "/snippets/ascii.jsx";
 
-Your **agent** in Overmind is the product itself: one per project, mapped as a graph of **capabilities**. A capability is one purpose the product serves — triage tickets, answer from the knowledge base, resolve a dispute. Each capability record joins two sides: static structure from your repository (entry points, prompts, tools, modes, call edges) and runtime behaviour from telemetry (traces, task executions, live scores). Everything else on the platform hangs off capabilities — traces bind to one, datasets are aligned to one, eval sets belong to one, optimisation runs edit a capability's code, and trained models are benchmarked against the model a capability runs in production.
+Your **agent** in Overmind is the product itself: one per project, mapped as a graph of **capabilities**. A capability is one purpose the product serves — triage tickets, answer from the knowledge base, resolve a dispute. Each capability record joins two sides: static structure from your repository (entry points, prompts, tools, modes, call edges) and runtime behaviour from telemetry (traces, live span and trajectory scores). Everything else on the platform hangs off capabilities — traces bind to one, datasets are aligned to one, eval sets belong to one, optimisation runs edit a capability's code, and trained models are benchmarked against the model a capability runs in production.
 
 ## How capabilities get into Overmind
 
@@ -47,29 +47,28 @@ Your **agent** in Overmind is the product itself: one per project, mapped as a g
 Discovery runs in your repository, not on the server. `/overmind setup` in your coding agent drives it; `overmind sync` is the CLI half. See the [CLI](/platform/cli).
 
 ```python
-from overmind import capability, observe, task, Expectation
+from overmind import capability, observe
 
 @capability("triage", description="Resolve a support ticket end to end")
 def handle_ticket(ticket: Ticket) -> Reply:
-    with task("refund-flow", unit="turn"):
-        order = lookup_order(ticket.order_id)
-        return decide(ticket, order)
+    order = lookup_order(ticket.order_id)
+    return decide(ticket, order)
 
 @observe(type="tool")
 def lookup_order(order_id: str) -> Order: ...
 
 @observe(type="llm", prompt=TRIAGE_PROMPT,
-         expectations=[Expectation("constraint", "cites the refund policy")])
+         expectations=["The reply cites the refund policy."])
 def decide(ticket: Ticket, order: Order) -> Reply: ...
 ```
 
-1. **Decorate** agent entry points with `@capability`, tools/LLM calls with `@observe`, and scored units with `task()`.
-2. **`overmind sync`** AST-scans decorator call sites (never imports the app), POSTs an AgentManifest, and the server derives the capability card, mints behaviours from `task()` + the call graph, stores invokes edges, and enqueues Default-set preload.
+1. **Decorate** agent entry points with `@capability` and tools/LLM calls with `@observe`.
+2. **`overmind sync`** AST-scans decorator call sites (never imports the app), POSTs an AgentManifest, and the server derives the capability card, stores invokes edges, and keeps the capability's Default [eval set](/agent-testing/eval#eval-sets), including the `expectations` the decorators declare. Sync again after you change them.
 3. Spans bind by `overmind.capability.id`, then `overmind.capability.slug`, then the span's entrypoint qualname against `Capability.entrypoint_fn`. Ingest never creates a capability.
 
 A capability the push no longer includes becomes a **leftover**: it keeps its id and data, leaves the agent view, shows a **Not in latest sync** badge, and remounts in place when a later push reproduces it. The `@capability("...")` slug is the server identity — rename a capability by editing its display name, never the slug.
 
-`overmind.toml` holds connection settings only (`base-url`, `project-id`, `project-name`). Cards are derived server-side; do not hand-author them locally.
+`overmind.toml` holds connection settings (`base-url`, `project-id`, `project-name`), the scanned capabilities and each capability's deterministic [checks](/agent-testing/eval#checks-in-the-toml). Judge criteria live on the decorators. Let `/overmind setup` write the file; edit only the checks by hand.
 
 ## The Console
 

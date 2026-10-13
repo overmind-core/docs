@@ -19,6 +19,7 @@ Overmind has first class integration with cursor, claude code, opencode, and cod
     - Overmind will now scan your repository for [AI Agents & Capabilities](/core/capabilities#the-scan), you can see them in the [Console](https://console.overmindlab.ai)
     - If you want any changes in how they are grouped, evals, etc, just ask your coding agent to do it.
     - Next step is to ensure your codebase is instrumented properly for [tracing using OTLP endpoint](/core/observability#the-otlp-endpoint), just run `/overmind ensure-tracing` in your coding agent.
+    - Setup declares each capability's judge criteria as `expectations` on the decorators and syncs again, so live scores, backtests, the optimiser and training all grade with the same [eval set](/agent-testing/eval#set-up-evals). Run `overmind sync` again whenever you change them.
 
   </Step>
   <Step title="Improve the agent with /overmind commands">
@@ -34,11 +35,7 @@ Overmind has first class integration with cursor, claude code, opencode, and cod
 
   </Step>
   <Step title="Watch it land in the Console">
-    Once tracing is in, open **Observability**.
-
-    <Frame caption="default view is Task executions: one row per scored unit, with the task it bound to and its execution score.">
-      <img src="/images/platform/observability-executions.jpg" alt="Observability task executions view in the Overmind console" />
-    </Frame>
+    Once tracing is in, open **Observability**. Each run appears under **Root traces** with its trajectory score; open it for the span tree and every span's scores.
   </Step>
 </Steps>
 
@@ -49,7 +46,10 @@ Overmind has first class integration with cursor, claude code, opencode, and cod
     Bracket each run with `overmind.run()` and add `@tool` and `@observe` spans so traces mirror your agent's real control flow.
   </Card>
   <Card title="Read the pushed capabilities" href="/core/capabilities">
-    What sync uploaded: capabilities, prompts, tools, behaviours, and the trajectory map.
+    What sync uploaded: capabilities, prompts, tools, the trajectory map, and each capability's Default eval set.
+  </Card>
+  <Card title="Configure and run evals" href="/agent-testing/eval">
+    Expectations in code, checks in the toml, evaluation runs against a baseline.
   </Card>
   <Card title="Build a dataset from traces" href="/core/datasets">
     Select traces and land them as an eval or training dataset with provenance intact.

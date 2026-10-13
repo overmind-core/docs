@@ -107,11 +107,10 @@ These are the ones you set:
 | --- | --- |
 | `overmind.capability.id` | Binds the span to a [capability](/core/capabilities). The only key that binds — set it as a resource attribute |
 | `overmind.span.type` | `entry_point`, `workflow`, `tool_call`, `function`, `llm_call` or `retrieval` |
-| `overmind.unit_kind` | `run` on the span that brackets one agent run, `turn` on a phase you want scored on its own |
-| `overmind.delivery` | `true` on the span carrying the run's result — what judges grade |
+| `overmind.intent` | The ask the span serves; LLM matrix rows judge against it |
+| `overmind.expectations` | Expectations for this span only, each judged as an LLM row |
+| `overmind.reference_trajectory` | On the root: the tool names the run should call, in order |
 | `conversation.id` | Groups the traces of one multi-turn exchange into a session |
-| `code.namespace`, `code.function.name` | How a run matches the behaviour declared in decorated code |
-| `overmind.behaviour.key` | Names the behaviour explicitly instead of matching on code |
 
 The Python SDK sets all of these for you.
 
@@ -120,7 +119,7 @@ The Python SDK sets all of these for you.
 `overmind.capability.id` takes the capability's UUID. Ingest also resolves `overmind.capability.slug` and the span's entrypoint qualname against `Capability.entrypoint_fn`. A span-level value beats the resource-level one, so one process can serve several capabilities.
 
 <Warning>
-An id Overmind doesn't recognise never creates a capability. The span still arrives and is browsable under the **Unbound** filter, but it belongs to no capability, no evaluators score it, and it joins no dataset until the id resolves. Sync your decorated entry points first, then copy the id or slug into `init()`.
+An id Overmind doesn't recognise never creates a capability. The span still arrives and is browsable under the **Unbound** filter, but it belongs to no capability, only project-wide matrix rows score it, and it joins no dataset until the id resolves. Sync your decorated entry points first, then copy the id or slug into `init()`.
 </Warning>
 
 `overmind.capability.name` is a display label. It never binds anything on its own.
@@ -131,31 +130,18 @@ Put the same `conversation.id` on the traces of one exchange — `set_conversati
 
 ## Scores on arrival
 
-You don't schedule scoring. When a run finishes, Overmind splits the trace into the units of work it contains, matches each one to a behaviour of your capability, and judges it with that capability's active [eval set](/agent-testing/eval#eval-sets). The result is the **Score** column, with every judge's reasoning behind it.
-
-A run that dies before it finishes shows as **interrupted** and is still scored on what it did. [Trace scoring](/agent-testing/trace-scoring) covers how the score is composed.
+You don't schedule scoring. Each span is scored as it arrives against the enabled rows of your [eval matrix](/agent-testing/eval#the-eval-matrix), and once every span of a run is scored the root gets a trajectory score for the whole run. The result is the **Score** column, with every row's reasoning behind it. [Live scores](/agent-testing/trace-scoring) explains each metric, and [Signals](/agent-testing/signals) watch the scores for patterns.
 
 ## What you see in the Console
 
-**Observability** is one filterable table with three views:
+**Observability** is one filterable table with two views:
 
-- **Task executions** (the default) — one row per scored unit of work: the capability, the task it matched, its score, duration, tokens, cost and model. **Group by conversation** folds them under their session.
-- **Root traces** — one row per run. This is the view you select from to build a dataset.
+- **Root traces** (the default) — one row per run, with its trajectory score. This is the view you select from to build a dataset.
 - **Sessions** — one row per conversation, with its session score.
 
 Quick filters cover the usual questions: **Errors**, **Slow (> 5s)**, **Expensive (> $0.01)**, **High tokens (≥ 5k)**. Filters, sort, view and page all live in the URL, so any slice you're looking at is a link you can send to someone.
 
-<Frame caption="Task executions with quick filters. Score is the execution score; Task is the behaviour the run matched.">
-  <img src="/images/platform/observability-executions.jpg" alt="Observability task executions view with quick filters and score column" />
-</Frame>
-
-Click an execution to see what the agent was asked, the route it took through your code, and each judge's verdict with its reasoning — including a marker when two judges disagreed. A conversation opens turn by turn.
-
-<Frame caption="An execution: the intent, the route through the behaviour's steps, and every verdict with its reasoning.">
-  <img src="/images/platform/execution-detail.jpg" alt="Task execution detail sheet with route and verdicts" />
-</Frame>
-
-Click a trace for the span tree — switchable to a flame chart — beside each span's input, output and scores.
+Click a trace for the span tree — switchable to a flame chart — beside each span's input, output and scores: every matrix row's score, verdict and reason, and on the root the trajectory metrics.
 
 <Frame caption="Trace detail: the span tree with token and cost rollups, plus the selected span's input and output.">
   <img src="/images/platform/trace-detail.jpg" alt="Trace detail with span tree and span details panel" />
@@ -182,9 +168,9 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" \
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
   "https://api.overmindlab.ai/api/traces/{trace_id}/"
 
-# Scored units of work
+# Score history for one run
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
-  "https://api.overmindlab.ai/api/task-executions/?capability={id}"
+  "https://api.overmindlab.ai/api/eval-scores/?trace_id={trace_id}"
 ```
 
 Because a Console filter is the same query string, you can copy a URL out of your browser and use it as an API recipe. The [REST API](/platform/api) has the full list, and your coding agent has the same reads as MCP tools.
@@ -192,8 +178,8 @@ Because a Console filter is the same query string, you can copy a URL out of you
 ## Good to know
 
 - Call `init()` once at startup, before the first model call, and give each process its own `service_name`.
-- Auto-instrumentation alone gives you flat model calls and no score. Wrap each run in `overmind.run()` and call `deliver()` on the result — that's what creates something to judge.
-- Decorate the functions your capability's behaviours are anchored on, so each run matches its behaviour and its step judges apply.
+- Auto-instrumentation alone gives you flat model calls with no root. Wrap each run in `overmind.run()` or decorate its entry point: the root span captures the run's input and output, which is what capability expectations judge.
+- Decorate the tools your capability calls, so tool spans carry their own inputs and outputs for the step-level checks and the trajectory.
 - `run()` flushes on exit. For a short script with no run boundary, call `force_flush_traces()` before it ends.
 
 ## Next steps

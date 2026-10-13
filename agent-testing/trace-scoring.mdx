@@ -1,137 +1,68 @@
 ---
-title: Trace scoring
-description: How a production trace becomes scored task executions — units, behaviours, verdicts, the execution score, and session scores.
+title: Live scores
+description: What the scores on a production trace mean, where to read them, and how to query their history.
 ---
 
-import { Ascii } from "/snippets/ascii.jsx";
+Every span that reaches Overmind is scored against the capability's [eval criteria](/agent-testing/eval) as it arrives; you don't schedule anything. Once a trace's spans are scored, its root span also gets a **trajectory** score for the whole run.
 
-Every trace that reaches Overmind is scored against the owning capability's active [eval set](/agent-testing/eval#eval-sets). Scoring does not grade the trace as one blob: it carves the trace into **units**, binds each unit to one of the capability's **behaviours**, judges each unit on its own, and rolls the results up into an **execution score** per unit and a **session score** per conversation. This page is the contract behind the **Task executions** view in [Observability](/core/observability#what-you-see-in-the-console).
+## Span scores
 
-<Ascii
-  lines={[
-    "╔═ Overmind ══════════════════════════════════════════════════════════════════╗",
-    "║ ╔═════════════════╗    ╔═══════╗           ╔══════╗               ╔═══════╗ ║",
-    "║ ║ Root span lands ╟───▶║ Carve ╟───units──▶║ Bind ╟───behaviour──▶║ Judge ║ ║",
-    "║ ╚═════════════════╝    ╚═══════╝           ╚══════╝               ╚═══╤═══╝ ║",
-    "║                                                                       │     ║",
-    "║       ┌───────────────────────────────────────────────────────────────┘     ║",
-    "║       ▼                                                                     ║",
-    "║ ╔══════════╗                 ╔═════════════════╗          ╔═══════════════╗ ║",
-    "║ ║ Verdicts ╟────composed────▶║ Execution score ╟──folded─▶║ Session score ║ ║",
-    "║ ╚══════════╝                 ╚═════════════════╝          ╚═══════════════╝ ║",
-    "║                                                                             ║",
-    "╚═════════════════════════════════════════════════════════════════════════════╝",
-  ]}
-/>
+A span is scored by the enabled [matrix rows](/agent-testing/eval#the-eval-matrix) that match it and by the [expectations](/agent-testing/eval#expectations-in-code) declared on it. Each produces a metric:
 
-## When a trace is scored
+| Field | Meaning |
+| --- | --- |
+| `expectation` | The criterion |
+| `score` | 0 to 1; missing when the row skipped the span or could not score it |
+| `verdict` | `yes`, `partial` or `no` for expectations |
+| `reason` | Why, for scores below 0.75 and for checks that explain themselves |
+| `error` | Why the row could not score the span |
 
-Scoring is queued the moment a trace's root span lands. A trace is **live** while spans are still arriving or while it has no root span yet, **completed** once the root span has landed, and **interrupted** when no root arrives within the settle window (`TRACE_SETTLE_SECONDS`, default 600 s — a killed run never exports its root, because the root ends last). A sweep every 120 s re-checks the last two hours, 200 traces at a time, for traces the immediate pass missed, including interrupted ones; a finished pass is recorded per trace with its verdict counts and cost, and a pass that left verdicts deferred or errored is retried. The trace list and the trace header show the status.
+The span score is the mean of the scored metrics. A score below 0.75 comes with a reason; below 0.5 fails.
 
-A trace is skipped as a whole, never errored, when it has no spans, when it is an orphan fragment, when no span resolves a capability, when its root span carries an error status and it carved a single unit, or when the capability has no active eval set or the set has no trace-scoring members.
+Expectations are judged against the span's **intent**: the `intent` declared on it or an ancestor, otherwise the request at the root of the trace, otherwise the capability's description. Declare `intent=` on the entry point when the request alone does not say what the user wanted.
 
-## Units
-
-A unit is the slice of a trace that gets its own verdicts. The carve is a precedence lattice; the first tier that applies wins:
-
-| Tier | Source | What marks it |
-| --- | --- | --- |
-| 1 | **Turn spans** | Spans stamped `overmind.unit_kind = "turn"` — `task(..., unit="turn")`, a capability handoff, or an SDK-bound graph node |
-| 2 | **Entry-point invocations** | Each `entry_point` span (`overmind.unit_kind = "run"`); several in one trace are scored separately |
-| 3 | **Key segments** | A flat trace whose spans declare two or more distinct behaviour keys, one unit per key |
-| 4 | **Root** | The whole trace as one unit |
-
-Tiers 1–3 exclude the root. In a multi-entry trace, interior turn units fold into the enclosing execution as **step coverage** rather than scoring twice; a run boundary that encloses turn slices is offered again as a run-grain surface and kept only when a run-grain behaviour binds it. A single `function` span that starts its own trace outside any declared boundary is an orphan fragment and is skipped; a lone untyped span still scores.
-
-The span carrying `overmind.delivery = true` — `deliver()` in the SDK — is the unit's terminal deliverable; without it the platform picks the terminal span heuristically.
-
-## Behaviours and bindings
-
-A **behaviour** is one contract a capability performs, minted by [`overmind sync`](/core/capabilities#the-scan) from the trajectory map: an entry anchor, the ordered anchor segments that follow it, its tool set, and its terminal. Behaviours keep their identity across syncs through their key.
-
-Each unit binds to one behaviour, recorded as a **task execution** with a `binding_source`:
-
-- `declared` — the span carried `overmind.behaviour.key` (`overmind.task("<key>")`). A declared key whose grain disagrees with the unit — a turn's key stamped on a whole run — is refused and falls through to the anchor join, with a `declared_grain_mismatch` flag on the execution.
-- `anchor_join` — the unit's `code.namespace` / `code.function.name` stamps matched the behaviour's anchors; the binder tolerates dotted-suffix differences and prefers the version analysed at the trace's `vcs.ref.head.revision`.
-- `unbound` — nothing matched. The execution still materialises, and the unit still scores against the capability's set; members bound to a behaviour are skipped on it.
-
-A trace whose units resolve to different capabilities (a handoff) scores each unit under its own capability's eval set — never smeared from the root's capability.
-
-## Verdicts and the execution score
-
-The eval set's `trace_scoring` members run per unit. Every evaluator carries a [claim](/agent-testing/eval#claims) — a type and a grain — and the claim decides how its verdict composes:
-
-- **Safety** claims cap the score: the composite never reads higher than the worst cap verdict, and the marker names `cap_evaluator` and `failure_mode_cap`.
-- **Conformance** and **verification** claims flip their own verdict's `passed` when they fail; no member vetoes the rest.
-- **Progress**, **quality**, and **grounding** claims are scoring leaves.
-- Every verdict feeds one of three phases by grain — **steps** (weight 0.25), **trajectory** (0.25), and **output** (0.50) — and an empty phase's weight is redistributed proportionally to the others.
-- Two output-phase verdicts more than 0.5 apart never average silently: the marker carries a `conflict` with the lane, the spread and both members' values, and the Console shows it on the row.
-
-Each verdict is stored as its own `Verdict` row: evaluator, target span, typed outcome, score, `passed`, `explanation`, `unmet` clauses, `scope`, `grain`, `gate`, `sub_scores`, `identifier`, cost and latency. Verdict rows are the source of truth — every detail surface reads them over `GET /api/verdicts/`. The unit's span keeps only the composed markers, written to `feedback_score.trace_scoring` as a derived cache the list views read:
+A span keeps its score: sending it again unchanged does not re-score it, and a span whose content changed is scored again.
 
 ```json
 {
-  "trace_scoring": {
-    "_execution": {"score": 0.85, "phases": {...}, "evaluations": 4, "not_applicable": 0, "any_failed": false},
-    "_skipped_members": ["tool-hygiene"],
-    "_scored_at": "..."
+  "eval_attributes": {
+    "intent": "Where is order 4417?",
+    "score": 0.75,
+    "metrics": {
+      "Correctness": {"type": "llm", "expectation": "The reply states the order's current status.", "score": 0.5, "verdict": "partial", "reason": "Names the order but not its status."},
+      "output_is_valid_json": {"type": "deterministic", "score": 1.0}
+    }
   }
 }
 ```
 
-`_execution.score` (0–1) is the composite the Console shows as the **Score** column. A trace with several entry-point invocations scores each unit onto its own span; the root span gets only an `invocations` summary entry (`"2/2 invocations passed"`) and an `_execution` that averages the unit scores.
+## Trajectory scores
 
-## Span scripts
+A single-span trace gets only `outcome`. A multi-span trace gets:
 
-Alongside the per-unit judges, [script evaluators](/agent-testing/span-scripts) run once per matching span in the trace. They do not participate in the unit composite: each matching span gets its own `Verdict` row, visible on that span in the trace detail. One sandbox call per trace grades every script member against the full parent/children/siblings graph.
-
-Verdict outcomes are `scored`, `abstained`, `not_applicable`, or `error`, and only `scored` verdicts feed the composite. A member whose evidence the trace cannot supply abstains rather than guessing; a member skipped for its grain, a behaviour filter, or an interrupted run persists a retryable `not_applicable` row whose `unmet` list carries `skip:grain`, `skip:behaviour-filter`, or `skip:interrupted`. A skip row never settles its series: it is overwritten when the member dispatches on that unit. An interrupted skip is the one case that overwrites a real verdict, since a delivery grade on a run that never delivered is stale by rule.
-
-<Frame caption="An execution in the Console: the intent, the route through the behaviour's anchors, and every verdict with its reasoning.">
-  <img src="/images/platform/execution-detail.jpg" alt="Task execution detail with route and evaluator verdicts" />
-</Frame>
-
-## Session scores
-
-Traces sharing a `conversation.id` form a session. Each scored turn appends **conversation events** to a ledger: `ask_opened`, `ask_superseded`, `ask_reprompted`, `delivered`, `delivered_wrong`, `refused`, and `parked` (a turn that stopped to confirm before a gated write). The **session score** is a fold over that ledger: an open `produce` ask, or a `produce` ask delivered wrong and never delivered afterwards, zeroes the session; a re-prompt reopens a refused or superseded ask. The execution carries `session_score` and `session_rationale`, and the **Sessions** view rolls them up.
-
-## Runtime expectations from the SDK
-
-The SDK can declare evidence at run time; the platform reads it from span events and evaluates it server-side:
-
-| Call | Effect |
+| Metric | Score |
 | --- | --- |
-| `overmind.intent(text)` | The user's ask for this run; judges ground in it instead of the first user message |
-| `overmind.expect(kind, spec, id=, scope=, gate=)` | A declared expectation (`contains`, `regex`, `schema`, `constraint`, `checkpoints`) with scope `span`, `trace`, or `conversation`, checked as a predicate; `gate=True` makes it a gate |
-| `overmind.checkpoint(name)` | A named milestone the trajectory must reach |
-| `overmind.eval_context(**facts)` | Facts the judge may use |
-| `overmind.end_conversation()` | Closes the session ledger |
+| `outcome` | The mean span score over the spans that answer for a capability: the root and each capability's topmost span. This is the trajectory score. |
+| `weakest_step` | The lowest-scoring non-root span; the reason names it. |
+| `efficiency` | 1 minus the share of repeated tool calls (same tool and input) and errors never recovered. The reason adds tokens, cost and seconds. |
+| `path_judge` | Whether each step moves toward the intent, with no unnecessary or out-of-order step and sensible recovery from errors. |
+| `reference` | Only when the entry point declares `reference_trajectory`: how closely the tools called match it, and whether they ran in order. |
 
-See the [Python SDK](/tracing/sdk-python#runtime-expectations) for the calls.
+A trajectory `passed` when its score is at least 0.5 and no span failed. The trace list shows the trajectory score when the root has one, otherwise the root's span score; the span panel lists every metric with its verdict and reason.
 
-## Reading executions over the API
+## Score history
+
+`eval_attributes` holds the latest result. Every span score, trajectory score and evaluation-run row score is also appended to the history:
 
 ```bash
-# Task executions (the row grain of the Observability default view)
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
-  "https://api.overmindlab.ai/api/task-executions/?capability={id}&binding_source=declared"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/task-executions/{id}/"
+  "https://api.overmindlab.ai/api/eval-scores/?project={id}&trace_id={trace_id}"
 curl -H "X-Api-Key: $OVERMIND_API_KEY" \
-  "https://api.overmindlab.ai/api/task-executions/conversation-turns/?conversation_id={id}"
-
-# Verdicts — the read surface for score detail
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/verdicts/?trace_id={trace_id}"
-
-# Behaviours, per-behaviour coverage of the eval set, and the evaluators bound to one behaviour
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/coverage/?capability={id}"
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/behaviours/{id}/evaluators/"
+  "https://api.overmindlab.ai/api/eval-scores/?source_type=trajectory&source_id={trace_id}"
 ```
 
-List filters on `/api/task-executions/`: `project`, `capability`, `behaviour`, `binding_source`, `trace_id`, `status`, `started_at__gte/lte`, `received_at__gte/lte`, `min_duration_ms`, `max_duration_ms`, `has_error`, `service_name`, `operation`, `span_type`, `status_code`, `model`, `has_model`, `total_tokens__gte/lte`, `total_cost__gte/lte`. The list row carries `behaviour_key`, `success_score`, `session_score`, `session_rationale`, `route_flags`, `terminal_kind` and `scoring_pending`. The detail adds `observed_route` (the anchors the unit hit), `step_results` (per-step verdicts), `user_intent`, and the unit's composed markers: `execution_score`, `conflict`, `skipped_members`, and the `flow` (each contract anchor with its match and verdict). Over MCP the same reads are `query_task_executions` and `query_failures`.
+Each entry has `source_type` (`span`, `trajectory` or `dataset_row`), `source_id`, `run`, `score`, `metrics` and `created_at`. Filters: `project`, `source_type`, `source_id`, `source_id__in`, `run`, `trace_id`.
 
-`GET /api/verdicts/` lists `Verdict` rows newest-first. Filters: `target_id`, `target_id__in`, `target_kind`, `evaluator_name`, `outcome`, and `trace_id` — every span-target verdict of one trace in a single call.
+Over MCP, `query_traces` returns each trace's score, `query_failures` returns recent traces of a capability with a failing span or trajectory and the reasons, and `inspect_capability_health` aggregates scores per metric with coverage against the previous window.
 
-`GET /api/task-executions/conversation-turns/?conversation_id={id}` returns one row per turn of a conversation, assembled server-side from the executions and their traces' spans: the turn's intent, input and output text, execution and session scores with the session rationale, the task state (outstanding asks, delivered-wrong flag), per-step results, and the tool calls with their inputs and outputs.
-
-`GET /api/behaviours/coverage/?capability={id}` returns, per behaviour, the outcome evaluators and whether the outcome is covered, plus each anchor segment with the step evaluators bound to it.
+[Signals](/agent-testing/signals) watch these scores for drops and repeated failures.

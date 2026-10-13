@@ -5,7 +5,7 @@ description: The optimisation loop — candidate code diffs generated and replay
 
 import { Ascii } from "/snippets/ascii.jsx";
 
-The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your evaluators. Only a change that beats the best score so far survives; the winning diff stays on the candidate for you to apply in your repo. The same loop compares models: a **backtest** replays the dataset through each candidate model instead of each candidate diff.
+The Optimiser takes an agent you can already measure and edits the agent itself. Candidates are real git diffs against your repository — rewritten prompts, sharpened tool descriptions, adjusted control flow — each replayed over your dataset and scored with your eval set. Only a change that beats the best score so far survives; the winning diff stays on the candidate for you to apply in your repo. The same loop compares models: a **backtest** replays the dataset through each candidate model instead of each candidate diff.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
     The run replays the agent over the rows of an eval dataset in the same project whose active version fits the **eval** contract; the inputs must be a shape the agent can be invoked with. The dataset's contracts are the only creation gate — a wrong entrypoint signature surfaces at the smoke test. See [Datasets](/core/datasets#contracts).
   </Step>
   <Step title="An eval set">
-    Candidates are graded by the eval set you pick, or the capability's active eval set by default. The set must belong to the capability. See [Eval](/agent-testing/eval#eval-sets).
+    Candidates are graded by the eval set you pick, or the capability's active eval set by default. The set must belong to the capability. [Set up evals](/agent-testing/eval#set-up-evals) and run `overmind sync` after decorating, so the set holds the expectations your code declares as well as its checks.
   </Step>
   <Step title="A coding agent in the repository">
     Your agent executes in **your** environment, not Overmind's. The loop is driven from your checkout by the `overmind` CLI, and the candidate diffs are written by your coding agent. **Optimiser → New run** in the Console offers **Improve prompts & code** to test changes to prompts, tool definitions and application logic, or **Compare models** to evaluate different models while keeping prompts and logic fixed. Select the capability and eval dataset, then use **Copy prompt** and paste into your coding agent in that capability's repository. Copying does not start a run. The `/overmind optimise` and `/overmind backtest` commands are unchanged; scores and progress appear in Overmind.
@@ -89,7 +89,7 @@ Every verb takes `-e <experiment-id>`; without it the CLI uses the run recorded 
 
 The **command template** is one shell command that runs the capability on a single datapoint and prints its output, with placeholders `__DATAPOINT_INPUT__`, `__EXPERIMENT_ID__`, `__CAPABILITY_ID__`, `__CANDIDATE_ID__`, `__ITERATION_ID__`, `__DATAPOINT_INDEX__` and `__PROJECT_ID__`. A run opens with a **smoke test** — before spending anything, the first datapoint runs through the template to verify the entrypoint can be invoked. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
 
-Each subsequent iteration takes the batch of candidate diffs from the coding agent, applies each in its own git worktree under `.overmind/worktrees/`, replays every datapoint through it — one shared pool of eight workers across all candidates and datapoints — posts the outputs, and waits for the platform to score them with the same eval pipeline used everywhere else: every candidate links to a full [eval run](/agent-testing/eval#eval-runs) you can open. A candidate becomes the new best only if it beats the best score so far. `next` returns `COMPLETE` when the iteration budget is spent or after `patience` consecutive iterations without improvement; `complete` removes the worktrees and closes the run. A run can be cancelled at any point.
+Each subsequent iteration takes the batch of candidate diffs from the coding agent, applies each in its own git worktree under `.overmind/worktrees/`, replays every datapoint through it — one shared pool of eight workers across all candidates and datapoints — posts the outputs, and waits for the platform to score them with your eval set: every candidate links to a full [eval run](/agent-testing/eval#run-an-evaluation) of the outputs your checkout posted. Every candidate in a run is graded with the same rows as the baseline, even if the eval set changes mid-run. A candidate becomes the new best only if it beats the best score so far. `next` returns `COMPLETE` when the iteration budget is spent or after `patience` consecutive iterations without improvement; `complete` removes the worktrees and closes the run. A run can be cancelled at any point.
 
 ## Modes
 
@@ -99,11 +99,19 @@ Each subsequent iteration takes the batch of candidate diffs from the coding age
 | **model_comparison** (Compare models) | One to five model ids — OpenRouter slugs or your own `ft-…` deployments — one iteration per model, one candidate each | Every model, always — a comparison owes a full table |
 | **hybrid** | Every diff crossed with every model in `--model` | Budget or patience |
 
-The CLI command `overmind backtest` is separate from the `/overmind backtest` slash command above. It scores stored `llm_call` spans and does not run the repository. The recorded completion is the baseline, and the command exits 1 if a candidate regresses. See [CLI](/platform/cli#overmind-backtest).
+Two ways to compare models, both graded by the capability's active eval set:
 
-A repository backtest runs the application with its provider calls redirected to OpenRouter: `overmind.backtest.rewrite_repo(".")` rewrites `OpenAI`, `AsyncOpenAI`, `Anthropic`, `AsyncAnthropic` and `ChatOpenAI` constructors to read `OPENROUTER_MODEL`, `OPENROUTER_API_KEY` and the OpenRouter base URL from the environment, and reports leftover call sites (`ChatAnthropic`, Google GenAI, Vertex) for the coding agent to patch. For each candidate the loop then runs the datapoints with `OPENROUTER_MODEL` set to that candidate's model and `OPENROUTER_API_KEY` from your environment (`OPENAI_API_KEY` as a fallback).
+| | `/overmind backtest` (Compare models) | `overmind backtest` (CLI) |
+| --- | --- | --- |
+| Runs | Your application, over an eval dataset | Stored model calls only, no application or tools |
+| Baseline | Your agent as it is | The recorded completions |
+| Use for | Choosing the model your agent should run | A CI gate on a model swap |
 
-A backtest ranks its candidates **coverage-fair**: by score, then by the share of datapoints that produced gradeable output, then by fewest excluded datapoints (failed runs and empty outputs) — so a model that scored well by failing hard datapoints does not win. The incumbent keeps the overall win on a tie. When every candidate ties and the eval suite left card claims uncovered, no model is selected and the run says so.
+The CLI command `overmind backtest` scores stored `llm_call` spans and does not run the repository. The recorded completions are the baseline run of one evaluation group, and the command exits 1 if a candidate's paired comparison regresses. See [CLI](/platform/cli#overmind-backtest).
+
+A repository backtest runs the application with its provider calls redirected to OpenRouter: your coding agent runs `overmind.backtest.rewrite_repo(".")`, which rewrites `OpenAI`, `AsyncOpenAI`, `Anthropic`, `AsyncAnthropic` and `ChatOpenAI` constructors to read `OPENROUTER_MODEL`, `OPENROUTER_API_KEY` and the OpenRouter base URL from the environment, and reports leftover call sites (`ChatAnthropic`, Google GenAI, Vertex) for the coding agent to patch. For each candidate the loop then runs the datapoints with `OPENROUTER_MODEL` set to that candidate's model and `OPENROUTER_API_KEY` from your environment (`OPENAI_API_KEY` as a fallback).
+
+A backtest ranks its candidates **coverage-fair**: by score, then by the share of datapoints that produced gradeable output, then by fewest excluded datapoints (failed runs and empty outputs) — so a model that scored well by failing hard datapoints does not win. The incumbent keeps the overall win on a tie.
 
 ## Following a run
 
@@ -121,7 +129,7 @@ A run's status runs `scheduled → baseline → evaluating_baseline_outputs → 
 
 ## The result is a scored diff
 
-The winning candidate keeps its diff on the record: the patch on the run page. Apply it in your repository with your normal git workflow; the coding agent that drove the loop already has it applied in the candidate's worktree until `complete` removes them. Because candidates were scored with the same evaluators you use everywhere else, the headline score is directly comparable to your eval runs and live trace scores. A backtest's result is the winning model id, which you pin in your configuration yourself.
+The winning candidate keeps its diff on the record: the patch on the run page. Apply it in your repository with your normal git workflow; the coding agent that drove the loop already has it applied in the candidate's worktree until `complete` removes them. Because candidates were scored with the same eval matrix you use everywhere else, the headline score is directly comparable to your eval runs and live trace scores. A backtest's result is the winning model id, which you pin in your configuration yourself.
 
 ## API
 
@@ -136,11 +144,11 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/cancel/"
 ```
 
-The loop's own calls — `POST .../template/`, `.../add-iteration/`, `.../results/`, `.../evaluate/`, `.../complete/` — are what the CLI posts; you do not call them by hand. `POST /api/optimizer-experiments/` creates a run with `capability`, `dataset`, optional `cell` and `eval_set`, `mode`, `model_ids`, the budget fields and `openrouter_key_source` (`platform` or `local`). Over MCP, `check_optimizer_readiness` validates the dataset, eval set, model ids, credits and plan quota, `start_optimizer` schedules a run in any mode and returns the CLI command to drive it, and `inspect_optimizer_result` reads iterations, candidate patches, the winner, and the next action.
+The CLI drives the run's other endpoints; you do not call them by hand. `POST /api/optimizer-experiments/` creates a run with `capability`, `dataset`, optional `cell` and `eval_set`, `mode`, `model_ids`, the budget fields and `openrouter_key_source` (`platform` or `local`). Over MCP, `check_optimizer_readiness` validates the dataset, eval set, model ids, credits and plan quota, `start_optimizer` schedules a run in any mode and returns the CLI command to drive it, and `inspect_optimizer_result` reads iterations, candidate patches, the winner, and the next action.
 
 ## Good to know
 
-- **You measure what you optimise.** If your evaluators don't capture what you care about, the Optimiser will faithfully improve the wrong thing. Invest in [Eval](/agent-testing/eval) first.
+- **You measure what you optimise.** If your eval matrix doesn't capture what you care about, the Optimiser will faithfully improve the wrong thing. Invest in [Eval](/agent-testing/eval) first.
 - **Model costs are yours.** The loop runs your agent for real — iterations × candidates × datapoints model calls under your provider keys. The budget is the cost lever; the judge calls that score outputs are metered on the platform.
 - **The dataset defines the situations explored.** A narrow dataset produces improvements narrow to match; refresh it with recent traces periodically.
 - **Plateaus point at the model.** When several runs on a capability stop improving, the run page suggests [Models](/models/training) — by then you already have the dataset and eval set it needs.

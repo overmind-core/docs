@@ -13,7 +13,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Capability** — one purpose the agent serves, and Overmind's record of it: code structure from the scan joined with runtime behaviour from telemetry. Status is `current`, `leftover` (the latest push did not reproduce it; it returns when the code does) or `deleted` (a hand delete, which keeps its data). Ingest never creates one. See [Agent & Capabilities](/core/capabilities).
 
-**Scan** — local discovery: decorate `@capability` / `@observe` / `task()` in code, then `overmind sync` AST-scans call sites and POSTs an AgentManifest to `/api/v1/sync`. The server derives the card and behaviours. See [Agent & Capabilities](/core/capabilities#the-scan).
+**Scan** — local discovery: decorate `@capability` / `@observe` in code, then `overmind sync` AST-scans call sites and POSTs an AgentManifest to `/api/v1/sync`. The server derives the card and the Default eval set. See [Agent & Capabilities](/core/capabilities#the-scan).
 
 **Manifest** — the AgentManifest pushed by sync: declared symbols, signatures, literal prompts/expectations, call-graph edges, and repository fingerprint.
 
@@ -33,7 +33,7 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Span** — one operation inside a trace, stored with its full OTLP payload (timing, status, attributes, events) plus platform fields computed at ingest. Spans are typed by `overmind.span_type`: `entry_point`, `workflow`, `tool_call`, `function`, `retrieval`, or `llm_call`; an untyped span is classified from its attributes and name and defaults to `llm_call`.
 
-**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` or `run(conversation_id=...)` in the SDK. Carries a **session score** folded from the conversation ledger. See [Trace scoring](/agent-testing/trace-scoring#session-scores).
+**Session** — traces grouped by a shared `conversation.id` attribute, representing one multi-turn exchange. Set via `set_conversation_id()` or `run(conversation_id=...)` in the SDK. Carries a **session score**: the mean trajectory score of its traces.
 
 **Trace status** — `live` while spans are arriving or the root is missing, `completed` once the root has landed, `interrupted` when no root arrives inside the settle window.
 
@@ -43,13 +43,9 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Connector** — a pull-based import from another tracing platform: Langfuse, LangSmith, Braintrust, or Galileo. Created with `overmind connector add` (provider credentials from env or a TTY prompt) or in the Console; the source project, capability mapping, and sync are MCP tools (`inspect_connectors`, `configure_connector`, `sync_connector`). Each runs a resumable historical backfill, then polls incrementally. See [Observability](/core/observability#getting-traces-in).
 
-**Behaviour** — one thing a capability does, minted on `overmind sync` from one trajectory-map entry: an entry anchor, the ordered anchors that follow it, its tool set, and its terminal. Versioned as `BehaviourVersion`; status `active` or `retired`. API resource: `behaviours`. The Console labels the column **Task**. See [Trace scoring](/agent-testing/trace-scoring#behaviours-and-bindings).
+**Instrumentation plan** — the placements (file, qualname, `required_decorator`, capability id) the `get_instrumentation_plan` MCP tool returns for a capability; `verify_instrumentation` checks an ingested trace or a supplied span list against them.
 
-**Unit** — the slice of a trace that gets its own verdicts: a turn span, an entry-point invocation, a key segment, or the whole trace, in that order of precedence.
-
-**Task execution** — one unit bound to a behaviour, with its verdicts, execution score, route flags, and session score. Binding source is `declared` (the span carried the identity), `anchor_join` (matched on anchors) or `unbound`. Status `completed`, `error` or `interrupted`. The default row of Observability.
-
-**Instrumentation plan** — the placement tickets (file, qualname, decorator, scope) the `get_instrumentation_plan` MCP tool returns for a capability or behaviour; `verify_instrumentation` grades a supplied span list against them.
+**Signal** — a pattern over the last day of spans that a project subscribes to, such as falling scores, a failing tool or a cost spike. A finding is a **signal event**, shown in the Console. See [Signals](/agent-testing/signals).
 
 ## Data
 
@@ -65,31 +61,23 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 ## Evaluation
 
-**Evaluator** — one versioned scorer. Kinds: `llm_judge`, `deterministic`, `trajectory`, `statistical`, `agentic`. Scope: `final_output`, `turn`, `step`, `trajectory`, `sample`. Surface: `model`, `harness`, or `any`. See [Eval](/agent-testing/eval#evaluators).
+**Eval matrix** — the project's scorers. Each row is an `llm` expectation (one sentence judged yes, partial or no) or a `deterministic` Python check, project-wide or for one capability, optionally narrowed by span type or name. Enabled rows score live spans. See [Eval](/agent-testing/eval#the-eval-matrix).
 
-**Claim** — what an evaluator asserts: a **type** (`grounding`, `verification`, `quality`, `conformance`, `progress`, `safety`) and a **grain** (`unit`, `trajectory`, `terminal`, `session`). The claim decides how the verdict composes into the execution score. See [Eval](/agent-testing/eval#claims).
+**Checks** — catalog deterministic rows. A capability's toml `eval_matrix` configures them with `check` and `params`; every project also holds each one project-wide, `output_is_valid_json` and `tool_selection` enabled.
 
-**Rubric / checklist** — an LLM judge's plain-language criteria, compiled into weighted atomic checklist items; items can be hard **gates**.
+**Eval set** — a named list of matrix rows. One set per capability is **active**; `overmind sync` keeps the **Default** set from the expectations declared in code, the toml checks and the enabled project checks.
 
-**Eval set** — a named group of a capability's evaluators. Members have a role: **generative** (score eval-run outputs) or **trace scoring** (score live traces, per task execution). One set per capability is **active**; `overmind sync` preloads the **Default** set.
+**Eval run** — one target scored over one dataset version with a frozen copy of the matrix. See [Eval](/agent-testing/eval#run-an-evaluation).
 
-**Eval run** — a controlled experiment: one data source × N variants × M evaluators, with evaluator snapshots frozen at creation. See [Eval](/agent-testing/eval#eval-runs).
+**Target** — what a run scores: `recorded` (the dataset's outputs), `generate` (a model replays the rows) or `provided` (outputs the optimiser posts). Runs created together share a **group**; one can be the **baseline**.
 
-**Variant** — one column of an eval run: either **generate** (re-run a model over the rows) or **existing** (grade traces as-is). One variant is the **baseline**.
+**Degraded row** — a run row whose generation stopped at its output token limit; excluded from trusted scores.
 
-**Sample** — one row's normalised transcript inside a run; can be marked **degraded** if it couldn't be faithfully reconstructed, excluding it from aggregates.
+**Span score** — the mean of the matrix rows' scores on one span, stored in the span's `eval_attributes`.
 
-**Score** — one evaluator's result on one sample, with a typed outcome: `scored`, `abstained`, `not_applicable`, `skipped`, or `error`. Only `scored` results feed averages.
+**Trajectory** — the scores of a whole trace, stored on its root: `outcome` (the trajectory score), `weakest_step`, `efficiency`, `path_judge` and `reference`. See [Live scores](/agent-testing/trace-scoring).
 
-**Verdict** — one evaluator's result on one trace unit, stored as its own row — the source of truth the Console reads over `GET /api/verdicts/`. The unit span's `feedback_score.trace_scoring` block keeps only the composed markers.
-
-**Execution score** — the composite of a unit's verdicts (0–1): safety claims cap it, gates flip their own verdict, the rest are weighted over three phases. Shown as the Score column.
-
-**Trace scoring** — carving each trace into units, binding them to behaviours, and judging them with the eval set's trace-scoring members. See [Trace scoring](/agent-testing/trace-scoring).
-
-**Runtime expectation** — evidence the SDK declares during a run (`intent`, `expect`, `checkpoint`, `eval_context`) and the platform evaluates server-side.
-
-**Annotation** — a human label on a sample, written through the `annotate_evaluation_sample` MCP tool, used as ground truth for calibrating judges.
+**Score history** — every span, trajectory and run-row score, at `GET /api/eval-scores/`.
 
 ## Optimisation
 

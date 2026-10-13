@@ -3,7 +3,7 @@ title: MCP
 description: The Overmind MCP server — setup per coding agent, authentication, the 32 tools, 11 prompts and the resources, and the CLI handoff for local work.
 ---
 
-MCP is the platform's first-class agent surface: a project-scoped [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
+MCP is the platform's first-class agent surface: a project-scoped [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, write eval matrix rows and run evals, subscribe to signals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
 
 ## Setup
 
@@ -62,20 +62,19 @@ The key must be **project-scoped** — pinned to exactly one active project the 
 
 The server answers `401` for authentication errors and `403` otherwise, without a `WWW-Authenticate: Bearer` challenge, so MCP clients never start OAuth registration against it. Requests must be `POST` with `application/json`, from an allowed host and origin, and at most the protocol's default body size. Errors are JSON-RPC values, never exceptions: `{"error": {code, message, retryable, fields}}`.
 
-The public surface is read and write only. There are no delete, cancel or generic API tools; `retry_deployment` is the one lifecycle exception and covers exactly the failed-or-deleted deployment case.
+The public surface is read and write only. There are no cancel or generic API tools. `retry_deployment` (failed or deleted deployments) and `delete_eval_matrix_row` are the only lifecycle exceptions.
 
 ## Tools
 
-Thirty-two tools, all project-scoped, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
+All tools are project-scoped, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
 
 ### Observability
 
 | Tool | Arguments | Returns |
 | --- | --- | --- |
-| `inspect_capability_health` | `capability?`, `days?` | Evaluator, live-score, trace-volume, error-rate and latency health |
-| `query_failures` | `capability`, `since_days?`, `limit?` | Recent scored failures for one capability |
+| `inspect_capability_health` | `capability?`, `days?` | Live span scores per metric, scoring coverage, trace volume, error rate and latency, with deltas against the previous window |
+| `query_failures` | `capability`, `since_days?`, `limit?` | Recent traces with a failing span or trajectory score, with the failing metrics and reasons |
 | `query_traces` | `capability?`, `session?`, `search?`, `trace_id?`, `span_id?`, `name?`, `operation?`, `service_name?`, `span_type?`, `status?`, `status_code?`, `has_error?`, `model?`, `has_model?`, `start_time_ns__gte?`, `start_time_ns__lte?`, `min_duration_ms?`, `max_duration_ms?`, `start_after?`, `start_before?`, `total_tokens_gte?`, `total_tokens_lte?`, `total_cost_gte?`, `total_cost_lte?`, `all_spans?`, `unbound?`, `ordering?`, `limit?`, `offset?`, `cursor?` | Traces with bounded cursor or offset pagination |
-| `query_task_executions` | `capability?`, `behaviour?`, `binding_source?`, `trace_id?`, `status?`, `started_after?`, `started_before?`, `min_duration_ms?`, `max_duration_ms?`, `has_error?`, `service_name?`, `operation?`, `span_type?`, `status_code?`, `model?`, `has_model?`, `total_tokens_gte?`, `total_tokens_lte?`, `total_cost_gte?`, `total_cost_lte?`, `limit?`, `offset?` | Behaviour-keyed task executions |
 | `get_job` | `kind`, `id` | A normalized status snapshot for one job |
 
 ### Datasets
@@ -94,19 +93,26 @@ Thirty-two tools, all project-scoped, each with a strict input and output schema
 
 | Tool | Arguments | Effect |
 | --- | --- | --- |
-| `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `mode?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
-| `create_eval_set` | `name`, `evaluator_ids`, `capability?` | Atomically create an eval set and its members in their applicable roles; does not activate it or launch a run |
-| `upsert_evaluator` | `evaluator?`, `name?`, `kind?`, `capability?`, `scope?`, `score_type?`, `display_name?`, `description?`, `rubric_md?`, `evaluation_prompt?`, `checklist?`, `judge_model?`, `score_min?`, `score_max?`, `pass_threshold?`, `requires_reference?`, `variable_mapping?`, `config?`, `applicable_roles?`, `surface?`, `choices?` | Create or update an evaluator |
-| `run_evaluation` | `name`, `dataset`, `eval_set?`, `cell?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?` | Create and launch an eval run. Returns a job receipt |
-| `compare_evaluations` | `run`, `baseline` | Compare a run with a project-scoped baseline |
-| `annotate_evaluation_sample` | `annotation?`, `sample?`, `evaluator?`, `value?`, `label?`, `note?` | Create or update a human annotation, attributed to the key's owner |
+| `create_eval_matrix_row` | `name`, `type`, `source`, `capability?`, `span_type?`, `span_name?` | Create an [eval matrix](/agent-testing/eval#the-eval-matrix) row: an `llm` expectation or an audited `deterministic` check. Enabled rows score matching spans live. Rows are never edited; delete and create again |
+| `delete_eval_matrix_row` | `row`, `capability?` | Permanently delete one matrix row and drop it from every eval set. Past scores and runs keep their results |
+| `create_eval_set` | `name`, `rows`, `capability?`, `activate?` | Group matrix rows into an eval set, optionally the capability's active set; does not launch a run |
+| `check_evaluation_readiness` | `dataset`, `eval_set?`, `cell?`, `version?`, `targets?`, `judge_model?` | Dataset version, the matrix rows a run would freeze, credits, and advisory context estimates per target and judge |
+| `run_evaluation` | `name`, `dataset`, `targets`, `eval_set?`, `cell?`, `version?`, `judge_model?`, `max_items?`, `sampling?` | One run per target (`label`, `mode`, `model_name?`, `model_ref?`, `params?`, `is_baseline?`), at most six, in a shared group. Returns the group and each run's job receipt |
+| `compare_evaluations` | `run`, `baseline?` | Paired comparison with the group's baseline, or a named one: overall and per-metric deltas, wins, losses, ties and trust |
+
+### Signals
+
+| Tool | Arguments | Effect |
+| --- | --- | --- |
+| `list_signals` | `capability?` | The [signal](/agent-testing/signals) catalog with each signal's params, the project's subscriptions and the unseen event count |
+| `set_signal_subscription` | `signal_type`, `capability?`, `enabled?`, `config?` | Enable, disable or configure one signal for the project or one capability |
 
 ### Training and serving
 
 | Tool | Arguments | Effect |
 | --- | --- | --- |
 | `get_model_catalog` | `has_tool_calling?`, `max_context?` | Models available for fine-tuning: tiers, context limits, training methods, tool-calling, batch bounds |
-| `check_finetune_readiness` | `dataset`, `capability?`, `cell?`, `version?` | Prerequisites, train/eval dataset shape, recommended models, evaluators, credits |
+| `check_finetune_readiness` | `dataset`, `capability?`, `cell?`, `version?` | Prerequisites, train/eval dataset shape, recommended models, the eval set, credits |
 | `estimate_finetune` | `dataset`, `base_model`, `n_epochs?`, `use_lora?`, `cell?`, `version?` | Real-token cost and duration estimate; creates nothing |
 | `start_finetune` | `dataset`, `base_model`, `capability?`, `eval_dataset?`, `eval_set?`, `validation_dataset?`, `cell?`, `version?`, `eval_cell?`, `eval_version?`, `validation_cell?`, `validation_version?`, `validation_enabled?`, `validation_split_ratio?`, `split_method?`, `name?`, `use_case?`, `hyperparameters?`, `group_id?` | Validate and queue a training job. Returns a job receipt |
 | `retry_deployment` | `deployment` | Retry a failed or deleted deployment. Returns a job receipt |
@@ -136,8 +142,8 @@ A connector is created, with its provider credentials, in the Console under Inte
 
 | Tool | Arguments | Returns |
 | --- | --- | --- |
-| `get_instrumentation_plan` | `capability?`, `behaviour?` | The registered placement tickets for a capability or behaviour |
-| `verify_instrumentation` | `capability?`, `spans` | Bind and grade a caller-supplied span list without writing traces or scores |
+| `get_instrumentation_plan` | `capability?` | Where to place each SDK decorator for a capability, from its scanned anchors; each placement names its `required_decorator` |
+| `verify_instrumentation` | `capability?`, `trace_id?`, `spans?` | Check an ingested trace or a supplied span list for capability identity, a root, captured input and output, tool spans and the matrix rows that would score them; writes nothing |
 
 ### Jobs
 
@@ -153,8 +159,8 @@ Eleven prompts compose the tools into multi-step workflows with human checkpoint
 | --- | --- | --- |
 | `investigate-capability` | `capability` | Health, failures, traces and instrumentation evidence |
 | `instrument-repository` | `capability?` | Turn the instrumentation plan into a project- or capability-scoped repository change and verify the spans |
-| `prepare-evaluation` | `dataset`, `eval_set` | Dataset, evaluator, eval-set, binding and credit readiness |
-| `evaluate-change` | `dataset`, `baseline` | Run an eval and compare it with a baseline |
+| `prepare-evaluation` | `dataset`, `eval_set` | Dataset, eval matrix, eval set and credit readiness |
+| `evaluate-change` | `dataset`, `baseline` | Score a baseline and a change as targets of one run group and compare them |
 | `finetune-capability` | `capability`, `dataset` | Check, estimate and launch a training job |
 | `optimize-capability` | `capability`, `dataset` | Check readiness, schedule and inspect an optimisation run |
 | `compare-models` | `capability`, `dataset`, `model_ids` | A bounded model-comparison run and its measured winner |
@@ -174,6 +180,7 @@ Read-only, project-scoped entity state under `overmind://`. Static:
 | `overmind://dataset-export` | CLI guidance for downloading a committed dataset |
 | `overmind://checkpoint-download` | CLI guidance for downloading an archived checkpoint |
 | `overmind://connector-setup` | CLI guidance for `overmind connector add` — provider keys never cross MCP |
+| `overmind://signal-events` | Recent signal events, newest first |
 
 Templates: `overmind://capabilities/{capability}`, `overmind://traces/{trace_id}`, `overmind://sessions/{session}`, `overmind://datasets/{dataset}`, `overmind://eval-runs/{eval_run}`, `overmind://eval-sets/{eval_set}`, `overmind://finetunes/{job_id}`, `overmind://deployments/{deployment}`, `overmind://optimizer-runs/{experiment}`, `overmind://connectors/{connector}`, `overmind://jobs/{kind}/{id}`.
 

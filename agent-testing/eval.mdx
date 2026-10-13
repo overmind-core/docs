@@ -1,225 +1,209 @@
 ---
 title: Eval
-description: Evaluator kinds and their configuration, claims and behaviour bindings, eval sets, live trace scoring, and eval runs — with the endpoints behind them.
+description: Configure what good looks like for a capability, score production traces with it, and run it over a dataset to compare models and changes.
 ---
 
-Eval is where you define what "good" means for a capability and measure it — in batch runs that compare models and prompts side by side, and continuously on production traces as they arrive. The same evaluators serve both.
+Eval is where you define what "good" means for a capability and measure it. One set of criteria, the capability's **active eval set**, is used everywhere:
 
-The **Evaluations** area of the Console has three surfaces: **Runs**, **Eval sets**, and the **Eval library**.
+| Where | What gets scored |
+| --- | --- |
+| [Live scores](/agent-testing/trace-scoring) | Every production span as it arrives |
+| [Evaluation runs](#run-an-evaluation) | A dataset, replayed through one or more models |
+| [`overmind backtest`](/platform/cli#overmind-backtest) | Stored model calls, replayed through candidate models |
+| [Optimiser](/agent-testing/optimisers) | Your agent before and after each candidate change |
+| [Training](/models/training#the-benchmark) | The model before and after training |
 
-## Evaluators
+## Set up evals
 
-Generated evaluations preserve provider finish reasons. A response stopped by its output token limit remains inspectable, but the sample is marked degraded and its judgments are skipped rather than assigned quality zeros. Degraded samples are excluded from trusted score aggregates and counted in run health. Check this coverage before comparing model quality: a high average over the few complete samples is not a successful overall run. Training-linked evaluations with degraded evidence report failure and no headline comparison score.
+<Steps>
+  <Step title="Run /overmind setup">
+    The scan writes your capabilities to `overmind.toml`, including the [checks](#checks-in-the-toml) the code's contracts allow. `overmind sync` creates the capabilities and a **Default** eval set for each.
+  </Step>
+  <Step title="Declare expectations in code">
+    Setup decorates the functions your capability card names and puts the judge criteria on them as [`expectations`](#expectations-in-code). Add or edit them like any other code.
+  </Step>
+  <Step title="Sync again">
+    Run `overmind sync` after the decorators are in place. Sync reads the expectations from your code and adds them to the Default set, so evaluation runs, backtests, the optimiser and training judge the same criteria as live scoring.
+  </Step>
+  <Step title="Check the set">
+    Open the capability's **Eval matrix** tab, or **Evaluations → Eval sets**, to see the rows the Default set holds.
+  </Step>
+</Steps>
 
-Rubric judges default to generative grading. Qualified bounded checklist,
-claim-support and per-turn decisions can opt into [Jev with generative
-fallback](/agent-testing/decision-engine). Authoring and holistic reasoning remain
-generative. Evaluator policies and score provenance identify which path ran.
+Repeat the last two steps whenever you change expectations or checks. An expectation you delete from the code leaves the set at the next sync.
 
-An evaluator is one reusable, versioned scorer — editing one writes a new `version` row, so past runs keep meaning what they meant. Six kinds exist:
+## The eval matrix
+
+A matrix row is one criterion. Every row has a `name`, a `type`, a `source`, an optional `capability` (blank applies it to every capability in the project), an optional `span_type` and `span_name` that narrow where it applies, and an `enabled` switch. Rows are created and deleted, never edited: to change one, delete it and create its replacement.
 
 <Tabs>
-  <Tab title="LLM judge (llm_judge)">
-    A model grades the response against a rubric you write in plain language. The rubric is compiled into a checklist of atomic, weighted yes/no questions; on a boolean evaluator an item can be a **gate** that fails the verdict regardless of the rest. Judges return reasoning and per-item sub-scores. The managed Correctness and Faithfulness judges use a **proportional** mode instead: they enumerate the output's claims and score the share that holds. Judge responses are cached content-addressed, so re-scoring identical inputs is free.
+  <Tab title="Expectation (llm)">
+    The source is one sentence the output must meet, for example "The reply quotes the order id and its status." A judge answers `yes`, `partial` or `no` (scores 1, 0.5 and 0) against the span's intent, input, output and any reference. A score below 0.75 comes with a written reason; below 0.5 fails.
+
+    Write each expectation as one concrete, checkable claim about the output. Keep data values and secrets out of it.
   </Tab>
-  <Tab title="Deterministic (deterministic)">
-    A fixed rule, no model involved. Checks: `exact_match`, `contains`, `regex`, `json_schema_valid`, `schema_field_conformance`, `field_present`, `reference_field_compare`, `canonical_fields`, `tool_selection` (precision/recall/F1 over called tools), `tool_args_match`, `goal_state_match`, `card_constraints`, `latency`, `cost`, and `turn_count`.
-  </Tab>
-  <Tab title="Script (script)">
-    Import-free pure Python that grades every matching span on a live trace. Write `def evaluate(span): ...` in `config.source`; optional `config.span_filter` narrows by `span_type` and/or `operation`. The script sees `span.parent`, `span.children`, `span.siblings`, and the span's attributes — nothing else, and no imports. Return `True`/`False`, a number in `[0, 1]`, `(score, reason)`, or `None` to abstain. Scripts use `scope=step` and `surface=harness`, run only during [trace scoring](/agent-testing/trace-scoring#span-scripts), and write one `Verdict` per matching span. Full contract: [span scripts](/agent-testing/span-scripts).
-  </Tab>
-  <Tab title="Trajectory (trajectory)">
-    Judges the path the agent took, not just the output. Two modes: **match** compares the tool-call sequence against a reference with `strict`, `unordered`, `subset`, `superset`, or `subsequence` semantics (with per-tool argument-match overrides), or **judge** hands the trajectory to an LLM.
-  </Tab>
-  <Tab title="Agentic (agentic)">
-    An LLM judge for long, multi-step runs; on live traces the summarising cascade keeps the judge under its context budget.
-  </Tab>
-  <Tab title="Statistical (statistical)">
-    Scores a whole dataset at once rather than one example at a time: `accuracy`, `precision`, `recall`, `f1` (macro/micro/weighted), `calibration` (expected calibration error with a bootstrap interval), `exact_match`, `bleu`, `rouge_l`, `embedding_cosine`, `chrf`, and `duplicate_rate`, with `output_normalize` set to `strip` (default), `first_word`, `last_word`, `first_line`, `last_line`, or a `regex:<pattern>` extractor. When the references are labels, the run also reports per-class precision, recall, F1 and a confusion matrix.
+  <Tab title="Python check (deterministic)">
+    The source is a Python function:
+
+    ```python
+    def evaluate(span):
+        if not span.output:
+            return None
+        return "order" in span.output, "the reply names the order"
+    ```
+
+    Return a score in [0, 1], a bool, a `(bool, reason)` tuple, or `None` to skip the span. The span exposes `input`, `output`, `expected`, `tool`, `status`, `duration_s`, `usage` and `attributes`, plus its `parent`, `children` and `siblings`. `json` and `re` are available; `import` is not.
   </Tab>
 </Tabs>
 
-Every evaluator declares a **scope** (`final_output`, `turn`, `step`, `trajectory`, `sample`, or `dataset`), a **score type** (`numeric`, `categorical`, or `boolean`) with a `pass_threshold`, an **evidence requirement** (`model_output`, `harness_artifact`, `trajectory`, or `reference`), and a **surface** — `model`, `harness`, or `any` — that says where it may run: a `model` grader never runs on live trace scoring, a `harness` grader never runs on a generate variant. If a run cannot supply the required evidence, the evaluator abstains or is marked not-applicable instead of producing a number.
+**Where a row applies.** On production traces, a row scores the spans it matches: the right capability, and the `span_type` and `span_name` when they are set. A row with neither applies to the capability's answer, the root span or the topmost span of each capability. Over a dataset, each row stands for the capability's answer, so it takes every row whose `span_type` is blank or `llm_call`, whatever its `span_name`. Rows scoped to `tool_call`, `retrieval` or `workflow` spans score production traces only.
 
-### Claims
+### Expectations in code
 
-Every evaluator also carries a **claim**: what it asserts and at which grain. The claim is what [trace scoring](/agent-testing/trace-scoring#verdicts-and-the-execution-score) uses to compose one execution score out of many verdicts.
+Put judge criteria on the function whose output they describe:
 
-| Claim type | Asserts | Composes as |
+```python
+import overmind
+
+@overmind.entry_point(
+    capability_id="<capability-uuid>",
+    intent="Answer a support ticket",
+    expectations=[
+        "The reply quotes the order id and its status.",
+        "The reply is at most two sentences.",
+    ],
+)
+def answer(ticket: str) -> str:
+    ...
+```
+
+Every traced span is judged against its own expectations. `overmind sync` also copies the expectations on entry points, workflows and plain `observe` decorators into the capability's Default set, scoped to that function, so dataset runs use them too. Expectations on `tool` and `retrieval` decorators describe a step and score production traces only. `overmind.expect("constraint", "...")` adds an expectation at runtime, for the current trace only. See the [Python SDK](/tracing/sdk-python#runtime-expectations).
+
+### Checks in the toml
+
+A capability's `eval_matrix` in `overmind.toml` holds deterministic checks from the catalog below. Name the check, set its parameters, and optionally scope it:
+
+```toml
+[[capabilities.support-agent.eval_matrix]]
+name = "Reply carries ticket keys"
+type = "deterministic"
+check = "json_required_keys"
+params = { REQUIRED_KEYS = ["ticket_id", "status"] }
+span_name = "SupportAgent.run"
+```
+
+`overmind sync` turns each entry into a row in the Default set. Sync refuses the whole file, naming the entry, when `check` is not in the catalog or `params` names a parameter the check does not have. Judge criteria never go in the toml; declare them in code.
+
+| Check | Passes when | Params |
 | --- | --- | --- |
-| `conformance` | The output has the required shape (a schema, a field, a format) | A scoring leaf whose own `passed` flips on failure |
-| `verification` | A fact in the output checks out against evidence | A scoring leaf whose own `passed` flips on failure |
-| `progress` | A step of the behaviour was taken | A weighted leaf |
-| `quality` | The delivered result is good | A weighted leaf |
-| `grounding` | The deliverable rests on the evidence gathered | A weighted leaf |
-| `safety` | Nothing harmful or forbidden happened | A cap on the score |
+| `output_is_valid_json` | The output parses as JSON | |
+| `tool_selection` | The tools called match the span's `reference_trajectory` (F1) | |
+| `exact_match` | The output equals the reference | `REFERENCE`, `CASE_INSENSITIVE` |
+| `contains` | The output contains a string | `NEEDLE`, `CASE_INSENSITIVE` |
+| `regex` | The output matches, or does not match, a pattern | `PATTERN`, `MUST_MATCH` |
+| `goal_state_match` | Every marker appears in the output | `GOAL_MARKERS` |
+| `json_required_keys` | The JSON output has every key | `REQUIRED_KEYS` |
+| `schema_field_conformance` | JSON fields follow their rules (`type`, `enum`, `min`, `max`, `pattern`, `nullable`) | `FIELDS` |
+| `tool_args_match` | The expected tool calls are made with matching arguments | `EXPECTED_CALLS`, `MODE` (`exact`, `subset`, `superset`) |
+| `llm_call_budget` | The span and its children make at most N model calls | `MAX_LLM_CALLS` |
+| `latency_budget` | A model call takes at most N seconds | `MAX_SECONDS` |
+| `cost_budget` | A model call costs at most N | `MAX_COST` |
 
-The **grain** is the slice a claim is judged on: `unit` (one turn or step), `trajectory` (the path through the behaviour), `terminal` (the deliverable), or `session` (the whole conversation). Grains land in three weighted phases — steps, trajectory, output — and no single evaluator vetoes the composite.
+Every project also gets each of these as a project-wide row. `output_is_valid_json` and `tool_selection` start enabled; the rest start disabled and skip every span until configured. Checks that read tools, timing or cost skip dataset rows, which carry only the input, output and reference.
 
-### Behaviour bindings
+### Rows from the Console or MCP
 
-An evaluator can be bound to one of the capability's [behaviours](/core/capabilities#the-scan) with a role: an **outcome** evaluator judges the behaviour's deliverable, a **step** evaluator judges one anchor segment of its route. The Eval library groups evaluators by behaviour (the Console labels it "Task"), shows each behaviour's coverage (outcome plus every step), and lists the rest under **Unassigned**. `GET /api/behaviours/coverage/?capability={id}` returns the same rollup.
-
-Judges are authored behaviour-scoped from the behaviour's group in the Eval library or through the `upsert_evaluator` MCP tool: `POST /api/evaluators/author/` takes `behaviour`, `behaviour_role` (`outcome` or `step`), and — for a step judge — the `anchor_segment`, validated against the behaviour's contract. `GET /api/behaviours/{id}/authoring-context/` grounds the authoring with the behaviour's latest contract: anchor sequence, steps, tool set, and terminal. A judge whose `applicable_roles` include `trace_scoring` must be bound to a behaviour, and `eval_set` plus `eval_set_role` attach the new judge to an eval set in the same call. `PUT /api/evaluators/{id}/author/` re-authors an existing judge.
-
-### Authoring
-
-Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
-
-`overmind sync` preloads the capability's Default eval set for every capability it created, remounted, or whose card changed, in tiers: Tier 0, rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call); Tier 1, generative LLM judges grounded in the card, the prompt, and the behaviour map; and the behaviour outcome and step judges for trace scoring. When Tier 1 authors nothing for the generative role, one floor judge fills the role until a later push covers it. Authoring reads the capability's **evidence profile** — what its telemetry carries (declared behaviours, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
-
-<Frame caption="The Eval library grouped by behaviour, with each behaviour's outcome and step coverage.">
-  <img src="/images/platform/eval-library.jpg" alt="Eval library grouped by behaviour" />
-</Frame>
-
-Evaluators are platform-managed templates, project-wide, or scoped to a single capability.
+**Evaluations → Eval matrix**, or a capability's **Eval matrix** tab, lists every row with its scope. **New row** creates an expectation or a Python check, with examples to start from. Over MCP, use `create_eval_matrix_row` and `delete_eval_matrix_row`; over REST, `POST` and `DELETE` on `/api/eval-matrix/`.
 
 ## Eval sets
 
-An eval set is a named group of evaluators, optionally mapped to a capability. On
-**Evaluations → Eval sets**, choose **New eval set**, enter a name, and search the
-whole evaluator library by name, type, or mapped capability. Select multiple
-evaluators; selected rows show their name, type, and capability and can be removed
-before creation. Leave capability set to **None** for a reusable project set.
+An eval set is a named list of matrix rows, optionally tied to a capability. One set per capability is **active**: evaluation runs, the optimiser and training use it unless you pick another. `overmind sync` keeps a **Default** set for every capability, holding its code expectations, its toml checks and the enabled project checks that fit its spans; the Default set becomes active when the capability has none.
 
-`POST /api/eval-sets/` accepts `evaluator_ids` and an optional nullable `capability`;
-the set and members are created together. MCP provides `create_eval_set` and the
-read-only `overmind://eval-sets/{eval_set}` resource. Neither creation path starts
-an evaluation or activates the set. Each member receives its applicable **roles**:
+To grade with a different selection, create a set from row ids or names and activate it:
 
-- `generative` members score outputs produced during eval runs and optimisation runs.
-- `trace_scoring` members run on every production trace, per task execution, writing verdicts and the execution score into [Observability](/core/observability#scores-on-arrival). The mechanics are on [Trace scoring](/agent-testing/trace-scoring).
+- MCP: `create_eval_set` with `name`, `capability`, `rows` and `activate`.
+- REST: `POST /api/eval-sets/` with `project`, `name`, `capability` and `rows`, then `POST /api/eval-sets/{id}/activate/`.
 
-The same evaluator can hold both roles. One set per capability is **active** (`POST /api/eval-sets/{id}/activate/`); it is what trace scoring, optimisation runs and training runs default to. `POST /api/eval-sets/{id}/members/` adds members.
+A set without a capability can be chosen for a run but cannot be activated. **Evaluations → Eval sets** lists every set.
 
-A set without a capability can be selected for project evaluation and training,
-but cannot be activated for live trace scoring until a capability is assigned.
+## Run an evaluation
 
-## Eval runs
+A run scores one **target** over one dataset version. Creating a run with several targets creates one run per target in a shared **group**; one target can be the **baseline** the others are compared with.
 
-### Context warnings
+| Target `mode` | Output scored |
+| --- | --- |
+| `recorded` | The dataset's own outputs |
+| `generate` | Each row replayed through `model_name` (a catalogue model or registered endpoint) or `model_ref` (one of your trained models) |
 
-Training setup shows advisory context estimates for the model
-being evaluated and its generative judges. These include prompt, tools and reserved
-output tokens. Judge preflight uses reference-answer size as a proxy for the answer
-that has not been generated yet. Unknown model limits are shown as unverified.
-These are estimates, not exact tokenizer counts; warnings never prevent launch.
+The dataset must have the eval intent; see [Datasets](/core/datasets#contracts). A run grades with the eval set you pass, else the capability's active set. Its rows are copied into the run when it starts, so later edits never change what a run measured.
 
-The **Judge model** selector below **Eval set** starts with the set's saved judge
-or **Mixed models** when its evaluators use different judges. A selection applies
-to this training run's generative judges and fallbacks, not the saved set or its
-Jev policy. The dropdown marks estimated context fit and shows the budget change
-across all judges for one dataset pass per evaluated model. Undersized options are
-greyed out but remain selectable. Estimated limit overflows turn the affected judge
-or benchmark selector orange. **Start** also turns orange with a warning icon;
-clicking it opens a short risk summary with **Start anyway**. Unverified, unavailable
-and pending checks stay neutral and do not open this warning. Changing the model is optional.
+<Tabs>
+  <Tab title="From a coding agent (MCP)">
+    1. Call `check_evaluation_readiness` with the dataset, the targets and an optional `eval_set` and `judge_model`. It reports whether the run can start, the rows it will grade, estimated cost and context warnings.
+    2. Call `run_evaluation` with a name, the dataset, the targets and the same choices. It returns the group and one run per target.
+    3. Poll each run with `get_job(kind="eval_run", id=...)`, then read `overmind://eval-runs/{id}`.
+    4. Call `compare_evaluations` with a candidate run.
 
-Before launch, context warnings suggest alternatives with verified context and output
-capacity. Judge suggestions preserve configured model order, exclude the model family
-under test and require structured-output support. Generation suggestions require tool
-support when the input declares tools. These checks do not predict model quality.
-No suggestion changes the selection automatically. A judge change should be applied to
-both sides of a comparison.
+    The native prompts `prepare-evaluation` and `evaluate-change` walk an agent through the same steps.
+  </Tab>
+  <Tab title="REST">
+    ```bash
+    # A recorded baseline and two candidates over one dataset version
+    curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
+      -d '{
+        "project": "<project-uuid>",
+        "name": "Triage backtest",
+        "dataset": "<dataset-uuid>",
+        "eval_set": "<eval-set-uuid>",
+        "targets": [
+          {"label": "production", "mode": "recorded", "is_baseline": true},
+          {"label": "gpt-5-mini", "mode": "generate", "model_name": "openai/gpt-5-mini"},
+          {"label": "trained", "mode": "generate", "model_ref": "<model-ref-uuid>"}
+        ]
+      }' \
+      "https://api.overmindlab.ai/api/eval-runs/"
 
-Evaluation cost comparisons use published token rates, all checked rows and the full
-reserved output for one pass per model or judge. They are not a total-run quote: retries,
-extra tool turns, caching, hosting and training are excluded. Missing prices remain
-unavailable. In training setup, training alternatives use the existing dataset ranking
-and show training-cost and duration estimates for their recommended configurations
-separately from judge evaluation costs. Benchmark deployment costs are not inferred
-from the base model's token prices.
+    curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/?group=<group-uuid>"
+    curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/comparison/"
+    curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/run/"     # re-launch
+    curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/cancel/"
+    curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-run-rows/?run={id}"
+    ```
 
-API clients can preview a selected version with `POST /api/eval-runs/context-check/`
-using `project`, `dataset`, optional `cell`, `eval_set`, `capability`, `variants`
-and a run-specific `judge_model`. The response includes `judge_models` with fit
-and budget comparisons. Training launch accepts the selected `eval_judge_model`;
-omitting it preserves the eval set's per-evaluator models.
-Each preview variant can supply `output_tokens` for a planned absolute output
-reservation; otherwise the registered model parameters or provider-call default apply.
-The request reads data without launching a run or calling a model. MCP
-`check_evaluation_readiness` accepts proposed `variants` and `judge_model` and returns
-advisory `context_checks` and `judge_models`; these do not change `ready`.
-MCP `start_finetune` accepts `eval_judge_model`. Standalone REST creation and MCP
-`run_evaluation` accept `judge_model`, matching the preview. Omit it or pass blank
-to preserve each evaluator's saved judge. An explicit choice applies only to that
-run's generative judges and fallbacks, including replay judges attached after launch;
-it does not edit the library, deterministic checks or Jev policy. Judge selection
-is frozen once created: start a new run to use another judge. Run detail shows the
-snapshot judges; the MCP run resource exposes `judge_model`, `run_evaluators` and
-the context checks.
+    Creation returns `{group, runs}`. List filters on `/api/eval-runs/`: `project`, `status`, `mode`, `dataset`, `group`, `is_baseline`, `capability`, `created_after`, `created_before`.
+  </Tab>
+  <Tab title="CLI">
+    `overmind backtest` builds a dataset from the capability's stored model calls, runs the recorded outputs as the baseline and each `--model` as a candidate under the active eval set, and exits 1 when a candidate regresses. See the [CLI](/platform/cli#overmind-backtest).
+  </Tab>
+</Tabs>
 
-Runtime checks use the actual model messages and assembled judge prompt. The judge
-funnel preserves that prompt instead of clipping it to a fixed character limit.
-If a judge exhausts its output budget, it can retry once with a larger budget only
-when published context and output limits permit it. It does not switch judges or
-shorten the evidence. Permanent context rejection and exhausted grading attempts
-are technical errors, not quality zeros. Score `_judge` metadata records attempt
-budgets, finish reasons, usage, request IDs and costs where the provider supplies them.
+The Console lists runs and their results; it does not start standalone runs. An eval dataset's cell offers **Run the optimiser** and **Use in a training job**.
 
-### Configuration
+For recorded conversations, a generate target can set `params.generation_strategy` to `per_assistant_turn`: the model answers each recorded assistant turn with the history before it as context. Tool calls are scored as decisions without running the tools.
 
-An eval run is one experiment: **one data source × N variants × M evaluators.**
+A run's `status` moves `pending` → `running` → `completed`, or ends `failed` or `cancelled`. A re-launched run re-scores from the same inputs. A row whose generation hit its output-token limit is marked degraded and left out of the trusted score.
 
-- **Data source** — `dataset` (the version is used and frozen, so the run stays reproducible as the dataset evolves) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
-- **Variants** — the columns of the experiment. A variant's `mode` is `generate` (re-run a model over each row) or `existing` (grade the recorded output as-is). Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the baseline (`is_baseline`) every other is measured against.
-- **Evaluators** — attached as frozen snapshots at creation, so later library edits cannot change what a completed run measured.
+### Judge model
 
-Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, **Evaluations → New evaluation** selects an eval dataset, eval set, model to test, maximum samples and optional run-only judge. Model selectors show the provider logo and model name, matching training setup. Judge options also show estimated context fit and cost comparisons; context warnings remain advisory. Estimates cover the full dataset, while maximum samples limits the run. Eval runs can also be created through the API and the `run_evaluation` MCP tool. An eval dataset's cell also offers **Run the optimiser** and **Use in a training job**.
+`judge_model` picks the model that writes reasons for low expectation scores; blank uses the default. It is fixed for the run. Training's `eval_judge_model` sets it for one job.
 
-```bash
-# Create (which also launches), follow, and compare a run
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" -H "Content-Type: application/json" \
-  -d '{
-    "project": "<project-uuid>",
-    "name": "Triage — prompt v3",
-    "data_source": "dataset",
-    "dataset": "<dataset-uuid>",
-    "variants_input": [
-      {"label": "production", "mode": "existing", "is_baseline": true},
-      {"label": "prompt v3", "mode": "generate", "model_name": "<model-ref>"}
-    ],
-    "eval_set": "<eval-set-uuid>"
-  }' \
-  "https://api.overmindlab.ai/api/eval-runs/"
+Readiness and training setup estimate whether each target and the judge fit their context window. Warnings are advisory: undersized options stay selectable, and Start opens a short summary with **Start anyway**. `POST /api/eval-runs/context-check/` returns the same estimates without starting anything.
 
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/comparison/"
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/run/"     # re-launch: deletes samples and scores first
-curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/{id}/cancel/"  # revokes in-flight tasks
-curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/datasets/"             # datasets that have runs
-```
+### Read the results
 
-Execution fans out server-side: sample preparation (generation), then one scoring task per sample × evaluator, then aggregation into the run summary. A run's `status` moves `pending` → `running` → `completed`, or ends `failed` or `cancelled`.
+A run's summary holds the headline `score` (mean row score, 0–1), each metric's `mean`, `n`, `failed` and `errors`, the row counts `rows`, `scored`, `errored` and `degraded`, and `trust`. When references are labels, `class_metrics` adds per-class precision, recall, F1 and a confusion matrix.
 
-For recorded conversations, a generated variant can set `params.generation_strategy` to `per_assistant_turn`. The model produces one decision for each recorded assistant turn, using the conversation recorded before that turn as context. Tool calls are evaluated as decisions without executing their tools. Each subsequent turn uses the recorded history, keeping its context independent of the candidate's previous decisions. Such a run attaches a per-turn judge automatically, and `params.replay_dimensions` names what it grades. This also applies to conversations containing a single recorded assistant turn; a tool-only decision does not require a final answer.
+The run page shows the target, dataset version, rows graded and judge. **Results** lists every row: open one for each metric's score, verdict and reason beside the input, reference and output.
 
-A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
+### Compare with the baseline
 
-### Reading the report
+`GET /api/eval-runs/{id}/comparison/`, MCP `compare_evaluations`, and the run page's **Baseline comparison** tab compare a run with its group's baseline. Only rows both runs scored are paired. The comparison reports overall and per-metric baseline, candidate, delta and status, plus `paired`, `wins`, `losses` and `ties`. A delta within half a percentage point is `unchanged`; otherwise `improved` or `regressed`. A metric only one run has is `added` or `removed`. Trust warnings appear when either run has errored or degraded rows.
 
-<Frame caption="A finished run: per-evaluator pass rates and mean scores per variant, the score distributions, and cost and latency per model.">
-  <img src="/images/platform/eval-run-results.jpg" alt="Eval run report with results, distributions and operations" />
-</Frame>
+## Use evals in other workflows
 
-The report shows per-variant rollups (mean score, pass rate) per evaluator, the score distribution per evaluator and variant, cost and latency per model — generation cost and eval cost separated — and a per-datapoint table. Opening a datapoint shows each evaluator's score with its reasoning; the **Compare runs** tab lays one run's results next to another's.
+Each workflow grades with the capability's active eval set unless you choose another, and keeps the same rows for its whole run.
 
-Each dataset row has its own entry in the breakdown, with responses from different model variants grouped under that row. Search or page through the entries, then open one to inspect its input and each available model output. A model with no sample for that row does not display another model's response.
-
-The datapoint popup shows **Input** beside **Output and evaluation**. Select a model to switch both panels together. Generated output is the model's response, not a label extracted by a statistical evaluator; the **Reference answer** is shown separately as grading data. Expand **Generated messages** to inspect recorded assistant and tool messages.
-
-New generated samples capture the initial model-runner input, including the system prompt and tool definitions. This is not the provider's rendered chat template or every subsequent replay request. Older samples show **Dataset input** from the run's pinned version and state that the exact model request was not captured. A missing pinned source is shown as unavailable, never reconstructed from a mixed input/output transcript. Existing runs do not need to be rerun to inspect their pinned dataset input.
-
-The MCP `overmind://eval-runs/{eval_run}` resource exposes up to five bounded sample inspections with separate input, output, reference, and evaluator reasoning. `input_source` distinguishes captured requests, pinned dataset rows, and unavailable input; `samples_truncated` indicates additional samples.
-
-<Frame caption="Datapoint drill-down: each evaluator's score with reasoning. A check that could not be applied is not-applicable and does not enter the averages.">
-  <img src="/images/platform/eval-datapoint.jpg" alt="Per-datapoint evaluator scores with reasoning" />
-</Frame>
-
-- **Outcomes are typed.** Every score's `outcome` is `scored`, `abstained`, `not_applicable`, `skipped`, or `error` — and only `scored` results feed averages and pass rates.
-- **Samples can be degraded.** Each trace is normalised into a canonical transcript before scoring; if it cannot be reconstructed, the sample is marked `degraded` with a `degraded_reason` and excluded from aggregates. Failure scores also carry a `failure_role` — `root_cause` or `propagated` — so one upstream failure does not read as five independent ones.
-
-Scores accumulate into a per-capability history (`GET /api/evaluators/score-history/`) that powers the trend chart on the capability page.
-
-## Calibrating judges
-
-Samples accept **annotations** — human labels with an optional note, written through the `annotate_evaluation_sample` MCP tool — giving you ground truth to compare judge behaviour against. When a judge and your annotations disagree consistently, tighten the rubric; the compiled checklist shows which criterion is drifting.
+- **Backtest and model comparison.** `overmind backtest` and the optimiser's **Compare models** mode replay the same data through each candidate model and compare every candidate with the baseline. See [Optimisers](/agent-testing/optimisers#modes).
+- **Optimiser.** Each candidate change is scored as an evaluation run against your agent's baseline. See [Optimisers](/agent-testing/optimisers).
+- **Training.** Training setup picks the eval dataset, eval set and judge, and scores the model before and after training. See [Training](/models/training#the-benchmark).
+- **Signals.** Subscriptions watch live scores for drops and repeated failures. See [Signals](/agent-testing/signals).

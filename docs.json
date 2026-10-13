@@ -188,6 +188,14 @@
   },
   "redirects": [
     {
+      "source": "/agent-testing/decision-engine",
+      "destination": "/agent-testing/eval"
+    },
+    {
+      "source": "/agent-testing/span-scripts",
+      "destination": "/agent-testing/eval"
+    },
+    {
       "source": "/latest",
       "destination": "/"
     },
@@ -340,10 +348,9 @@
       {
         "group": "Agent Testing",
         "pages": [
-         "agent-testing/eval",
-          "agent-testing/decision-engine",
+          "agent-testing/eval",
           "agent-testing/trace-scoring",
-          "agent-testing/span-scripts",
+          "agent-testing/signals",
           "agent-testing/optimisers"
         ]
       },
