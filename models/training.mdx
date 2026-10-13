@@ -21,7 +21,7 @@ The model is yours. Its weights are downloadable, and it serves through an [Open
 | **Graders** | A project eval set with at least one enabled generative evaluator; its capability can be **None** |
 | **Benchmark model** | The codebase incumbent or a ready trained model in this project |
 
-Independent train and eval data gives meaningful held-out scores. Overmind reports overlap by normalized inputs, trace/conversation, groups and synthetic lineage as a warning; it does not drop selected rows or block launch. Successful creation atomically pins training, validation and eval versions. Internal loss-validation splitting keeps content/group families together and preserves duplicates. Deduplication belongs in the workshop.
+Independent train and eval data gives meaningful held-out scores. Overmind reports overlap by normalized inputs, trace/conversation, groups and synthetic lineage as a warning; it does not drop selected rows or block launch. Successful creation atomically pins training, validation and eval versions. Internal loss-validation splitting keeps content/group families together and preserves duplicates. Deduplication belongs in a dataset version.
 
 <Frame caption="The training wizard: your data and graders on the left, the recommended models with cost and time estimates on the right.">
   <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
@@ -31,11 +31,11 @@ Over MCP, `start_finetune` derives model-specific defaults when `hyperparameters
 
 ## Exact preprocessing
 
-Workshop quality reviews remain advisory and are not repeated as launch approval gates. Training performs model-specific preparation, not repairs to labels, evidence or task scope.
+Dataset fit findings beyond readability remain advisory and are not launch approval gates. Training performs model-specific preparation, not repairs to labels, evidence or task scope.
 
 For Modal, CPU preprocessing runs after launch and before GPU training using the matching tokenizer, chat template and loss mask. Setup does not start or wait for preprocessing. Recommendations size context from estimated row lengths; job preparation includes pinned training and enabled validation data. Exact overflow within the model's training-method limit requests a larger context and rechecks every row. Over-limit rows, invalid tool formatting and examples without supervised next-token targets still block. Nothing is silently truncated or discarded.
 
-The GPU consumes the matching validated token artifact and saved tokenizer. Repair incompatible data in the workshop and prepare the revised version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` run the same preparation; poll with `get_job(kind="training_preparation")`.
+The GPU consumes the matching validated token artifact and saved tokenizer. Repair incompatible rows with a new dataset version and prepare that version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` run the same preparation; poll with `get_job(kind="training_preparation")`.
 
 Worker failures are distinct from incompatible data. A processor/code mismatch requires deploying the current Modal SFT worker, not just restarting Docker. Preprocessing logs remain at `preparations/<id>/preprocess_stdout.log` on the SFT volume. Confirmed failures can retry; uncertain submissions fail closed.
 
@@ -114,7 +114,7 @@ Two ways to put it in front of traffic:
 ## Good to know
 
 - Quality comes from the data, not the hyperparameters. Get the version fitting the train contract first.
-- A run freezes the version it trained on, so its numbers stay true while you keep curating for the next one.
+- A run pins the immutable version it trained on and marks it used, so its numbers stay true while you keep adding versions for the next one.
 - Every experiment reports what it cost when it finishes, and you see the estimate before you launch.
 - A model serving real traffic is producing traces again — which is the data for your next round.
 

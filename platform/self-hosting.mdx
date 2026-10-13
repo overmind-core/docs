@@ -1,6 +1,6 @@
 ---
 title: Self-hosting
-description: Run the open-source platform yourself — Docker Compose, the environment reference, the agent and provider keys, training and serving backends, and billing modes.
+description: Run the open-source platform yourself — Docker Compose, the environment reference, the script sandbox, provider keys, training and serving backends, and billing modes.
 ---
 
 The platform is one repository, [overmind-core/overmind](https://github.com/overmind-core/overmind): the Django API (`overbae/`), the React Console (`frontend/`), the Python SDK and CLI (`overmind/`), and the Modal workers for training and serving (`overbae/modal/`). The hosted product at [console.overmindlab.ai](https://console.overmindlab.ai) runs this same code.
@@ -13,17 +13,16 @@ The API refuses to start until every required key is set; the error names each m
 
 | Required | Used for |
 | --- | --- |
-| `OPENROUTER_API_KEY` | Judges, evals, trace scoring, the Data Workshop, optimiser scoring, frontier inference |
+| `OPENROUTER_API_KEY` | Judges, evals, trace scoring, optimiser scoring, frontier inference |
 | `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET` | Modal training and serving workers |
 | `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Serving trained models: the endpoint printed by `modal deploy` and its shared secret |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME` | The fine-tuning checkpoint archive |
 | `HF_TOKEN` | Gated Hugging Face base models |
+| `SANDBOX_URL`, `SANDBOX_TOKEN` | The [script sandbox](#the-script-sandbox) that runs Data Workshop scripts and extracts documents. Compose sets `SANDBOX_URL`; choose a random token |
 
 | Optional | Effect |
 | --- | --- |
-| `CURSOR_API_KEY` | Recommended for the Data Workshop: runs the dataset agent as a Cursor Composer session |
 | `OPENAI_API_KEY` | The `embedding_cosine` evaluator |
-| `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` | Data Workshop fallbacks; unused while `OPENROUTER_API_KEY` is set |
 | `STRIPE_SECRET_KEY` | Paid plans and the credit cap — see [Billing modes](#billing-modes) |
 
 Fine-tuning and serving also need the Modal workers deployed — see [Training and serving](#training-and-serving).
@@ -34,7 +33,7 @@ Fine-tuning and serving also need the Modal workers deployed — see [Training a
 git clone https://github.com/overmind-core/overmind.git
 cd overmind
 cp .env.example .env      # set the required keys above
-docker compose up -d      # API, Console, Postgres, Redis, five Celery workers, beat, Grafana
+docker compose up -d      # API, Console, Postgres, Redis, five Celery workers, beat, the sandbox, Grafana
 ```
 
 The Console is at [http://localhost:5173](http://localhost:5173) and the API at `http://localhost:8000`. Sign in with any email and password; self-hosted mode creates the account on first use and needs no email verification. Leave `CLERK_API_SECRET_KEY` blank.
@@ -64,12 +63,25 @@ docker compose exec api python manage.py seed_demo --owner you@example.com
 | `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials. Unset, one is derived from `DJANGO_SECRET_KEY`; the API prints a warning at startup when `DJANGO_DEBUG=False` |
 | `FRONTEND_URL` | Where the Console lives (default `http://localhost:5173`), for links in prompts and emails |
 | `TRACE_SETTLE_SECONDS` | How long a trace with no root span stays `live` before it reads `interrupted` (default `600`) |
-| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference and the Data Workshop agent. Required at startup. If the key is rejected, the capability's Evaluators tab shows `Judge authoring failed`; fix the key, then run `overmind sync` again |
+| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring and frontier inference. Required at startup. If the key is rejected, the capability's Evaluators tab shows `Judge authoring failed`; fix the key, then run `overmind sync` again |
 
 
-### The Data Workshop agent
+### The script sandbox
 
-The dataset agent runs on OpenRouter. We recommend setting `CURSOR_API_KEY`, which runs it as a Cursor Composer session instead. Both engines take the same tools and emit the same events. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
+The Data Workshop has no agent. Coding agents add dataset versions with Python scripts over MCP, and the `sandbox` service runs them and extracts uploaded documents (`python -m sandbox`, the same image). Only the landing and interactive workers reach it, over the Compose `sandbox_net` network, which has no route out. The sandbox holds no secrets other than `SANDBOX_TOKEN` and no data volume.
+
+It runs as root so each run gets its own uid, and it needs `CAP_SYS_PTRACE` to count the memory a run holds in files no directory lists; Compose adds it. Runs hold no capability. Each run reserves memory before its input is stored; `SANDBOX_MEMORY_BYTES` overrides the budget, which defaults to 60% of the container's memory. `/tmp` is a tmpfs (8 GB in Compose). Document extraction uses Tesseract with English language data, which the image installs.
+
+| Variable | Purpose |
+| --- | --- |
+| `SANDBOX_URL` | Where the workers reach the sandbox (Compose: `http://sandbox:8080`) |
+| `SANDBOX_TOKEN` | Shared bearer token between the workers and the sandbox |
+| `SANDBOX_MEMORY_BYTES` | Memory budget for runs (default: 60% of the container's memory) |
+| `WORKSHOP_PROJECT_CONCURRENCY` | Script runs at a time per project (default `4`) |
+
+Outside Compose, `make sandbox` runs it on `127.0.0.1:8080` as your own user, without per-run isolation, for local development only.
+
+`OPENAI_API_KEY` serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
 
 ### Decision engine
 
@@ -103,13 +115,13 @@ Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: ever
 
 ## Background capacity
 
-Keep the `celery-landing-worker` service running. It consumes only `landing`, with one prefork process, so evaluation generation cannot occupy import capacity. The other worker queues remain `control`, `io`, `io_traces`, `batch` and `interactive`.
+Keep the `celery-landing-worker` service running. It consumes only `landing`, with one prefork process, so evaluation generation cannot occupy import capacity. The other worker queues remain `control`, `io`, `io_traces`, `batch` and `interactive`; `interactive` runs Data Workshop scripts through the sandbox, and each run waits for a per-project slot in Redis and for the sandbox's memory.
 
 Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_IN_FLIGHT` limits admitted work across the deployment (default `12`); `EVAL_MAX_IN_FLIGHT_PER_RUN` limits each run (default `2`). Admission rotates across projects and runs. Coordinate these limits with worker capacity and provider limits. Increasing the worker count alone does not raise the admission budget.
 
 `DATASET_IMPORT_MAX_QUEUE_SECONDS` sets the maximum import wait (default `900`). An expired wait retains the source and exposes **Retry import**. Execution starts its own deadline when a worker claims the import. Keep beat and the control worker running so publication retries and interrupted imports are reconciled.
 
-For ECS deployments, `docker/worker-topology.json` defines worker commands and `scripts/plan_landing_capacity.py` generates the infrastructure plan. Deploy a healthy landing consumer before producers. Configure queue-age, blocked-import and missing-monitor alarms. The generated scaling plan has explicit capacity bounds and disables automatic scale-in; drain work before reducing capacity.
+For ECS deployments, `docker/worker-topology.json` defines worker commands, including `sandbox`, and `scripts/plan_landing_capacity.py` generates the infrastructure plan. Deploy the sandbox, then a healthy landing consumer, before producers. Configure queue-age, blocked-import and missing-monitor alarms. The generated scaling plan has explicit capacity bounds and disables automatic scale-in; drain work before reducing capacity.
 
 ## Developing on it
 

@@ -37,7 +37,7 @@ Eval runs, optimisation runs, and training runs show in the bell in the top bar 
 
 ## Billing and credits
 
-Credits belong to the **user** and are shared across every project you are in. Work that runs on Overmind's side is metered on an append-only ledger: training runs (`finetuning-job`), inference through `/api/v1/chat/completions` (`inference`, `inference-ft-model`), the Data Workshop agent (`data-workshop`), and the optimiser's agent usage (`cursor-agent`). **Settings** shows the plan, the balance, the usage ledger, and top-up.
+Credits belong to the **user** and are shared across every project you are in. Work that runs on Overmind's side is metered on an append-only ledger: training runs (`finetuning-job`), and inference through `/api/v1/chat/completions` (`inference`, `inference-ft-model`). Earlier ledger rows can also show `data-workshop` and `cursor-agent`, which no longer accrue. **Settings** shows the plan, the balance, the usage ledger, and top-up.
 
 <Frame caption="Settings on a self-hosted stack: account spend and the usage ledger. The hosted product adds the plan, the balance, and top-up above it.">
   <img src="/images/platform/settings-credits.jpg" alt="Settings page with credits and ledger" />

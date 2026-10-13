@@ -158,7 +158,7 @@ budgets, finish reasons, usage, request IDs and costs where the provider supplie
 
 An eval run is one experiment: **one data source × N variants × M evaluators.**
 
-- **Data source** — `dataset` (the version is used and frozen, so the run stays reproducible as the dataset evolves) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
+- **Data source** — `dataset` (the run reads one immutable version and marks it used, so the run stays reproducible as the dataset grows) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
 - **Variants** — the columns of the experiment. A variant's `mode` is `generate` (re-run a model over each row) or `existing` (grade the recorded output as-is). Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the baseline (`is_baseline`) every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits cannot change what a completed run measured.
 

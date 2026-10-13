@@ -78,7 +78,7 @@ The public surface is read and write only. There are no delete, cancel or generi
 
 ## Tools
 
-Thirty-six tools, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
+Forty-three tools, each with a strict input and output schema the client reads at call time. Every result carries the same object twice — as `structuredContent` and as compact JSON text — plus resource links for the entities it touched. Arguments marked `?` are optional.
 
 Project tools also accept `project_id`, required for account connections. `list_projects` and `get_model_catalog` do not need a project.
 
@@ -103,11 +103,20 @@ Project tools also accept `project_id`, required for account connections. `list_
 | Tool | Arguments | Effect |
 | --- | --- | --- |
 | `list_datasets` | `capability?`, `intent?`, `state?`, `search?`, `limit?`, `offset?` | List project datasets |
-| `inspect_dataset` | `dataset`, `chat_limit?` | One dataset: cell chain, sample, recent agent chat, next actions |
-| `query_dataset` | `dataset`, `sql`, `cell?`, `limit?` | Read-only SQL over one ran cell |
+| `inspect_dataset` | `dataset`, `cell_offset?`, `cell_limit?` | One dataset: its version tree, active version, consumer requirements (`preparation_context`), a sample and next actions |
+| `query_dataset` | `dataset`, `sql`, `version?`, `limit?` | Read-only `SELECT` over table `t` of one version (active by default); at most 100 rows and 32 KiB, 10 s timeout |
 | `create_dataset_from_traces` | `name`, `trace_ids?`, `filters?`, `search?`, `limit?`, `intent?`, `capability?`, `split?` | Land a dataset, one row per trace; the selection is counted first and refused when empty. `split` lands disjoint `<name> train` and `<name> eval` datasets instead of one with an intent. Returns a task receipt |
-| `message_dataset_agent` | `dataset`, `message` | Queue one agent turn for an idle dataset. Returns a job receipt |
-| `run_dataset` | `dataset`, `proposal_cell?` | Run the dataset, optionally accepting one proposal. Returns a job receipt |
+| `create_dataset_from_llm_calls` | `name`, `capability`, `since`, `until?`, `model?`, `limit?`, `intent?`, `split?`, `eval_percent?` | Land one row per `llm_call` span since a timestamp; `split` hashes `span_id` into train and eval |
+| `try_dataset_script` | `dataset`, `parent?`, `script` | Run a script on a version in the sandbox and preview the result: rows, columns, three rows, printed output. Creates nothing |
+| `probe_dataset_version` | `dataset`, `version?`, `script` | Run a script on a version and return what it prints |
+| `add_dataset_version` | `dataset`, `parent?`, `title`, `script` | Run a script on a parent version and store the result as a new, inactive version with its impact |
+| `add_synthetic_examples` | `dataset`, `parent?`, `rows`, `instruction` | Append 1–50 rows you wrote as a new, inactive version, with the instruction as their lineage |
+| `diff_dataset_versions` | `dataset`, `from?`, `to?` | Compare two versions row by row on `source_row` |
+| `activate_dataset_version` | `dataset`, `version`, `expected_active?` | Make a version the one training, evaluation and the optimiser read; `expected_active` refuses with `active_conflict` when the active version moved |
+| `update_dataset` | `dataset`, `name?`, `intent?`, `capability?` | Set the name, intent or capability |
+| `resume_dataset_import` | `dataset` | Retry a blocked source import |
+
+Script runs are idempotent. A call that returns `queued` or `running` is still working: repeat the identical call. The same parent and script return the same version. A failed run creates no version, and the identical call returns that failure for an hour unless the platform caused it (`transient: true`). See [Datasets](/core/datasets#shape-it-from-your-agent).
 
 ### Evaluation
 
@@ -170,7 +179,7 @@ Names resolve within the project: capability arguments take an id, key or name; 
 
 ## Prompts
 
-Twelve prompts compose the tools into multi-step workflows with human checkpoints:
+Thirteen prompts compose the tools into multi-step workflows with human checkpoints:
 
 | Prompt | Arguments | What it drives |
 | --- | --- | --- |
@@ -182,6 +191,7 @@ Twelve prompts compose the tools into multi-step workflows with human checkpoint
 | `optimize-capability` | `capability`, `dataset` | Check readiness, schedule and inspect an optimisation run |
 | `compare-models` | `capability`, `dataset`, `model_ids` | A bounded model-comparison run and its measured winner |
 | `ship-model` | `capability`, `deployment`, `finetune` | Verify a deployment, activate the model, hand off the repository rollout |
+| `prepare-dataset` | `dataset`, `task` | Shape a dataset with scripts: inspect, try, add, report the impact, activate what the user agreed to |
 | `upload-dataset-file` | `path`, `intent?`, `project_id?` | `overmind dataset upload` in the terminal, then verify through MCP |
 | `export-dataset` | `dataset` | `overmind dataset export` to the local filesystem |
 | `download-checkpoint` | `deployment` | `overmind model download-checkpoint` to the local filesystem |
@@ -217,7 +227,7 @@ Three things never cross MCP: file bytes, repository edits, and provider secrets
 | --- | --- |
 | `overmind-agent` | Capability map, behaviour coverage and repository provenance |
 | `overmind-observability` | Trace investigations, failures, latency and instrumentation gaps |
-| `overmind-datasets` | Data Workshop preparation, proposals, generation and export |
+| `overmind-datasets` | Landing, shaping datasets with scripts, versions, synthetic examples and export |
 | `overmind-evaluations` | Evaluators, eval sets, runs and baseline comparisons |
 | `overmind-optimiser` | Prompt and code experiments, and model comparisons |
 | `overmind-training` | Exact data preparation, costs, fine-tuning and held-out evaluation |
