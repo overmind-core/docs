@@ -52,8 +52,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score`; `GET /{id}/` |
 | Task executions | `/api/task-executions/` | read-only; one row per unit bound to a behaviour — filters in [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api); `GET /{id}/` adds `observed_route`, `step_results`, `user_intent`, `execution_score` and `flow`; `GET conversation-turns/?conversation_id=` (one row per turn) |
 | Behaviours | `/api/behaviours/` | list only (`execution_count`, `avg_success_score`); `GET coverage/?capability=`; `GET /{id}/evaluators/` (the compiled step and outcome judges); `GET /{id}/authoring-context/` (the latest contract's steps, tool set and terminal). The Console labels this column "Task" |
-| Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, `POST split/`, read (the version tree), patch (`name`, `intent`, `capability`, `active` with optional `expected_active`; intent and capability are fixed once a version is used), delete (refused while a version is used); `POST .../resume-import/`, `GET .../executions/`, `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `GET .../export/`, `GET .../events/`. Versions are added over MCP only — see [Building a dataset](#building-a-dataset) |
-| Uploads | `/api/uploads/` | `POST` with `filename` reserves an upload → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB for a table, 100 MiB for a document)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; `POST /{id}/inspect/` with `size` (and `json_rows_field`) validates the file and counts a table's rows (`rows` is null for a document), and is required before the id goes into a dataset `source.upload_id` |
+| Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, `POST split/`, read (the version tree), patch (`name`, `intent`, `capability`, `active` with optional `expected_active`; intent and capability are fixed once a version is used), delete (refused while a version is used); `POST .../resume-import/`, `POST .../cancel-import/`, `GET .../executions/`, `POST .../executions/{id}/cancel/`, `GET .../prepare-prompt/?cell=`, `GET .../attachment/?cell=`, `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `GET .../export/`, `GET .../events/`. Versions are added over MCP only — see [Building a dataset](#building-a-dataset) |
+| Uploads | `/api/uploads/` | `POST` with `filename` and optional `project` reserves an upload bound to that project (a project key's own project by default) → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB for a table, 100 MiB for a document)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; `POST /{id}/inspect/` with `size` (and `json_rows_field`) validates the file, counts a table's rows (`rows` is null for a document) and returns its `sha256`, and is required before the id goes into a dataset `source.upload_id` or a script `attachment` |
 | Feedback | `POST /api/feedback/` | Console feedback |
 | Connectors | `/api/connector-credentials/` | Langfuse, LangSmith, Braintrust, Galileo; list hides inactive rows and unfinished drafts (`?include_inactive=true`, `?include_drafts=true`); `POST .../verify/`, `GET .../source-projects/`, `POST .../preview/`, `GET .../discover-capabilities/`, `PUT .../capability-mapping/`, `POST .../config/`, `POST .../sync/` (202), `GET .../runs/`; `DELETE` disconnects and keeps imported traces |
 
@@ -93,7 +93,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 
 ## Building a dataset
 
-A dataset lands its rows as-is and its agent shapes them cell by cell; a run uses one version. The same sequence backs the Console, the CLI, and the MCP dataset tools.
+A dataset lands its rows as-is and your coding agent adds versions with scripts; a run uses one version. The same sequence backs the Console, the CLI, and the MCP dataset tools.
 
 <Steps>
   <Step title="Land a source">
@@ -101,22 +101,28 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     `POST /api/datasets/` with `project`, `name`, optional `intent` (`train` or `eval`) and
     `capability`, and exactly one `source`: `upload_id` (+ `filename`, or `uploads` for
     several files, and `json_rows_field` for a JSON object that wraps its rows), `rows` or
-    `text` for pasted data, or `traces` (`trace_ids`, or a trace-list selection of `filters`
-    and/or `search`; one row lands per trace). Tables and documents cannot share a source. The
+    `text` for pasted data, `traces` (`trace_ids`, or a trace-list selection of `filters`
+    and/or `search`; one row lands per trace), or `version` (`{dataset, version}`: a version
+    of another dataset in the project, `v3` or its id, the active one when blank; its intent
+    and capability carry over unless given). Tables and documents cannot share a source. The
     selection is validated and counted first: an unknown filter key or a selection that
     matches no trace is a 400, so a dataset never lands empty. The response is the dataset;
     landing runs in the background and `state` moves from `landing` to `idle` with `v0` active
     (`error` on failure). Documents are extracted in the sandbox, one row per text element.
     Landing proposes `capability_rank` and the `intent` when they were left out. A blocked
     import shows `import_blocked`; `POST .../resume-import/` retries it.
+    `POST .../cancel-import/` stops a landing import, both datasets of a split: `state`
+    becomes `stopped` and the dataset keeps no source.
   </Step>
   <Step title="Shape it">
     Versions are added over [MCP](/platform/mcp#datasets) (`add_dataset_version`,
     `add_synthetic_examples`); REST reads them. `PATCH /api/datasets/{id}/` with `active` (and
     `expected_active` to refuse with `409 active_conflict` when the active version moved)
     picks the active version. `GET .../executions/` lists the last script runs (mode, title or
-    first script line, state, error, parent, the version a run created, timings); runs are
-    kept 30 days. `GET .../events/` streams `land_started`, `land_progress`, `land_done`,
+    first script line, state, error, parent, attachment, the version a run created, timings);
+    runs are kept 30 days. `POST .../executions/{id}/cancel/` stops a queued or running run
+    (`cancelled`, no version). `GET .../prepare-prompt/?cell=` returns the `prepare-dataset`
+    prompt for a version. `GET .../events/` streams `land_started`, `land_progress`, `land_done`,
     `land_failed`, `execution_queued`, `execution_started`, `execution_finished`,
     `version_added` and `dataset_updated` as server-sent events, replaying what you missed
     first.
@@ -124,7 +130,9 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
   <Step title="Read a version">
     The dataset's `cells` carry every version: `version` (`v0`, `v1`, …), `parent`, `title`,
     `script`, `rows`, `columns`, `impact` against the parent, `intent_report` and
-    `capability_report`, `fits` against the intent, `stats`, and `frozen` (used).
+    `capability_report`, `fits` against the intent, `stats`, `analytics` (label balance with the
+    majority baseline, empty and one-value input fields), `attachment` (the file its script read:
+    name, bytes, rows, `sha256`; `GET .../attachment/?cell=` downloads it), and `frozen` (used).
     `GET .../rows/?cell=&offset=&limit=&sort=&dir=&filters=&search=&diff=1` pages a frame (up to
     500 rows) with `marks` (rows added, values changed with the old value) against the cell
     before it; `GET .../columns/?cell=` returns per-column stats.

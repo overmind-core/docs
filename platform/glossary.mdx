@@ -57,11 +57,11 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 ## Data
 
-**Dataset** — a landed source (a file, documents, pasted rows, or traces, landed as-is) and a tree of immutable **versions**. It carries an **intent** (`train`, `eval`, or `pending` until decided) and a **capability**, both proposed at landing and fixed by the first use. State: `landing`, `idle`, `error`. See [Datasets](/core/datasets).
+**Dataset** — a landed source (a file, documents, pasted rows, traces, or another dataset's version, landed as-is) and a tree of immutable **versions**. It carries an **intent** (`train`, `eval`, or `pending` until decided) and a **capability**, both proposed at landing and fixed by the first use. State: `landing`, `idle`, `error`, `stopped` (the import was stopped). See [Datasets](/core/datasets).
 
-**Dataset version** — the source (`v0`) or the frame a Python script left from one parent version (`v1`, `v2`, … in the order they were added): its rows, column manifest, both contract reports, its impact against the parent and a fingerprint. A version never changes; the same parent and script return the same version. A run marks the version it read **Used**. In the API a version is a `Cell`.
+**Dataset version** — the source (`v0`) or the frame a Python script left from one parent version (`v1`, `v2`, … in the order they were added): its rows, column manifest, both contract reports, its analytics, its impact against the parent, the file its script read if any, and a fingerprint. A version never changes; the same parent and script return the same version. A run marks the version it read **Used**. In the API a version is a `Cell`.
 
-**Script run** — one try, probe, add or synthetic run in the sandbox, kept 30 days with its error, output and timings. State: `queued`, `running`, `ok`, `failed`.
+**Script run** — one try, probe, add or synthetic run in the sandbox, kept 30 days with its error, output and timings. State: `queued`, `running`, `ok`, `failed`, `cancelled`.
 
 **Data Workshop** — the dataset page: a canvas of version cards, each under its parent, with a value-level diff against the parent, the active version with its actions, and the dataset's settings. Coding agents add versions over MCP; the Console does not.
 

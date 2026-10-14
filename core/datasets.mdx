@@ -5,7 +5,7 @@ description: Turn your production traffic and documents into the eval and traini
 
 A dataset is the data your eval runs, optimisation runs and training runs read. It is a landed source, `v0`, and a tree of immutable versions. Each version is a Python script that ran on one parent version; your coding agent adds versions over [MCP](/platform/mcp), and Overmind runs every script in an isolated sandbox. A version never changes after it exists.
 
-Two things say what a dataset is for: its **purpose** (training or evaluation; `intent` in the API) and the **capability** it belongs to. Capability is optional. The purpose can stay unset until you decide. Both are fixed once a run uses a version.
+Two things say what a dataset is for: its **purpose** (training or evaluation; `intent` in the API) and the **capability** it belongs to. Capability is optional. The purpose can stay unset until you decide. Both are fixed once a run uses a version; to change them, [create a dataset from that version](#from-another-datasets-version).
 
 ## Create a dataset
 
@@ -19,7 +19,7 @@ Select **New dataset** on the Datasets page, add files, enter a name, then choos
 
 <Tabs>
   <Tab title="From your traces">
-    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. Your coding agent can also call `create_dataset_from_traces` with trace ids or filters, or `create_dataset_from_llm_calls` for a capability's recorded model calls.
+    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. Your coding agent can also call `create_dataset` with a `traces` source (trace ids, filters or a search) or an `llm_calls` source (a capability's recorded model calls since a time).
 
     Each run lands as one row: its input and delivered output, the full transcript and tools in OpenAI wire shape, model, tokens, cost, status, duration and its score.
   </Tab>
@@ -41,6 +41,16 @@ Nothing is reshaped on the way in. Your rows land exactly as they arrived as `v0
 A single value longer than 200,000 characters — a tool call carrying a serialised agent state, say — is replaced with a preview marker. The rest of the row lands intact.
 </Warning>
 
+### From another dataset's version
+
+Select **New dataset from this version** on a version card. The dialog reads **From** the dataset and version with its row count; **Capability** and **Purpose** default to **Same as the source**, and **Split into training and evaluation** applies the same split as any other source. The rows are copied with their column types, and the new dataset's source card reads **From** `<dataset> · <version>`, linked to the original.
+
+Your coding agent calls `create_dataset` with `source: {"kind": "version", "dataset": ..., "version": "v3"}`; the active version is used when `version` is omitted. Over REST, `POST /api/datasets/` or `/api/datasets/split/` takes `source.version` as `{dataset, version}`.
+
+### Stop an import
+
+Select **Stop import** while a source lands. The dataset reads **Import stopped** with no rows; it is not a failure. A split stops both datasets. A stopped import cannot be resumed: select **Start again** to create a new dataset. Your coding agent calls `cancel_dataset_job` with the dataset; over REST, `POST /api/datasets/{id}/cancel-import/`.
+
 ### Retry an interrupted import
 
 Imports use a dedicated worker queue. If an import waits too long, its worker stops, or the sandbox is busy, unavailable or refuses the run while extracting a document, the dataset shows the error and keeps its uploaded source. Select **Retry import** to resume it. You do not need to upload the file again unless the error says the source is missing or has changed. An error in the source itself, such as an unreadable document, offers no retry: fix the file and upload it again.
@@ -59,9 +69,22 @@ A script reads `df` (a copy of the parent version) and `source` (the parent, unc
 
 `prepare_examples(df, intent="train" | "eval")` builds `messages`, or `input` and `expected_output`, from common shapes. Keep the `source_row` column: it is row identity across versions, and diffs and impact rely on it.
 
-Runs are idempotent. A call that returns `queued` or `running` is still working: repeat the identical call. The same parent and script return the same version. A failed run creates no version and returns the error and what the script printed; the identical call returns that failure for an hour, unless the platform caused it (`transient: true`), in which case it runs again. Each project runs up to four scripts at a time; more wait for a slot.
+Runs are idempotent. A call that returns `queued` or `running` is still working: poll the `dataset_run` job it returns with `get_job`, or repeat the identical call. The same parent and script return the same version. A failed run creates no version and returns the error and what the script printed; the identical call returns that failure for an hour, unless the platform caused it (`transient: true`), in which case it runs again. Each project runs up to four scripts at a time; more wait for a slot.
+
+Stop a queued or running script with **Stop** in **Activity**, or `cancel_dataset_job` with its `run` id. A stopped run keeps no version, and repeating the call returns the run's state. Over REST, `POST /api/datasets/{id}/executions/{run}/cancel/`.
 
 `add_synthetic_examples` appends 1–50 rows your agent wrote as a new version, with the instruction recorded as their lineage. Generated labels are not verified ground truth, and seed-derived rows stay on one side of a split.
+
+### Rows made outside Overmind
+
+Labels or other rows made outside Overmind, for example by an LLM you run yourself, join a version through a script:
+
+1. Export the parent version with `overmind dataset export <dataset-id> --cell v3`, so every row carries its `source_row`.
+2. Make the labels and keep `source_row` on each one.
+3. Upload the table with `overmind dataset attach labels.csv --json`. It returns an `upload_id` and creates no dataset.
+4. Your agent passes the `upload_id` as `attachment` to `try_dataset_script` or `add_dataset_version`. The script reads it as the frame `attachment`: `df = df.merge(attachment, on="source_row")`.
+
+The attachment is a CSV, TSV, JSON, JSONL, NDJSON or Parquet table within the upload limits, and an upload is usable only in its own project. The version records the file's name, rows and SHA-256 and keeps the file, so the version stays reproducible after the upload expires. The same parent, script and file return the same version.
 
 ### Branches and impact
 
@@ -75,15 +98,32 @@ Opening a dataset shows its versions as a tree of cards: each card under its par
   <img src="/images/platform/workshop.jpg" alt="Data Workshop canvas with version cards" />
 </Frame>
 
-A card shows its actions first, then the script (read only), what it printed, its changes against the parent, and its rows. The table marks new rows, shows changed values as a word-level diff against the parent, and shows a chat column as a conversation when you open a row. On the active card, a chip reads **Ready for training** or **Ready for evaluation**, or names the first check that fails and how to fix it. Other cards have **Set active**.
+A card shows its actions first, then the script (read only), the attached file, what it printed, its changes against the parent, its rows and its [analytics](#analytics). The table marks new rows, shows changed values as a word-level diff against the parent, and shows a chat column as a conversation when you open a row. On the active card, a chip reads **Ready for training** or **Ready for evaluation**, or names the first check that fails and how to fix it. Other cards have **Set active**. Every card also has:
 
-The Console changes only the dataset's settings: **Rename dataset** sets the name, the fit chip on the active card offers a matching intent or a better capability, and **Set active** picks the active version. Other changes go through `update_dataset`. The Console does not add versions. With only `v0`, the page reads **No versions yet** and links to connecting a coding agent. **Activity** reads **Running N scripts** while runs are queued or running; open it for the last 20 runs, with their errors. The folder button lists the project's datasets beside the canvas.
+- **Prepare with agent**: a prompt for a coding agent connected over [MCP](/platform/mcp), filled with the project, dataset, version, purpose and capability. Copy it into the agent; its runs appear in **Activity**.
+- **New dataset from this version**: see [From another dataset's version](#from-another-datasets-version).
+- **Export**: JSONL or CSV.
+- **Attached file**, on a version whose script read one: the file name and row count. Select the name to download it.
+
+The Console changes only the dataset's settings: **Rename dataset** sets the name, the fit chip on the active card offers a matching intent or a better capability, and **Set active** picks the active version. Other changes go through `update_dataset`. The Console does not add versions. With only `v0`, the page reads **No versions yet** and links to connecting a coding agent. **Activity** reads **Running N scripts** while runs are queued or running; open it for the last 20 runs, with their errors, and **Stop** on a queued or running run. The folder button lists the project's datasets beside the canvas.
 
 ## Versions
 
 `v0` is the source; each version your agent adds is the next `v1`, `v2`, and so on, in the order it was added. The version a run reads is the **active** one, or one you name.
 
-A version a run uses is marked **Used**: it cannot be deleted, and the run links back to it. An eval run from last week still means what it meant, while your agent keeps adding versions.
+A version a run uses is marked **Used**: it cannot be deleted, and the run links back to it. An eval run from last week still means what it meant, while your agent keeps adding versions. `inspect_dataset` lists the runs and jobs that use a version as `used_by`.
+
+### Analytics
+
+Overmind measures every version and shows an **Analytics** section on its card:
+
+| Measure | What it shows |
+| --- | --- |
+| Label balance | For each categorical field of `expected_output` (the value, or each key of an object such as a decision row's questions): the count of each label, up to 50, and the majority label with its share. The share is the majority baseline: the accuracy of always answering the majority label |
+| Empty fields | Input fields that are empty on some rows, with the row count |
+| One-value fields | Input fields that hold one value on every non-empty row |
+
+The section is open on the source and on versions whose analytics differ from their parent's. Versions measured before analytics existed are measured in the background when you open the dataset. `inspect_dataset` returns the same figures as `analytics`.
 
 ## Contracts
 
@@ -143,6 +183,7 @@ overmind dataset upload transcripts.jsonl --intent train --wait   # wait until t
 overmind dataset upload tickets.jsonl --split 20 --wait           # one file as a train and an eval dataset
 overmind dataset upload handbook.pdf --wait                       # one row per text element
 overmind dataset export <dataset-id> --cell v3 --output rows.jsonl
+overmind dataset attach labels.csv --json                         # a table for a script to merge
 ```
 
 See [MCP](/platform/mcp) and the [CLI](/platform/cli#overmind-dataset).
@@ -158,7 +199,7 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" \
 
 An export is a plain download and does not mark the version **Used**. Local loops — the optimiser and backtests — pull the exact version they were given and cache it under `.overmind/datasets/`.
 
-Over REST you can create a dataset, read its versions and runs, page through rows with their diff marks, change its settings and active version, export, and stream events. Adding versions is MCP only. See [Building a dataset](/platform/api#building-a-dataset).
+Over REST you can create a dataset (from files, traces or another dataset's version), read its versions and runs, page through rows with their diff marks, change its settings and active version, stop an import or a run, read the **Prepare with agent** prompt, download a version's attachment, export, and stream events. Adding versions is MCP only. See [Building a dataset](/platform/api#building-a-dataset).
 
 ## When something is refused
 
@@ -179,6 +220,9 @@ Over REST you can create a dataset, read its versions and runs, page through row
 | `no messages column` / `no input column` | Add a version that builds the column, for example with `prepare_examples` |
 | `Longest dataset row is ≈N tokens but this model's … context is M tokens` | Add a version that shortens the long rows, or pick a model with a longer context |
 | `The source is still landing.` | Wait for landing to finish |
+| `The attachment is missing or not inspected.` | Upload the table with `overmind dataset attach` in the same project and pass the new `upload_id` |
+| `Attach a table: CSV, TSV, JSON, JSONL or Parquet.` | Attach a table, not a document |
+| `The attachment upload expired or changed. Upload it again.` | Run `overmind dataset attach` again |
 
 ## Limits
 
