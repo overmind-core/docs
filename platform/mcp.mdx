@@ -373,6 +373,8 @@ causality; monitoring remains development feedback rather than an untouched test
 
 ## Data-first model workflows
 
+For typed decision training, `list_decision_training_models` reports Clef, D3 and D1 launch availability. `start_decision_job` returns a separate `decision_job` receipt and its shared training run; `prepare_training_data` also includes the DecisionJob identity when applicable. Poll `get_job(kind="decision_job")` and inspect the linked resource. Existing training progress and cancellation tools accept either job ID. D3 and D1 remain unavailable until their family runtimes meet the shared verification contract.
+
 Invoke `develop-model-from-data` for the supported path from uploaded data to reproducible model comparisons. The Workshop performs initial exploration and saves target interpretation. Repository scanning and capabilities are optional.
 
 - `create_data_partition` and `retry_data_partition` save or resume group-preserving role assignments.

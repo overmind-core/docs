@@ -152,6 +152,8 @@ self-hosted analytics remains off unless `POSTHOG_PROJECT_TOKEN` is configured.
 
 ## Native decision training
 
+A `DecisionJob` has its own public ID and shares the same preparation, monitoring, cancellation, billing and recovery lifecycle as its underlying `FinetuningJob`. `POST /api/decision-jobs/` and MCP `start_decision_job` return both identities; `GET /api/decision-models/` and `list_decision_training_models` show the explicit Clef, D3 and D1 families. Clef uses the qualified native training and probability-serving runtime. D3 and D1 are listed but cannot launch until their exact input, checkpoint and serving paths pass the same verification. Existing jobs from the retired independent lifecycle remain archived rather than being silently converted.
+
 For a model that selects among runtime options, a train dataset can use a `decision` column:
 
 ```json
