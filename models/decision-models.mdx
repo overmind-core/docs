@@ -25,7 +25,7 @@ You train one the way you train a chat model: shape a dataset in the [Data Works
 | `LiquidAI/d1-3B` | d1 | 3.1B | 32,768 | 255 · 255 · 100 |
 | `LiquidAI/d1-omni-600M` | d1 | 0.6B | 16,384 | 255 · 10 · 100 |
 
-A model reads state and questions up to its context. Training skips longer rows, and a longer request is refused with 400. Clef and D3 train and serve on an H100; d1 trains on an H100 and serves on an L4. `GET /api/decision-models/` returns the list with each model's `limits`.
+A model reads state and questions up to its context. Training skips longer rows, and a longer request is refused with 400. `GET /api/decision-models/` returns the list with each model's `limits`.
 
 ## Decision rows
 
@@ -67,7 +67,6 @@ The dataset page shows **Ready for decision training** (or **evaluation**) when 
   </Step>
 </Steps>
 
-Training runs on one H100 and is charged for its GPU time, from start to finish, when the job ends.
 
 ## Evaluation
 
@@ -103,4 +102,4 @@ curl https://api.overmindlab.ai/api/decision-jobs/$JOB_ID/systemone/ \
 
 `POST /api/decision-models/{model}/systemone` (with `project` in the body) answers with a catalog model as published, without training. A `noul` answer is `{"noul": p}`, the probability of `true`; a `score` answer carries `score` (the expected level), `confidence` and `probabilities` by level index.
 
-A model that has not served for five minutes starts again on its first request: the request returns **503** `warming` with `Retry-After`, and the retry is answered. A model that cannot answer returns **503** `unavailable` with a `reason`: `boot_failed`, `adapter_missing` or `runtime_error`. Each request is charged for the GPU time it uses, at least one second.
+A model that has been idle starts again on its first request: the request returns **503** `warming` with `Retry-After`, and the retry is answered. A model that cannot answer returns **503** `unavailable` with a `reason`: `boot_failed`, `adapter_missing` or `runtime_error`.

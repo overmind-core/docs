@@ -86,7 +86,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | `POST /api/v1/traces` (alias `/v1/traces`) | [OTLP trace ingest](/core/observability#the-otlp-endpoint) — protobuf, not JSON; never credit-gated |
 | `POST /api/mcp/` | The [MCP server](/platform/mcp) — Streamable HTTP |
 | `POST /api/v1/chat/completions`, `GET /api/v1/models`, `GET|DELETE /api/v1/models/{model_id}` | [OpenAI-compatible inference](/models/inference#calling-your-model) |
-| `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run variants |
+| `GET /api/models/catalog/` | The model catalog used for judges and run variants |
 | `GET /api/public/models/`, `GET /api/public/models/{slug}/` | The public model library, unauthenticated |
 | `GET /health` | Health check (no auth) |
 | `POST /api/auth/local/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Self-hosted sign-in, account, onboarding state, guest workspaces |

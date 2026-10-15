@@ -126,7 +126,6 @@ Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_
 
 `DATASET_IMPORT_MAX_QUEUE_SECONDS` sets the maximum import wait (default `3600`). An expired wait retains the source and exposes **Retry import**. Execution starts its own deadline when a worker claims the import. Keep beat and the control worker running so publication retries and interrupted imports are reconciled.
 
-For ECS deployments, `docker/worker-topology.json` defines each worker's command, including `sandbox`. `scripts/deploy_ecs.py` registers every release from the service's latest task-definition revision with that command. Releases run migrations, then the sandbox, a healthy landing consumer, the other workers, beat and the API, in that order. Scaling bounds, policies and alarms belong to your infrastructure code. Scale the interactive service on backlog per worker and queue age, not CPU alone. Set `QUEUE_METRICS_ENABLED=1` and `QUEUE_METRICS_CLUSTER` on the control worker to publish `BacklogPerWorker`, `OldestQueuedAgeSeconds`, `MissingWorkers`, `NewlyBlockedImports` and `MetricHeartbeat` to the CloudWatch namespace `Overmind/Queues`; publishing needs an ECS task role. Keep automatic scale-in disabled and drain work before you reduce capacity.
 
 ## Developing on it
 

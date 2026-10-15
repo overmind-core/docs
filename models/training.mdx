@@ -33,17 +33,17 @@ Over MCP, `start_finetune` derives model-specific defaults when `hyperparameters
 
 Dataset fit findings beyond readability remain advisory and are not launch approval gates. Training performs model-specific preparation, not repairs to labels, evidence or task scope.
 
-For Modal, CPU preprocessing runs after launch and before GPU training using the matching tokenizer, chat template and loss mask. Setup does not start or wait for preprocessing. Recommendations size context from estimated row lengths; job preparation includes pinned training and enabled validation data. Exact overflow within the model's training-method limit requests a larger context and rechecks every row. Over-limit rows, invalid tool formatting and examples without supervised next-token targets still block. Nothing is silently truncated or discarded.
+Preprocessing runs after launch and before training, using the matching tokenizer, chat template and loss mask. Setup does not start or wait for preprocessing. Recommendations size context from estimated row lengths; job preparation includes pinned training and enabled validation data. Exact overflow within the model's training-method limit requests a larger context and rechecks every row. Over-limit rows, invalid tool formatting and examples without supervised next-token targets still block. Nothing is silently truncated or discarded.
 
-The GPU consumes the matching validated token artifact and saved tokenizer. Repair incompatible rows with a new dataset version and prepare that version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` run the same preparation; poll with `get_job(kind="training_preparation")`.
+Training consumes the matching validated token artifact and saved tokenizer. Repair incompatible rows with a new dataset version and prepare that version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` run the same preparation; poll with `get_job(kind="training_preparation")`.
 
-Worker failures are distinct from incompatible data. A processor/code mismatch requires deploying the current Modal SFT worker, not just restarting Docker. Preprocessing logs remain at `preparations/<id>/preprocess_stdout.log` on the SFT volume. Confirmed failures can retry; uncertain submissions fail closed.
+Platform failures are distinct from incompatible data. Confirmed failures can retry; uncertain submissions fail closed.
 
 ## Pick a model
 
 The wizard ranks the catalogue and estimates cost and duration before launch. With a capability selected, its recorded codebase task determines the ranking; without one, the dataset's task is used. An unclassifiable selected capability stays ungraded instead of borrowing the dataset's task. Dataset measurements still drive context, tool compatibility and hyperparameters.
 
-Serving context is planned separately from training sequence length, using the pinned eval inputs, reference outputs and capability prompt. Cards show serving and output budgets. Estimated context overflow produces a warning without excluding the model or blocking launch. Unsupported GPU configurations still require correction. Training setup also estimates the incumbent and generative judges against the selected evaluation data. Runtime serving checks the actual templated input plus reserved output; these planning estimates are not exact tokenization and cannot guarantee provider acceptance. Increasing serving context does not require retraining.
+Serving context is planned separately from training sequence length, using the pinned eval inputs, reference outputs and capability prompt. Cards show serving and output budgets. Estimated context overflow produces a warning without excluding the model or blocking launch. Training setup also estimates the incumbent and generative judges against the selected evaluation data. Runtime serving checks the actual templated input plus reserved output; these planning estimates are not exact tokenization and cannot guarantee provider acceptance. Increasing serving context does not require retraining.
 
 <ModelCatalog />
 
@@ -69,7 +69,7 @@ Your coding agent can do the whole thing: `/overmind finetune` checks you're rea
 
 A job moves from queued, through preparing and training, to deploying, and lands on succeeded. While it runs you get per-step train and validation loss, learning rate, token accuracy and gradient norm, alongside steps completed, an ETA, tokens processed and credits used. You can cancel a run at any point, and retry one that failed.
 
-Before GPU submission, Retry also recovers confirmed preprocessing failures or an undersized context through a matching new preparation. Ready/in-flight artifacts are retained. Unresolved data incompatibilities and uncertain submissions refuse retry without resetting evaluations.
+Before training starts, Retry also recovers confirmed preprocessing failures or an undersized context through a matching new preparation. Ready/in-flight artifacts are retained. Unresolved data incompatibilities and uncertain submissions refuse retry without resetting evaluations.
 
 ## The benchmark
 
@@ -88,7 +88,7 @@ Every selected evaluation uses the entire pinned eval version, the same prompt s
 
 **Judge model**, below **Eval set**, defaults to the set's per-evaluator choices. An explicit selection is saved for this run and used on both sides of the comparison without changing the set. REST/MCP use `eval_judge_model`; it cannot change after launch. The dropdown labels estimated context fit and judge-budget differences. Estimated limit overflows turn affected selectors and **Start** orange; undersized options are greyed out but remain selectable. Clicking **Start** opens a short risk summary with **Start anyway**, without requiring a model change. Unverified, unavailable and pending checks stay neutral and do not open this warning. Shared incumbent evaluations require the same judge selection as well as matching data and benchmark context.
 
-Supported untouched bases use OpenRouter when exactly matched in its catalog; otherwise they use a Modal deployment. Once an eval or baseline deployment starts, its route stays pinned until an explicit retry. Trained checkpoints use their own deployment.
+Supported untouched bases use a hosted frontier route when one matches exactly; otherwise Overmind deploys them. Once an eval or baseline deployment starts, its route stays pinned until an explicit retry. Trained checkpoints use their own deployment.
 
 The Evals table shows selected evaluations immediately, including what each is waiting for, and keeps updating after deployment. Evaluations that never start are skipped if training fails or is cancelled. When experiments share an incumbent-before evaluation, the group view shows that run once as **Shared · N experiments**. Each experiment still has its own base-model and trained-model evaluations, and its individual view retains the shared incumbent result and comparison.
 

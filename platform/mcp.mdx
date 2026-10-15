@@ -225,7 +225,7 @@ Templates: `overmind://capabilities/{capability}`, `overmind://traces/{trace_id}
 
 Deployment resources accept `?period=1h|24h|7d|30d|all&source=application|all` (defaults: all time and all traffic). For example, `overmind://deployments/{deployment}?period=24h&source=application` returns the selected metrics and activity, including failures and end-to-end response percentiles, from the same services used by the Console.
 
-Each deployment resource also includes a current `worker` section: `state` (`warm`, `warming`, `asleep`, or `unknown`), measurement `available`, runner/input/backlog counts and recent-activity/warming signals. These use the Console's cached measurements and do not wake the model. Worker state is independent of the historical metrics filters, deployment readiness (`status`) and the capability's routing selection (`active_model`). Unavailable counts are null, not zero; recent successful traffic can still establish warmth when provider measurements are unavailable.
+Each deployment resource also includes a current `worker` section: `state` (`warm`, `warming`, `asleep`, or `unknown`), measurement `available` and recent-activity/warming signals. These use the Console's cached measurements and do not wake the model. Worker state is independent of the historical metrics filters, deployment readiness (`status`) and the capability's routing selection (`active_model`). Recent successful traffic establishes warmth when measurements are unavailable.
 
 ## The CLI boundary
 

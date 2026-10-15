@@ -190,7 +190,7 @@ Execution fans out server-side: sample preparation (generation), then one scorin
 
 For recorded conversations, a generated variant can set `params.generation_strategy` to `per_assistant_turn`. The model produces one decision for each recorded assistant turn, using the conversation recorded before that turn as context. Tool calls are evaluated as decisions without executing their tools. Each subsequent turn uses the recorded history, keeping its context independent of the candidate's previous decisions. Such a run attaches a per-turn judge automatically, and `params.replay_dimensions` names what it grades. This also applies to conversations containing a single recorded assistant turn; a tool-only decision does not require a final answer.
 
-A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
+A sample that exceeds the generation time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
 
 ### Reading the report
 

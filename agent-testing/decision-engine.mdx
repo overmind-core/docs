@@ -4,7 +4,7 @@ description: Jev-backed bounded decisions, generative fallback and provenance.
 ---
 
 Overmind uses TypeSafe's Jev for bounded classification and verification through
-OpenRouter's System One endpoint. It is a decision model, not a chat model: it
+a System One endpoint. It is a decision model, not a chat model: it
 chooses among declared answers and returns confidence and a probability
 distribution. It does not write prompts, explanations, code, or training examples.
 
@@ -75,11 +75,8 @@ fallback, including timed-out attempts.
 
 ## Configuration and validation
 
-Use the existing `OPENROUTER_API_KEY` and a shared Redis `CACHE_URL`. No TypeSafe key
-is required. `JEV_REQUESTS_PER_MINUTE` defaults to `1200` and
-`JEV_TOKENS_PER_SECOND` to `250000`; lower these to the allowance on your account.
-Workers sharing the same key must share Redis for account-wide pacing. Without
-working shared capacity, requests fall back instead of bypassing the limit.
+Self-hosted stacks set Jev pacing in [Self-hosting](/platform/self-hosting#decision-engine).
+Without capacity, requests fall back instead of bypassing the limit.
 
 The default confidence threshold is an operating policy, not calibrated accuracy.
 Before production reliance, compare Jev and generative judges against a frozen,
