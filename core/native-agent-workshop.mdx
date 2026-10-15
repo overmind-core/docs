@@ -160,8 +160,9 @@ operations, external imports and history with no recorded execution. A review cl
 alone does not establish execution. Changed logic requires a new revision and run;
 historical scripts and receipts remain unchanged.
 
-Packages run only in an operator-approved, immutable container image on the
-dedicated controller, without network, platform credentials or host mounts.
+Packages run in the isolated sandbox service, through independently scalable
+interactive workers. Each process has its own unprivileged UID and private scratch,
+without outbound network, platform credentials, shared media or a Docker socket.
 API/Celery processes never execute uploaded Python. Registration and validation
 do not execute code. `mode=preview` retains bounded samples and checks without
 publishing cells. Full runs publish all successful step cells atomically.
@@ -209,7 +210,7 @@ row members. A bounded preview does not establish full-source coverage, and a
 successful run does not prove branches are mutually exclusive or exhaustive.
 
 Bindings pin a revision, parameters, source and destination. They start paused;
-explicit enabling authorizes the controller to check for new full snapshots.
+explicit enabling authorises scheduled checks for new full snapshots.
 Late updates and removed trace matches are included. Checkpoints commit with
 publication, failed batches require explicit retry authorization, and revision
 adoption triggers an explicit rebuild. Trace snapshots above 10,000 traces fail
@@ -265,20 +266,22 @@ evidenced semantics and structured provenance; never remove them to pass checks.
 Preview samples a bounded prefix and does not establish coverage of every family.
 
 For row-independent transformations, declare step `batch_rows` (1–100000).
-Consecutive batches execute in separate restricted containers and concatenate in
-source order. Each expanded JSONL input/output must fit half the package's
-`scratch_mb`; each batch has the declared time limit. Global sorting, grouping,
+Consecutive batches execute in separate sandbox processes and concatenate in
+source order. Scratch and memory are bounded and each batch has the declared
+time limit; a complete pipeline has a 25-minute interactive task deadline. Global sorting, grouping,
 splitting and deduplication must not use batching. Row checks apply to the combined
 output, publication remains atomic, and progress records completed batches and
 rows. A failed or cancelled batch publishes no partial cells. CLI directory
 packages omit Python bytecode caches; other unsupported files remain errors.
 
-The execution controller has exclusive PostgreSQL session ownership. Restarting
-it fails interrupted recipe runs and cleans up owned containers; partial results
-are never published and scripts are never automatically replayed. Submit a new
+A shared per-project admission limit allows independent projects to use additional
+interactive capacity. Lost workers leave fenced receipts which expire without
+publishing partial results or automatically replaying scripts. Submit a new
 request key only after inspecting the failed attempt. Availability heartbeats
 continue during long validation and publication stages without advancing measured
-progress.
+progress. Packages pin the sandbox source-and-lockfile identity advertised by
+workbench inspection. Old Docker-pinned revisions remain readable; save an explicit
+new revision for the current sandbox instead of rewriting a historical manifest.
 
 ### Retained transformations
 

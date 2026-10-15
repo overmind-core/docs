@@ -86,17 +86,19 @@ The coding agent owns interpretation, code and semantic work. Overmind stores
 sources and immutable package revisions, validates lineage and publishes outputs.
 It does not run a platform planning agent or require Cursor credentials.
 
-Run the isolated `sandbox` service for document extraction. Landing workers need
-`SANDBOX_URL` and `SANDBOX_TOKEN`. The parser receives no app credentials or shared
-media volume and has no outbound network; unavailable configuration fails closed.
-OCR, native-text recovery and source evidence remain available through MCP.
+Run the isolated `sandbox` service for document extraction and retained Python
+packages. Landing and interactive workers need `SANDBOX_URL` and `SANDBOX_TOKEN`.
+The sandbox receives no app credentials or shared media and has no outbound
+network. OCR, native-text recovery and source evidence remain available through MCP.
 
-Retained Python packages execute through a separate singleton `workshop_runner`
-on a dedicated Docker-capable host. Set `WORKSHOP_RUNTIME_IMAGES` to approved
-immutable image IDs and preload those images. Only this trusted controller gets
-the Docker socket; execution containers get no host mounts, provider credentials
-or network. The controller needs shared media and a direct PostgreSQL connection
-for its session lock. Ordinary Fargate tasks cannot provide this Docker engine.
+Retain the Fargate sandbox and five Celery worker profiles. Workshop packages use
+the interactive queue; evaluation uses batch and source imports use landing.
+`WORKSHOP_PROJECT_CONCURRENCY` defaults to four shared slots per project.
+Worker and sandbox releases must match. Packages pin the sandbox source-and-lockfile
+identity returned by workbench inspection. Main's memory admission and subprocess
+isolation remain in force; dependencies and tokenizer caches ship in the application
+image. A dedicated EC2 controller, Docker socket and runtime-image allowlist are
+not required. Old Docker-pinned packages require a new revision for this runtime.
 See the repository's [rollout procedure](https://github.com/overmind-core/overmind/blob/codex/rl-continuous-optimisation/scripts/workshop-rollout.md)
 for infrastructure prerequisites, backup and a drained maintenance cutover from
 the retired mutable Workshop and DecisionJob schemas. Never run this cutover
