@@ -67,7 +67,7 @@ Your coding agent can do the whole thing: `/overmind finetune` checks you're rea
   <img src="/images/platform/training-monitor.jpg" alt="Training run monitor with loss curves and configuration" />
 </Frame>
 
-A job moves from queued, through training, to deploying, and lands on succeeded. While it runs you get per-step train and validation loss, learning rate, token accuracy and gradient norm, alongside steps completed, an ETA, tokens processed and credits used. You can cancel a run at any point, and retry one that failed.
+A job moves from queued, through preparing and training, to deploying, and lands on succeeded. While it runs you get per-step train and validation loss, learning rate, token accuracy and gradient norm, alongside steps completed, an ETA, tokens processed and credits used. You can cancel a run at any point, and retry one that failed.
 
 Before GPU submission, Retry also recovers confirmed preprocessing failures or an undersized context through a matching new preparation. Ready/in-flight artifacts are retained. Unresolved data incompatibilities and uncertain submissions refuse retry without resetting evaluations.
 

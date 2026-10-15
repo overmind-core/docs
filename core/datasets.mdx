@@ -5,7 +5,7 @@ description: Turn your production traffic and documents into the eval and traini
 
 A dataset is the data your eval runs, optimisation runs and training runs read. It is a landed source, `v0`, and a tree of immutable versions. Each version is a Python script that ran on one parent version; your coding agent adds versions over [MCP](/platform/mcp), and Overmind runs every script in an isolated sandbox. A version never changes after it exists.
 
-Two things say what a dataset is for: its **purpose** (training or evaluation; `intent` in the API) and the **capability** it belongs to. Capability is optional. The purpose can stay unset until you decide. Both are fixed once a run uses a version; to change them, [create a dataset from that version](#from-another-datasets-version).
+Two things say what a dataset is for: its **purpose** (training or evaluation; `intent` in the API) and the **capability** it belongs to. Capability is optional. With no purpose given, landing sets one from the rows when they already have the training or evaluation shape; otherwise it stays unset until you decide. Both are fixed once a run uses a version; to change them, [create a dataset from that version](#from-another-datasets-version).
 
 ## Create a dataset
 
@@ -19,7 +19,7 @@ Select **New dataset** on the Datasets page, add files, enter a name, then choos
 
 <Tabs>
   <Tab title="From your traces">
-    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. Your coding agent can also call `create_dataset` with a `traces` source (trace ids, filters or a search) or an `llm_calls` source (a capability's recorded model calls since a time).
+    Select runs in [Observability](/core/observability#from-traces-to-datasets) and **Add to dataset**. Your coding agent can also call `create_dataset` with a `traces` source (trace ids, filters or a search) or an `llm_calls` source (a capability's recorded model calls since a time; it needs the capability, and a purpose or a split, which splits on `span_id`).
 
     Each run lands as one row: its input and delivered output, the full transcript and tools in OpenAI wire shape, model, tokens, cost, status, duration and its score.
   </Tab>
@@ -69,9 +69,9 @@ A script reads `df` (a copy of the parent version) and `source` (the parent, unc
 
 `prepare_examples(df, intent="train" | "eval")` builds `messages`, or `input` and `expected_output`, from common shapes. Keep the `source_row` column: it is row identity across versions, and diffs and impact rely on it.
 
-Runs are idempotent. A call that returns `queued` or `running` is still working: poll the `dataset_run` job it returns with `get_job`, or repeat the identical call. The same parent and script return the same version. A failed run creates no version and returns the error and what the script printed; the identical call returns that failure for an hour, unless the platform caused it (`transient: true`), in which case it runs again. Each project runs up to four scripts at a time; more wait for a slot.
+Runs are idempotent. A call that returns `queued` or `running` is still working: poll the `dataset_run` job it returns with `get_job`, or repeat the identical call. The same parent and script return the same version. A failed run creates no version and returns the error and what the script printed; the identical call returns that failure for an hour, unless the platform caused it (`transient: true`), in which case it runs again. Each project runs up to four scripts at a time; more wait for a slot, and a run that waits 15 minutes fails with `transient: true`.
 
-Stop a queued or running script with **Stop** in **Activity**, or `cancel_dataset_job` with its `run` id. A stopped run keeps no version, and repeating the call returns the run's state. Over REST, `POST /api/datasets/{id}/executions/{run}/cancel/`.
+Stop a queued or running script with **Stop** in **Activity**, or `cancel_dataset_job` with its `run` id. A stopped run keeps no version. Repeating `cancel_dataset_job` returns the run's state; repeating the script call runs it again. Over REST, `POST /api/datasets/{id}/executions/{run}/cancel/`.
 
 `add_synthetic_examples` appends 1–50 rows your agent wrote as a new version, with the instruction recorded as their lineage. Generated labels are not verified ground truth, and seed-derived rows stay on one side of a split.
 
@@ -84,7 +84,7 @@ Labels or other rows made outside Overmind, for example by an LLM you run yourse
 3. Upload the table with `overmind dataset attach labels.csv --json`. It returns an `upload_id` and creates no dataset.
 4. Your agent passes the `upload_id` as `attachment` to `try_dataset_script` or `add_dataset_version`. The script reads it as the frame `attachment`: `df = df.merge(attachment, on="source_row")`.
 
-The attachment is a CSV, TSV, JSON, JSONL, NDJSON or Parquet table within the upload limits, and an upload is usable only in its own project. The version records the file's name, rows and SHA-256 and keeps the file, so the version stays reproducible after the upload expires. The same parent, script and file return the same version.
+The attachment is a CSV, TSV, JSON, JSONL, NDJSON or Parquet table within the upload limits, and an upload made with a project key is usable only in that project, and one made with an account key only by your account. The version records the file's name, rows and SHA-256 and keeps the file, so the version stays reproducible after the upload expires. The same parent, script and file return the same version.
 
 ### Branches and impact
 
@@ -98,7 +98,7 @@ Opening a dataset shows its versions as a tree of cards: each card under its par
   <img src="/images/platform/workshop.jpg" alt="Data Workshop canvas with version cards" />
 </Frame>
 
-A card shows its actions first, then the script (read only), the attached file, what it printed, its changes against the parent, its rows and its [analytics](#analytics). The table marks new rows, shows changed values as a word-level diff against the parent, and shows a chat column as a conversation when you open a row. On the active card, a chip reads **Ready for training** or **Ready for evaluation**, or names the first check that fails and how to fix it. Other cards have **Set active**. Every card also has:
+A card shows its actions first, then the script (read only), the attached file, what it printed, its changes against the parent, its rows and its [analytics](#analytics). The table marks new rows, shows changed values as a word-level diff against the parent, and shows a chat column as a conversation when you open a row. On the active card, a chip reads **Ready for training** or **Ready for evaluation** (for decision rows, **Ready for decision training** or **Ready for decision evaluation**), or names what fails, such as **Purpose not set**; hover it for the check and the fix. The active card also links to its consumers: **Train a model** or **Train a decision model** for training data, **Run the optimiser** and **Score a training job** for evaluation data. Other cards have **Set active**. Every card also has:
 
 - **Prepare with agent**: a prompt for a coding agent connected over [MCP](/platform/mcp), filled with the project, dataset, version, purpose and capability. Copy it into the agent; its runs appear in **Activity**.
 - **New dataset from this version**: see [From another dataset's version](#from-another-datasets-version).
@@ -111,7 +111,7 @@ The Console changes only the dataset's settings: **Rename dataset** sets the nam
 
 `v0` is the source; each version your agent adds is the next `v1`, `v2`, and so on, in the order it was added. The version a run reads is the **active** one, or one you name.
 
-A version a run uses is marked **Used**: it cannot be deleted, and the run links back to it. An eval run from last week still means what it meant, while your agent keeps adding versions. `inspect_dataset` lists the runs and jobs that use a version as `used_by`.
+A version a run uses is marked **Used**: its dataset cannot be deleted, and the run links back to it. An eval run from last week still means what it meant, while your agent keeps adding versions. `inspect_dataset` lists the eval runs, training jobs and optimisation runs that use a version as `used_by`.
 
 ### Analytics
 
@@ -119,7 +119,7 @@ Overmind measures every version and shows an **Analytics** section on its card:
 
 | Measure | What it shows |
 | --- | --- |
-| Label balance | For each categorical field of `expected_output` (the value, or each key of an object such as a decision row's questions): the count of each label, up to 50, and the majority label with its share. The share is the majority baseline: the accuracy of always answering the majority label |
+| Label balance | For each categorical field of `expected_output` (the value, or each key of an object such as a decision row's questions): the 20 most common labels with their counts, the rest summed, and the majority label with its share. A field with free text or more than 50 labels is not measured. The share is the majority baseline: the accuracy of always answering the majority label |
 | Empty fields | Input fields that are empty on some rows, with the row count |
 | One-value fields | Input fields that hold one value on every non-empty row |
 
@@ -210,6 +210,9 @@ Over REST you can create a dataset (from files, traces or another dataset's vers
 | `The file is not UTF-8.` | Save the file as UTF-8 and upload it again |
 | `Line 40 is not valid JSON.` | Fix that line; the file lands only when every line parses |
 | `Upload tables and documents as separate datasets.` | Create one dataset for the tables and one for the documents |
+| `Choose train or eval.` | An `llm_calls` source needs a purpose, or a split |
+| `LLM call splits use position hash.` | Use position `hash` for an `llm_calls` split |
+| `Two LLM calls are needed to split.` | Widen the time window, or create a single dataset |
 | `Upload documents uncompressed.` | Upload the PDF, DOCX or image itself, not a `.gz` |
 | `The PDF has N pages; the limit is 2000. Split it into smaller PDFs.` | Split the PDF |
 | `The document could not be extracted. Check that it is readable and not password protected.` | Remove the password, or export a readable copy |

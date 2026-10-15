@@ -10,20 +10,22 @@ You train one the way you train a chat model: shape a dataset in the [Data Works
 
 ## Models
 
-| Model | Family | Parameters |
-| --- | --- | --- |
-| `Cloudflare/clef` | Clef | 27.4B |
-| `Cloudflare/clef-flash` | Clef | 9.4B |
-| `OvermindLab/qwen-3.5-2B-decision` | Clef | 2B |
-| `OvermindLab/qwen-3.5-0.8B-decision` | Clef | 0.8B |
-| `vllm-sr/d3` | D3 | 26.1B |
-| `vllm-sr/d3-flash` | D3 | 8.4B |
-| `vllm-sr/d3-mini` | D3 | 4.5B |
-| `vllm-sr/d3-nano` | D3 | 2.2B |
-| `vllm-sr/d3-lite` | D3 | 0.9B |
-| `vllm-sr/d3-edge` | D3 | 0.6B |
+| Model | Family | Parameters | Context | Options · score levels · questions |
+| --- | --- | --- | --- | --- |
+| `Cloudflare/clef` | Clef | 27.4B | 32,768 | 26 · 10 · 64 |
+| `Cloudflare/clef-flash` | Clef | 9.4B | 32,768 | 26 · 10 · 64 |
+| `OvermindLab/qwen-3.5-2B-decision` | Clef | 2B | 32,768 | 26 · 10 · 64 |
+| `OvermindLab/qwen-3.5-0.8B-decision` | Clef | 0.8B | 32,768 | 26 · 10 · 64 |
+| `vllm-sr/d3` | D3 | 26.1B | 32,768 | 255 · 10 · 100 |
+| `vllm-sr/d3-flash` | D3 | 8.4B | 32,768 | 255 · 10 · 100 |
+| `vllm-sr/d3-mini` | D3 | 4.5B | 32,768 | 255 · 10 · 100 |
+| `vllm-sr/d3-nano` | D3 | 2.2B | 32,768 | 255 · 10 · 100 |
+| `vllm-sr/d3-lite` | D3 | 0.9B | 32,768 | 255 · 10 · 100 |
+| `vllm-sr/d3-edge` | D3 | 0.6B | 32,768 | 255 · 10 · 100 |
+| `LiquidAI/d1-3B` | d1 | 3.1B | 32,768 | 255 · 255 · 100 |
+| `LiquidAI/d1-omni-600M` | d1 | 0.6B | 16,384 | 255 · 10 · 100 |
 
-Every model reads up to 32,768 tokens of state and questions. `GET /api/decision-models/` returns the list.
+A model reads state and questions up to its context. Training skips longer rows, and a longer request is refused with 400. Clef and D3 train and serve on an H100; d1 trains on an H100 and serves on an L4. `GET /api/decision-models/` returns the list with each model's `limits`.
 
 ## Decision rows
 
@@ -47,9 +49,9 @@ A decision row puts the request in `input` and the answers in `expected_output`:
 | `noul` | Optional descriptions of `true` and `false` | `true` or `false` |
 | `score` | A list of levels, lowest first (2–255) | The level's index: `0`, `1`, … |
 
-An answer can also be a spread of weights, such as `{"billing": 3, "shipping": 1}`; Overmind normalises it. Every question needs an answer, and a row has at most 100 questions.
+An answer can also be a spread of weights, such as `{"billing": 3, "shipping": 1}`; Overmind normalises it. Every question needs an answer. A row accepts up to 255 options or levels and 100 questions; each model has narrower limits, listed in [Models](#models). A job is refused when a row of its training or evaluation version exceeds the chosen model's limits, and such a request returns 400.
 
-The dataset page shows **Ready for decision training** (or **evaluation**) when every row is valid, and otherwise names the first row that is not and why. Decision rows are only for decision models: chat training, eval runs and the optimiser refuse them. A coding agent connected over [MCP](/platform/mcp) reads the format from `overmind://decision-models`.
+The dataset page shows **Ready for decision training** (or **evaluation**) when every row is valid, and otherwise names the first row that is not and why. It also warns, without blocking use, when an option is the answer in fewer than 5 rows, or when one answer covers 90% or more of 10 or more rows. Decision rows are only for decision models: chat training, eval runs and the optimiser refuse them. A coding agent connected over [MCP](/platform/mcp) reads the format from `overmind://decision-models`.
 
 ## Train
 
@@ -58,10 +60,10 @@ The dataset page shows **Ready for decision training** (or **evaluation**) when 
     A **training** dataset of decision rows, and optionally an **evaluation** dataset of decision rows with different examples.
   </Step>
   <Step title="Start a job">
-    On the dataset page, select **Train a decision model**, or open **Training → Decision models → New decision job**. Choose the training data, the evaluation data and a base model. Over MCP, call `start_decision_job`; over REST, `POST /api/decision-jobs/`.
+    On the dataset page, select **Train a decision model**, or open **Training → Decision models → New decision job**. Choose the training data, the evaluation data and a base model. The dialog offers up to three unranked picks among the models that fit: **Strongest score** (highest Decision Index), **Smaller** (highest index at most half the strongest's size) and **Smallest that fits**. A model that does not fit is unavailable, with the reason. Nothing is preselected. Over MCP, `check_decision_readiness` returns the same picks and `start_decision_job` starts the job; over REST, `POST /api/decision-jobs/recommend/` and `POST /api/decision-jobs/`.
   </Step>
   <Step title="Follow it">
-    The job runs **Queued → Running → Evaluating → Succeeded**. Its versions are frozen when it starts, so later versions do not change it. Cancel stops it at any point.
+    The job runs **Queued → Running → Succeeded**, through **Evaluating** when it has evaluation data, or ends **Failed** or **Cancelled**. Its versions are frozen when it starts, so later versions do not change it. Cancel stops it while it is queued, running or evaluating.
   </Step>
 </Steps>
 
@@ -73,11 +75,11 @@ With evaluation data, the job scores the base model and the trained model on eve
 
 | Metric | Meaning |
 | --- | --- |
-| **Accuracy** | How often the most likely option is the right one |
+| **Accuracy** | How often the most likely option is the right one, over answers with one right option, shown beside the majority baseline |
 | **Log loss** | How much probability the model gave the right answer; lower is better |
 | **Brier** | How far the probabilities are from the answers; lower is better |
 
-Each question also gets its own accuracy and a per-option precision, recall and confusion matrix.
+An answer given as weights has no single right option and counts only in log loss and Brier. The job's `evaluation` also carries, per question, accuracy, the majority baseline, macro F1, and per-option precision, recall, F1 and a confusion matrix; the Console shows per-question accuracy. Rows a model could not answer are counted under `unanswered` by reason and mark the evaluation **partial**; with no answered rows it is **failed**. A warning counts training rows that overlap the evaluation version.
 
 ## Use the model
 
@@ -101,4 +103,4 @@ curl https://api.overmindlab.ai/api/decision-jobs/$JOB_ID/systemone/ \
 
 `POST /api/decision-models/{model}/systemone` (with `project` in the body) answers with a catalog model as published, without training. A `noul` answer is `{"noul": p}`, the probability of `true`; a `score` answer carries `score` (the expected level), `confidence` and `probabilities` by level index.
 
-A model that has not served for a few minutes starts again on its first request: the request returns **503** with `Retry-After`, and the retry is answered. Each request is charged for the GPU time it uses, at least one second.
+A model that has not served for five minutes starts again on its first request: the request returns **503** `warming` with `Retry-After`, and the retry is answered. A model that cannot answer returns **503** `unavailable` with a `reason`: `boot_failed`, `adapter_missing` or `runtime_error`. Each request is charged for the GPU time it uses, at least one second.

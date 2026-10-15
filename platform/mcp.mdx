@@ -1,6 +1,6 @@
 ---
 title: MCP
-description: The Overmind MCP server — setup per coding agent, the optional plugin, authentication, the 36 tools, 12 prompts, resources, workflow skills and the CLI handoff for local work.
+description: The Overmind MCP server — setup per coding agent, the optional plugin, authentication, the 46 tools, 13 prompts, resources, workflow skills and the CLI handoff for local work.
 ---
 
 MCP is the platform's first-class agent surface: an account-aware [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp/` that shares its services with the REST API and the Console. A coding agent connected to it can inspect health and failures, land and shape datasets, author evaluators and run evals, launch and follow training, schedule optimisation runs, and drive connectors and instrumentation — everything except the steps that need your filesystem, which it hands to the [CLI](/platform/cli).
@@ -109,7 +109,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 | `list_datasets` | `capability?`, `intent?`, `state?`, `search?`, `limit?`, `offset?`, `cursor?` | List project datasets |
 | `inspect_dataset` | `dataset`, `version?`, `version_offset?`, `version_limit?` | One dataset: its version tree, the active version and an optional `version` in full with `analytics` and `used_by`, consumer requirements (`preparation_context`), its source (files, the version it came from, its split pair), live runs, a sample and next actions |
 | `query_dataset` | `dataset`, `sql`, `version?`, `limit?` | Read-only `SELECT` over table `t` of one version (active by default); at most 100 rows and 32 KiB, 10 s timeout |
-| `create_dataset` | `name`, `source`, `intent?`, `capability?`, `split?`, `request_key?` | Land a new dataset from one `source`: `{kind: "traces", trace_ids?, filters?, search?, limit?}` (one row per trace), `{kind: "llm_calls", since, until?, model?, limit?}` (one row per `llm_call` span; needs `capability`) or `{kind: "version", dataset, version?}` (a version of a project dataset, keeping its intent and capability unless given). An empty selection is refused. `split` (`eval_percent?`, `position?`, `group_by?`, `stratify_by?`, `deduplicate?`) lands disjoint `<name> train` and `<name> eval` datasets instead of one with an intent. Returns a `dataset_import` job |
+| `create_dataset` | `name`, `source`, `intent?`, `capability?`, `split?`, `request_key?` | Land a new dataset from one `source`: `{kind: "traces", trace_ids?, filters?, search?, limit?}` (one row per trace), `{kind: "llm_calls", since, until?, model?, limit?}` (one row per `llm_call` span, `limit` 200 by default and at most 10,000; needs `capability`, and `intent` or `split`) or `{kind: "version", dataset, version?}` (a version of a project dataset, keeping its intent and capability unless given). An empty selection is refused. `split` (`eval_percent?` 20 by default, `position?` `head`, `tail` (default), `random` or `hash`, which `llm_calls` require; `group_by?`, `stratify_by?`, `deduplicate?`) lands disjoint `<name> train` and `<name> eval` datasets instead of one with an intent. Returns a `dataset_import` job |
 | `try_dataset_script` | `dataset`, `parent?`, `script`, `attachment?` | Run a script on a version in the sandbox and preview the result: rows, columns, three rows, printed output. Creates nothing |
 | `probe_dataset_version` | `dataset`, `version?`, `script` | Run a script on a version and return what it prints |
 | `add_dataset_version` | `dataset`, `parent?`, `title`, `script`, `attachment?` | Run a script on a parent version and store the result as a new, inactive version with its impact |
@@ -122,7 +122,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 
 `attachment` is the `upload_id` from `overmind dataset attach FILE --json`; the script reads the table as the frame `attachment`. See [Rows made outside Overmind](/core/datasets#rows-made-outside-overmind).
 
-Script runs are idempotent. A call that returns `queued` or `running` is still working: poll the `dataset_run` job it returns with `get_job`, or repeat the identical call. The same parent and script, and the same attached file, return the same version. A failed run creates no version, and the identical call returns that failure for an hour unless the platform caused it (`transient: true`). See [Datasets](/core/datasets#shape-it-from-your-agent).
+Script runs are idempotent. A call that returns `queued` or `running` is still working: poll the `dataset_run` job it returns with `get_job`, or repeat the identical call. The same parent and script, and the same attached file, return the same version. A failed run creates no version, and the identical call returns that failure for an hour unless the platform caused it (`transient: true`). A stopped run is not reused: the identical call runs it again. A run that waits 15 minutes for a project slot fails with `transient: true`. See [Datasets](/core/datasets#shape-it-from-your-agent).
 
 ### Evaluation
 
@@ -130,7 +130,7 @@ Script runs are idempotent. A call that returns `queued` or `running` is still w
 | --- | --- | --- |
 | `check_evaluation_readiness` | `dataset`, `eval_set?`, `version?`, `mode?`, `variants?`, `judge_model?` | Dataset, active eval set, evaluator applicability, variable bindings, credit readiness |
 | `create_eval_set` | `name`, `evaluator_ids`, `capability?` | Atomically create an eval set and its members in their applicable roles; does not activate it or launch a run |
-| `upsert_evaluator` | `evaluator?`, `name?`, `kind?`, `capability?`, `scope?`, `score_type?`, `display_name?`, `description?`, `rubric_md?`, `evaluation_prompt?`, `checklist?`, `judge_model?`, `score_min?`, `score_max?`, `pass_threshold?`, `requires_reference?`, `variable_mapping?`, `config?`, `applicable_roles?`, `surface?`, `choices?` | Create or update an evaluator |
+| `upsert_evaluator` | `evaluator?`, `name?`, `kind?`, `capability?`, `scope?`, `score_type?`, `display_name?`, `description?`, `rubric_md?`, `evaluation_prompt?`, `checklist?`, `judge_model?`, `score_min?`, `score_max?`, `pass_threshold?`, `requires_reference?`, `variable_mapping?`, `config?`, `applicable_roles?`, `surface?`, `choices?` | Create or update an evaluator. An `llm_judge` rubric is compiled into a checklist, as in Console authoring, unless you pass `checklist` |
 | `run_evaluation` | `name`, `dataset`, `eval_set?`, `version?`, `evaluator_ids?`, `variants?`, `max_items?`, `sampling?`, `judge_model?`, `request_key?` | Create and launch an eval run. Returns a job receipt |
 | `compare_evaluations` | `run`, `baseline` | Compare a run with a project-scoped baseline |
 | `annotate_evaluation_sample` | `annotation?`, `sample?`, `evaluator?`, `value?`, `label?`, `note?` | Create or update a human annotation, attributed to the key's owner |
@@ -148,9 +148,9 @@ Script runs are idempotent. A call that returns `queued` or `running` is still w
 | `set_active_model` | `capability`, `deployment?` | Verify a ready deployment, then switch the alias; poll the returned `model_activation` job. Omit deployment to clear routing |
 | `set_benchmark_model` | `capability`, `deployment?` | Choose a ready trained deployment as the capability's default training benchmark; omit deployment to use the codebase incumbent. Does not change serving |
 | `run_inference` | `deployment`, `messages`, `temperature?`, `max_tokens?` | One chat completion against a ready deployment using production output budgets, with usage, latency and finish reason |
-| `check_decision_readiness` | `dataset`, `version?`, `eval_dataset?`, `eval_version?` | Decision rows and optional eval data: fitting and excluded models, warnings, credits |
+| `check_decision_readiness` | `dataset`, `version?`, `eval_dataset?`, `eval_version?` | Decision rows and optional eval data: up to three unranked `picks` (`strongest`, `smaller`, `smallest`), fitting and excluded models with the reason, coverage and train/eval overlap warnings, credits |
 | `start_decision_job` | `model`, `dataset`, `version?`, `eval_dataset?`, `eval_version?`, `request_key?` | Train a [decision model](/models/decision-models) on a version of a dataset of decision rows; with `eval_dataset`, score the base and trained model on it. The job pins both versions. Returns a `decision_job` receipt |
-| `run_decision_model` | `model?` or `job?`, `state`, `questions` | Answer one System One request with a catalog model or a succeeded job; returns option probabilities |
+| `run_decision_model` | `model?` or `job?`, `state`, `questions` | Answer one System One request with a catalog model or a succeeded job (exactly one); returns option probabilities, usage and latency. `model_warming` carries `retry_after_seconds`; `model_unavailable` names a `reason` |
 | `get_model_swap_prompt` | `finetune`, `pin?` | A copy-paste prompt that points the capability's code at a successful fine-tune; the agent applies it locally |
 
 `start_finetune` and `check_finetune_readiness` use the train dataset's capability unless you pass `capability` (`null` for none). Pass `eval_dataset` and `eval_set` unless that capability owns exactly one eval dataset whose active version fits, and has an active eval set; another capability's eval data is never chosen. For a split, pass its eval half as `eval_dataset`.
@@ -198,7 +198,7 @@ Thirteen prompts compose the tools into multi-step workflows with human checkpoi
 | `instrument-repository` | `capability?` | Turn the instrumentation plan into a project- or capability-scoped repository change and verify the spans |
 | `prepare-evaluation` | `dataset`, `eval_set` | Dataset, evaluator, eval-set, binding and credit readiness |
 | `evaluate-change` | `dataset`, `baseline` | Run an eval and compare it with a baseline |
-| `finetune-capability` | `capability`, `dataset` | Check, estimate and launch a training job |
+| `finetune-capability` | `capability?`, `dataset` | Check, estimate and launch a training job |
 | `optimize-capability` | `capability`, `dataset` | Check readiness, schedule and inspect an optimisation run |
 | `compare-models` | `capability`, `dataset`, `model_ids` | A bounded model-comparison run and its measured winner |
 | `ship-model` | `capability`, `deployment`, `finetune` | Verify a deployment, activate the model, hand off the repository rollout |
@@ -229,7 +229,7 @@ Each deployment resource also includes a current `worker` section: `state` (`war
 
 ## The CLI boundary
 
-Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; repository discovery is `/overmind setup` then `overmind sync`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key is entered with `overmind connector add` in a terminal. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
+Three things never cross MCP: file bytes, repository edits, and provider secrets. A dataset file goes up with `overmind dataset upload`, and a table for a script with `overmind dataset attach`; a dataset or checkpoint comes down with `overmind dataset export` and `overmind model download-checkpoint`; repository discovery is `/overmind setup` then `overmind sync`; an optimisation run's candidates are generated and replayed by `overmind optimise` in your checkout; a model swap is a prompt (`get_model_swap_prompt`) the agent applies with its own editing tools; a connector's provider key is entered with `overmind connector add` in a terminal. The prompts above name the exact command at each handoff, and `--json` on the CLI returns the ids the agent needs to continue.
 
 ## Workflow skills
 
@@ -242,8 +242,8 @@ Three things never cross MCP: file bytes, repository edits, and provider secrets
 | `overmind-datasets` | Landing, shaping datasets with scripts, versions, synthetic examples and export |
 | `overmind-evaluations` | Evaluators, eval sets, runs and baseline comparisons |
 | `overmind-optimiser` | Prompt and code experiments, and model comparisons |
-| `overmind-training` | Exact data preparation, costs, fine-tuning and held-out evaluation |
-| `overmind-inference` | Serving metrics, worker state, live routing and activation |
+| `overmind-training` | Exact data preparation, costs, fine-tuning, decision models and held-out evaluation |
+| `overmind-inference` | Serving metrics, worker state, live routing, activation and decision requests |
 | `overmind-integrations` | Tracing providers, boundary mappings and verified imports |
 
 `overmind skills list --verbose` prints the installed catalog. `overmind skills sync <names> --ide <client>` refreshes the named skills, and `overmind init --ide <client>` installs the full set.

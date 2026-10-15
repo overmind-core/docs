@@ -67,7 +67,7 @@ Inspect each choice's `finish_reason`: `length` indicates an incomplete answer, 
 
 | Status | Trigger |
 | --- | --- |
-| `400` | Malformed body: not a JSON object, `model` or `messages` missing, numeric fields of the wrong type, an alias that is not `overmind/<uuid>`; on `DELETE`, a frontier id or an alias |
+| `400` | Malformed body: not a JSON object, `model` or `messages` missing, numeric fields of the wrong type, an alias that is not `overmind/<uuid>`; on `DELETE`, a frontier id or an alias; `context_length_exceeded` when the input plus the reserved output does not fit the serving context |
 | `402` | Insufficient credits |
 | `404` | No deployment matches the id in your projects; the alias's capability has no `active_model`; `GET` on a frontier id |
 | `409` | `DELETE` on a deployment already `deleting` or `deleted` |
@@ -96,7 +96,7 @@ The Console uses the project API, `/api/deployed-models/`, for the rest:
 | `GET .../{id}/metrics/` | Request count, prompt and completion tokens, median and p95 warm latency, median throughput, estimated cold-request count and latency, failed requests, end-to-end p50/p95, latest failure request id, cost this month and total, and the savings against the capability's original model priced at its OpenRouter rate |
 | `GET .../{id}/activity/` | Requests, failures, tokens, median warm throughput, and end-to-end p50/p95 latency per `minute`, `hour` or `day` bucket |
 | `GET .../{id}/live/` | Recent successful activity and warming signals; worker availability remains unknown when no per-deployment measurement exists |
-| `GET .../{id}/checkpoints/` | A presigned download link for the trained weights, valid for one hour |
+| `GET .../{id}/checkpoints/` | `{"files": [{name, size_bytes, download_url}]}`: a presigned link to the trained weights, valid for one hour. `404` when the job has no downloadable weights, `409` before the archive is ready, `503` when downloads are not configured, `502` when the archive cannot be reached |
 
 **Make live** is `PATCH /api/capabilities/{id}/` with `active_model` set to a ready deployment. This starts a saved activation: **Check deployment → Wake & verify → Switch routing**. The response keeps the existing `active_model` until the verification request succeeds. Poll the capability’s `activation` field for progress, including after navigating away. Failures identify the stage and offer **Retry activation**.
 

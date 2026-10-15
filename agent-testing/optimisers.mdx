@@ -87,7 +87,7 @@ overmind optimise status [--json]
 overmind optimise complete
 ```
 
-Every verb takes `-e <experiment-id>`; without it the CLI uses the run recorded in `.overmind/optimise_state.json`. `start` pulls the run's dataset version once to `.overmind/datasets/<cell-id>.jsonl` and never re-fetches it. See the [CLI](/platform/cli#overmind-optimise).
+Every verb takes `-e <experiment-id>`; without it the CLI uses the run recorded in `.overmind/optimise_state.json`. `start` pulls the run's dataset version to `.overmind/datasets/<cell-id>.jsonl`, with its fingerprint beside it, and fetches it again only when the fingerprint no longer matches. See the [CLI](/platform/cli#overmind-optimise).
 
 The **command template** is one shell command that runs the capability on a single datapoint and prints its output, with placeholders `__DATAPOINT_INPUT__`, `__EXPERIMENT_ID__`, `__CAPABILITY_ID__`, `__CANDIDATE_ID__`, `__ITERATION_ID__`, `__DATAPOINT_INDEX__` and `__PROJECT_ID__`. A run opens with a **smoke test** — before spending anything, the first datapoint runs through the template to verify the entrypoint can be invoked. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
 
@@ -101,7 +101,7 @@ Each subsequent iteration takes the batch of candidate diffs from the coding age
 | **model_comparison** (Compare models) | One to five model ids — OpenRouter slugs or your own `ft-…` deployments — one iteration per model, one candidate each | Every model, always — a comparison owes a full table |
 | **hybrid** | Every diff crossed with every model in `--model` | Budget or patience |
 
-The CLI command `overmind backtest` is separate from the `/overmind backtest` slash command above. It scores stored `llm_call` spans and does not run the repository. The recorded completion is the baseline, and the command exits 1 if a candidate regresses. See [CLI](/platform/cli#overmind-backtest).
+The CLI command `overmind backtest` is separate from the `/overmind backtest` slash command above. It scores stored `llm_call` spans and does not run the repository. The recorded completion is the baseline, and the command exits 1 if a candidate regresses or cannot be scored. See [CLI](/platform/cli#overmind-backtest).
 
 A repository backtest runs the application with its provider calls redirected to OpenRouter: `overmind.backtest.rewrite_repo(".")` rewrites `OpenAI`, `AsyncOpenAI`, `Anthropic`, `AsyncAnthropic` and `ChatOpenAI` constructors to read `OPENROUTER_MODEL`, `OPENROUTER_API_KEY` and the OpenRouter base URL from the environment, and reports leftover call sites (`ChatAnthropic`, Google GenAI, Vertex) for the coding agent to patch. For each candidate the loop then runs the datapoints with `OPENROUTER_MODEL` set to that candidate's model and `OPENROUTER_API_KEY` from your environment (`OPENAI_API_KEY` as a fallback).
 

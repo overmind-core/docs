@@ -7,7 +7,7 @@ description: Projects and membership, API keys, tracing connectors, running work
 
 A project is the tenant boundary for everything: capabilities, traces, datasets, eval sets, runs, deployed models, connectors, and project keys belong to exactly one project, and switching projects switches the entire Console view. There is no organisation layer above projects.
 
-Members are added per project by email (`POST /api/projects/{id}/memberships/`; the address must already have an account) or invited when it does not (`POST /api/projects/{id}/invites/`, delivered through Clerk and converted to a membership at first sign-in). You cannot remove yourself from a project; delete the project instead. A project is created in the Console, with an account-scoped key over the API, or by the first `overmind sync` from a repository whose `overmind.toml` has no project id.
+Members are added per project by email (`POST /api/projects/{id}/memberships/`; the address must already have an account) or invited when it does not (`POST /api/projects/{id}/invites/`). With Clerk configured the invite is emailed; without Clerk no email is sent. The invite becomes a membership when that address first signs in. You cannot remove yourself from a project; delete the project instead. A project is created in the Console, with an account-scoped key over the API, or by the first `overmind sync` from a repository whose `overmind.toml` has no project id.
 
 Data does not cross project boundaries: a project key is pinned to its project, and a model deployed in one project is not callable from another.
 
@@ -33,17 +33,17 @@ Scope one key per environment and keep them out of source control. `overmind syn
 
 ## Running work
 
-Eval runs, optimisation runs, and training runs show in the bell in the top bar from anywhere in the Console, each entry deep-linking into the surface that owns it. Dataset landings and agent turns show on the dataset itself. Over MCP, `get_job` reads any of them by kind and id.
+Eval runs, optimisation runs, and training runs show in the bell in the top bar from anywhere in the Console, each entry deep-linking into the surface that owns it. Dataset imports and script runs show on the dataset itself. Over MCP, `get_job` reads any of them by kind and id, and also decision-model jobs, deployments, model activations and connector syncs.
 
 ## Billing and credits
 
-Credits belong to the **user** and are shared across every project you are in. Work that runs on Overmind's side is metered on an append-only ledger: training runs (`finetuning-job`), and inference through `/api/v1/chat/completions` (`inference`, `inference-ft-model`). Earlier ledger rows can also show `data-workshop` and `cursor-agent`, which no longer accrue. **Settings** shows the plan, the balance, the usage ledger, and top-up.
+Credits belong to the **user** and are shared across every project you are in. Work that runs on Overmind's side is metered on an append-only ledger: training runs and decision-model training (`finetuning-job`), inference through `/api/v1/chat/completions` (`inference`), and calls to trained and decision models (`inference-ft-model`). Earlier ledger rows can also show `data-workshop`, which no longer accrues. **Settings** shows the plan, the balance, the usage ledger, and top-up.
 
 <Frame caption="Settings on a self-hosted stack: account spend and the usage ledger. The hosted product adds the plan, the balance, and top-up above it.">
   <img src="/images/platform/settings-credits.jpg" alt="Settings page with credits and ledger" />
 </Frame>
 
-On the hosted product a new account starts with a $50 grant, plans are Free and Pro, and launching paid work — an eval run, a re-launch, an optimisation run, a training run, a deploy, a generated judge prompt, an inference call — with no remaining balance returns `402` with `code: insufficient_credits`. Free caps 5 projects, 1 seat per project, and per calendar month 10 optimisation runs, 2 training runs and 2 deploys (`403 plan_limit_exceeded`); Pro lifts them. A self-hosted stack without Stripe keys meters the same charges with no cap and no quota — see [Self-hosting](/platform/self-hosting#billing-modes). **Trace ingest** and reading what is already computed are never credit-gated.
+On the hosted product a new account starts with a $50 grant, plans are Free and Pro, and launching paid work — an eval run, a re-launch, an optimisation run, a training run, a decision-model job, a deploy, a generated judge prompt, an inference or decision call — with no remaining balance returns `402` with `code: insufficient_credits`. Free caps 5 projects, 1 seat per project, and per calendar month 10 optimisation runs, 2 training runs and 2 deploys (`403 plan_limit_exceeded`); Pro lifts them. A self-hosted stack without Stripe keys meters the same charges with no cap and no quota — see [Self-hosting](/platform/self-hosting#billing-modes). **Trace ingest** and reading what is already computed are never credit-gated.
 
 <Note>
 Model calls made by *your own* application — including the calls the optimiser makes while replaying your agent in your checkout — go to your model provider under your keys. Overmind credits cover the work Overmind performs on its side.

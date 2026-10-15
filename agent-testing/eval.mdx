@@ -61,7 +61,7 @@ Judges are authored behaviour-scoped from the behaviour's group in the Eval libr
 
 ### Authoring
 
-Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
+Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Over MCP, `upsert_evaluator` compiles an `llm_judge` rubric into the same checklist unless you pass `checklist`.
 
 `overmind sync` refreshes the Default eval set of every current capability, in tiers: Tier 0, rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call); Tier 1, generative LLM judges grounded in the card, the prompt, and the behaviour map; and the behaviour outcome and step judges for trace scoring. Tier 1 authors once per capability; when it authors nothing for the generative role, one floor judge fills the role until a later push covers it. Authoring reads the capability's **evidence profile** — what its telemetry carries (declared behaviours, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
 

@@ -57,15 +57,15 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 ## Data
 
-**Dataset** — a landed source (a file, documents, pasted rows, traces, or another dataset's version, landed as-is) and a tree of immutable **versions**. It carries an **intent** (`train`, `eval`, or `pending` until decided) and a **capability**, both proposed at landing and fixed by the first use. State: `landing`, `idle`, `error`, `stopped` (the import was stopped). See [Datasets](/core/datasets).
+**Dataset** — a landed source (a file, documents, pasted rows, traces, a capability's recorded LLM calls, or another dataset's version, landed as-is) and a tree of immutable **versions**. It carries an **intent** (`train`, `eval`, or `pending` until decided) and a **capability**, both proposed at landing and fixed by the first use. State: `landing`, `idle`, `error`, `stopped` (the import was stopped). See [Datasets](/core/datasets).
 
-**Dataset version** — the source (`v0`) or the frame a Python script left from one parent version (`v1`, `v2`, … in the order they were added): its rows, column manifest, both contract reports, its analytics, its impact against the parent, the file its script read if any, and a fingerprint. A version never changes; the same parent and script return the same version. A run marks the version it read **Used**. In the API a version is a `Cell`.
+**Dataset version** — the source (`v0`) or the frame a Python script left from one parent version (`v1`, `v2`, … in the order they were added): its rows, column manifest, both contract reports, its analytics, its impact against the parent, the file its script read if any, and a fingerprint. A version never changes; the same parent, script and attached file return the same version. A run marks the version it read **Used**. In the API a version is a `Cell`.
 
 **Script run** — one try, probe, add or synthetic run in the sandbox, kept 30 days with its error, output and timings. State: `queued`, `running`, `ok`, `failed`, `cancelled`.
 
 **Data Workshop** — the dataset page: a canvas of version cards, each under its parent, with a value-level diff against the parent, the active version with its actions, and the dataset's settings. Coding agents add versions over MCP; the Console does not.
 
-**Contract** — measured on every version, two-fold. The intent contract is the shape the **intent** asks for: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The capability contract is row by row: an eval input carries the capability's required keys, a train transcript is the capability's own system prompt and tools.
+**Contract** — measured on every version, two-fold. The intent contract is the shape the **intent** asks for: **train** needs chat transcripts with an assistant turn on every row; **eval** needs an input on every row and reference outputs. The capability contract is row by row: an eval input carries the capability's required keys, a train transcript is the capability's own system prompt and tools. Decision rows have their own format: a state and questions in every input and an answer for every question; only decision models read them.
 
 ## Evaluation
 
@@ -119,4 +119,4 @@ description: Definitions of terms used across Overmind, as they appear in the Co
 
 **Model swap prompt** — text returned by `GET /api/finetuning-jobs/{id}/model-swap-prompt/` (or the `get_model_swap_prompt` MCP tool) after a benchmark win; paste into a coding agent to retarget the capability in your repo.
 
-**Credits** — the billing unit for compute Overmind performs (judge calls, training, serving), metered per user across projects. Trace ingest is never credit-gated.
+**Credits** — the billing unit for compute Overmind performs (training, decision-model training, inference), metered per user across projects. Trace ingest is never credit-gated.
