@@ -5,48 +5,61 @@ description: Run the open-source platform yourself — Docker Compose, the envir
 
 The platform is one repository, [overmind-core/overmind](https://github.com/overmind-core/overmind): the Django API (`overbae/`), the React Console (`frontend/`), the Python SDK and CLI (`overmind/`), and the Modal workers for training and serving (`overbae/modal/`). The hosted product at [console.overmindlab.ai](https://console.overmindlab.ai) runs this same code.
 
+## Licensing
+
+The platform uses [AGPL-3.0-only](https://github.com/overmind-core/overmind/blob/main/LICENSE).
+The Python SDK, CLI, and bundled agent skills under `overmind/` remain
+[MIT-licensed](https://github.com/overmind-core/overmind/blob/main/overmind/LICENSE).
+Third-party dependencies and assets retain their own terms.
+
+Commercial use and self-hosting are allowed under AGPL. If you run a modified
+network-accessible version, prominently offer its users the corresponding source
+for that deployed version, including the required build and installation materials.
+A link to an upstream version that does not contain your changes is not sufficient.
+
+See the [licensing guide](https://github.com/overmind-core/overmind/blob/main/LICENSING.md)
+for scope and alternative commercial licensing enquiries. Review
+[third-party notices](https://github.com/overmind-core/overmind/blob/main/THIRD_PARTY_NOTICES.md)
+before redistributing bundled fonts or icons.
+
 ## Requirements
 
-Docker with Compose, and [uv](https://docs.astral.sh/uv/) for anything Python outside the containers.
-
-The API refuses to start until every required key is set; the error names each missing one.
-
-| Required | Used for |
-| --- | --- |
-| `OPENROUTER_API_KEY` | Judges, evals, trace scoring, the Data Workshop, optimiser scoring, frontier inference |
-| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET` | Modal training and serving workers |
-| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Serving trained models: the endpoint printed by `modal deploy` and its shared secret |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME` | The fine-tuning checkpoint archive |
-| `HF_TOKEN` | Gated Hugging Face base models |
-
-| Optional | Effect |
-| --- | --- |
-| `CURSOR_API_KEY` | Recommended for the Data Workshop: runs the dataset agent as a Cursor Composer session |
-| `OPENAI_API_KEY` | The `embedding_cosine` evaluator |
-| `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` | Data Workshop fallbacks; unused while `OPENROUTER_API_KEY` is set |
-| `STRIPE_SECRET_KEY` | Paid plans and the credit cap — see [Billing modes](#billing-modes) |
-
-Fine-tuning and serving also need the Modal workers deployed — see [Training and serving](#training-and-serving).
+Docker with Compose, [Bun](https://bun.sh/) for the frontend, and[uv](https://docs.astral.sh/uv/) for anything Python outside the containers.
+> The API refuses to start without a training backend's credentials (Modal or Baseten), an S3 credential pair for the checkpoint archive, and `INFERENCE_API_URL` — see [Training and serving](#training-and-serving).
 
 ## Start the stack
 
 ```bash
 git clone https://github.com/overmind-core/overmind.git
 cd overmind
-cp .env.example .env      # set the required keys above
-docker compose up -d      # API, Console, Postgres, Redis, five Celery workers, beat, Grafana
+cp .env.example .env      # fill in OPENROUTER_API_KEY, the training backend, AWS keys, INFERENCE_API_URL
+docker compose up -d      # API, Postgres, Redis, four Celery workers, beat, Grafana
 ```
 
-The Console is at [http://localhost:5173](http://localhost:5173) and the API at `http://localhost:8000`. Sign in with any email and password; self-hosted mode creates the account on first use and needs no email verification. Leave `CLERK_API_SECRET_KEY` blank.
-
-Start by creating a project by following the [Quickstart](/quickstart). The onboarding prompt in your Console already points the coding agent at your API.
-
-To connect a repository by hand instead, run `overmind init --ide <cursor|claude|opencode|codex> --env local`, then `overmind sync` with the temporary account key from the Console. `--env local` points the MCP entry at `http://localhost:8000/api/mcp/`. Sync saves a project-scoped key; reload the coding agent once to connect. For another self-hosted address, set `OVERMIND_API_URL` before both commands.
-
-For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed with the email you sign in with:
+The Console is a React SPA served separately using Bun:
 
 ```bash
-docker compose exec api python manage.py seed_demo --owner you@example.com
+cd frontend && \
+cp .env.example .env && \
+bun install && bun run dev    # http://localhost:5173
+```
+
+You can now access the Console at [http://localhost:5173](http://localhost:5173).
+Use any login credentials to sign in, self hosted mode doesn't require any email verification.
+
+Start by creating a project by following the [Quickstart](/quickstart).
+
+For Codex on this machine, `overmind init --ide codex --env local` configures
+`http://localhost:8000/api/mcp/`. Then run `overmind sync` with the temporary
+account key from the Console. Sync saves a project-scoped key; reload Codex
+once to connect. For another self-hosted address, set `OVERMIND_API_URL` before
+both commands.
+
+
+For a demo workspace with thirty days of traffic, datasets, runs and served models, run the seed:
+
+```bash
+docker compose exec -T api python manage.py shell < seed.py
 ```
 
 ## Environment reference
@@ -64,12 +77,32 @@ docker compose exec api python manage.py seed_demo --owner you@example.com
 | `FIELD_ENCRYPTION_KEY` | Fernet key for stored connector credentials. Unset, one is derived from `DJANGO_SECRET_KEY`; the API prints a warning at startup when `DJANGO_DEBUG=False` |
 | `FRONTEND_URL` | Where the Console lives (default `http://localhost:5173`), for links in prompts and emails |
 | `TRACE_SETTLE_SECONDS` | How long a trace with no root span stays `live` before it reads `interrupted` (default `600`) |
-| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference and the Data Workshop agent. Required at startup. If the key is rejected, the capability's Evaluators tab shows `Judge authoring failed`; fix the key, then run `overmind sync` again |
+| `OPENROUTER_API_KEY` | Every routed model call: judges, eval-run generation, the optimiser's scoring, frontier inference |
 
 
-### The Data Workshop agent
+### Native-agent Data Workshop
 
-The dataset agent runs on OpenRouter. We recommend setting `CURSOR_API_KEY`, which runs it as a Cursor Composer session instead. Both engines take the same tools and emit the same events. `OPENAI_API_KEY` also serves embeddings (`text-embedding-3-small`) for the `embedding_cosine` statistical evaluator.
+The coding agent owns interpretation, code and semantic work. Overmind stores
+sources and immutable package revisions, validates lineage and publishes outputs.
+It does not run a platform planning agent or require Cursor credentials.
+
+Run the isolated `sandbox` service for document extraction and retained Python
+packages. Landing and interactive workers need `SANDBOX_URL` and `SANDBOX_TOKEN`.
+The sandbox receives no app credentials or shared media and has no outbound
+network. OCR, native-text recovery and source evidence remain available through MCP.
+
+Retain the Fargate sandbox and five Celery worker profiles. Workshop packages use
+the interactive queue; evaluation uses batch and source imports use landing.
+`WORKSHOP_PROJECT_CONCURRENCY` defaults to four shared slots per project.
+Worker and sandbox releases must match. Packages pin the sandbox source-and-lockfile
+identity returned by workbench inspection. Main's memory admission and subprocess
+isolation remain in force; dependencies and tokenizer caches ship in the application
+image. A dedicated EC2 controller, Docker socket and runtime-image allowlist are
+not required. Old Docker-pinned packages require a new revision for this runtime.
+See the repository's [rollout procedure](https://github.com/overmind-core/overmind/blob/codex/rl-continuous-optimisation/scripts/workshop-rollout.md)
+for infrastructure prerequisites, backup and a drained maintenance cutover from
+the retired mutable Workshop and DecisionJob schemas. Never run this cutover
+while old API, scheduler or worker processes can still write.
 
 ### Decision engine
 
@@ -77,20 +110,18 @@ For [Jev decisions](/agent-testing/decision-engine), the existing OpenRouter key
 and shared Redis cache also provide decision routing and account-wide pacing.
 `JEV_REQUESTS_PER_MINUTE` (default `1200`) and `JEV_TOKENS_PER_SECOND` (default
 `250000`) should match the account allowance. Missing configuration or unavailable
-capacity falls back to generative judging; Jev is not a chat or inference model.
+capacity is reported as a metric error; matrix judging has no generative fallback. A separate generative model may explain low scores.
 
 ### Training and serving
 
 | Variable | Purpose |
 | --- | --- |
-| `FINETUNING_BACKEND` | `modal`, the only accepted value |
-| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Required (tokens). Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_vllm_worker.py`, `register_model.py` and `modal_sft_worker.py` (`--env $MODAL_ENVIRONMENT`). `MODAL_ENVIRONMENT` (default `overmind-dev`) also selects the checkpoint bucket |
+| `FINETUNING_BACKEND` | `modal` (settings default); `docker-compose.yml` and `.env.example`. Startup fails unless the chosen backend's credentials are set |
+| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET`, `MODAL_ENVIRONMENT` | Modal training and serving workers, deployed with `modal deploy overbae/modal/modal_vllm_worker.py`, `register_model.py` and `modal_sft_worker.py` (`--env $MODAL_ENVIRONMENT`). `MODAL_ENVIRONMENT` (default `overmind-dev`) also selects the checkpoint bucket |
 | `MODAL_SFT_APP_NAME` | The deployed SFT app (default `overmind-sft`) |
-| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Required. The Modal serving endpoint printed by `modal deploy`, and the shared secret it checks |
-| `HF_TOKEN` | Required. Gated base models on Hugging Face |
-| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME`, `AWS_REGION` | Required (all but the region). The checkpoint archive that backs weights download |
-
-The Modal workers read their credentials from a Modal secret named `overmind-inference`: the AWS keys, `INFERENCE_API_KEY` and `HF_TOKEN`.
+| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | The Modal serving endpoint printed by `modal deploy`, and the shared secret it checks. `INFERENCE_API_URL` is required at startup |
+| `HF_TOKEN` | Gated base models on Hugging Face |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | The checkpoint archive that backs weights download; the key pair is required at startup |
 
 ### Billing modes
 
@@ -100,16 +131,6 @@ Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: ever
 
 `GRAFANA_ADMIN_PASSWORD` (default `admin`) and `AWS_PROFILE` for the Grafana service; `SLACK_FEEDBACK_WEBHOOK_URL` to forward Console feedback to a channel; `DJANGO_LOG_LEVEL` and `OVERBAE_LOG_LEVEL` (default `INFO`).
 
-
-## Background capacity
-
-Keep the `celery-landing-worker` service running. It consumes only `landing`, with one prefork process, so evaluation generation cannot occupy import capacity. The other worker queues remain `control`, `io`, `io_traces`, `batch` and `interactive`.
-
-Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_IN_FLIGHT` limits admitted work across the deployment (default `12`); `EVAL_MAX_IN_FLIGHT_PER_RUN` limits each run (default `2`). Admission rotates across projects and runs. Coordinate these limits with worker capacity and provider limits. Increasing the worker count alone does not raise the admission budget.
-
-`DATASET_IMPORT_MAX_QUEUE_SECONDS` sets the maximum import wait (default `900`). An expired wait retains the source and exposes **Retry import**. Execution starts its own deadline when a worker claims the import. Keep beat and the control worker running so publication retries and interrupted imports are reconciled.
-
-For ECS deployments, `docker/worker-topology.json` defines worker commands and `scripts/plan_landing_capacity.py` generates the infrastructure plan. Deploy a healthy landing consumer before producers. Configure queue-age, blocked-import and missing-monitor alarms. The generated scaling plan has explicit capacity bounds and disables automatic scale-in; drain work before reducing capacity.
 
 ## Developing on it
 
@@ -123,7 +144,3 @@ cd frontend && bun run typecheck && bun run lint && bun run test
 ```
 
 `AGENTS.md` at the repo root is the playbook a coding agent reads before touching a subsystem; `.claude/skills/` holds the subsystem maps. Pull requests go against `main`; `oss` is based on `main` and carries the same code with the in-repo SDK. `sdk-publish.yml` builds and publishes the SDK to PyPI on pushes to `main` that touch `overmind/` and on published GitHub releases.
-
-## Licence
-
-The platform is [AGPL-3.0](/platform/licensing). The SDK and CLI under `overmind/` are MIT. A commercial licence is available from Overmind Ltd if you need different terms.

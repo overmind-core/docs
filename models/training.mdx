@@ -9,7 +9,7 @@ import { ModelCatalog } from "/snippets/model-catalog.jsx";
 
 Fine-tune an open-weight model on the data your agent has already produced. You pick the model, Overmind runs the training on GPUs, streams the loss curves while it goes, and scores your selected before/after models on the same evaluation data — with the same judges you use everywhere else.
 
-The model is yours. Its weights are downloadable, and it serves through an [OpenAI-compatible API](/models/inference#calling-your-model) you call with your existing client.
+The model is yours and its weights are downloadable. Conversational models serve through an [OpenAI-compatible API](/models/inference#calling-your-model). Native decision models produce probability checkpoints with their own evaluation contract.
 
 ## What you need
 
@@ -17,17 +17,60 @@ The model is yours. Its weights are downloadable, and it serves through an [Open
 | --- | --- |
 | **Capability** | Optional. Select **None** to train without one |
 | **Training data** | A **train** dataset that fits the [train contract](/core/datasets#contracts) |
-| **Eval data** | An **eval** dataset, used to score both the baseline and your trained model |
-| **Graders** | A project eval set with at least one enabled generative evaluator; its capability can be **None** |
+| **Eval data** | Required when chat evaluations are selected; native probability suites are attached separately |
+| **Graders** | Required for selected chat evaluations; native probability metrics use frozen references |
 | **Benchmark model** | The codebase incumbent or a ready trained model in this project |
 
-Independent train and eval data gives meaningful held-out scores. Overmind reports overlap by normalized inputs, trace/conversation, groups and synthetic lineage as a warning; it does not drop selected rows or block launch. Successful creation atomically pins training, validation and eval versions. Internal loss-validation splitting keeps content/group families together and preserves duplicates. Deduplication belongs in the workshop.
+Independent train and eval data gives meaningful held-out scores. Overmind reports overlap by normalized inputs, trace/conversation, groups and synthetic lineage as a warning; it does not drop selected rows or block launch. Successful creation atomically pins training, validation and eval versions. Internal loss-validation splitting keeps content/group families together and preserves duplicates. Setup also supports a separately prepared validation dataset or disabled loss validation. The selected validation version is shared by checks, estimates and launch. Deduplication belongs in the workshop.
 
 <Frame caption="The training wizard: your data and graders on the left, the recommended models with cost and time estimates on the right.">
   <img src="/images/platform/training-wizard.jpg" alt="Training wizard with dataset setup and model picker" />
 </Frame>
 
-Over MCP, `start_finetune` derives model-specific defaults when `hyperparameters` is omitted. To set the method yourself, pass `"training_type": {"type": "Lora"}` or `{"type": "Full"}`; a plain string is refused before the job is created, with a field-level error.
+For MCP `start_finetune`, omit `hyperparameters` to plan a supported recipe from frozen context and exact training-data measurements.
+The objective is better task performance. Cost and duration are reported separately;
+shorter or cheaper training does not count as a quality improvement. The planner
+considers learning rate, batch size and exposure together, without a fixed preference
+for fewer epochs. Final behavioural comparisons are required to verify improvement.
+When supplying settings, use `"training_type": {"type": "Lora"}` or
+`"training_type": {"type": "Full"}`. A string training type is rejected before
+job creation with a field-level validation error.
+
+Batch bounds come from the selected training backend. Modal recipes use unpacked
+examples. Packing is unavailable until cross-example attention isolation is
+qualified; an explicit packing request fails before paid planning. Resolved
+settings are recorded on the job.
+
+## Evidence-linked task development
+
+Explicit train/development partition roles receive training intent even when the
+original source was exploratory. Calibration/final roles remain evaluation-only;
+their contents still need to satisfy the corresponding consumer format.
+
+MCP `save_training_plan` retains immutable task/source snapshots for generative
+and decision training: target meaning, allowed inputs and availability, prediction
+unit, connected grouping, slices and success criterion. The primary metric is a
+JSON Pointer into development-check metrics, such as `/hard_label_accuracy` or
+`/generation/accuracy`.
+
+After Data Workshop publication and grouped partitioning, save a superseding
+snapshot with the exact prepared cell and partition. Retain audit, baseline and
+fitting-sanity methods, results and limitations. These reports remain attributed;
+saving them does not independently certify semantic quality.
+
+Bind an experiment with `training_plan` and `stage="pilot"`. Quality pilots use
+the exact train/development roles, explicit `max_steps` from 1–2048 and
+development-loss checkpoint selection. Runtime profiles are separate hardware
+measurements. Record an explicit selection from a settled matching pilot's fully
+scored development check, measured task metric and verified checkpoint.
+
+`stage="full"` consumes the selected plan and recipe. Only declared changes to
+`max_steps`, `n_epochs` or `runtime_limit_seconds` are allowed. Changed task, data
+or partition identities require matching new pilot evidence. Launch receipts
+retain the plan binding; earlier snapshots are not rewritten. Final/calibration
+roles are reserved for the separate final evaluation, never recipe selection.
+Read plans with `get_job(kind="training_plan")`; REST exposes `/api/training-plans/`.
+Existing exploratory jobs remain available without a universal quality gate.
 
 ## Exact preprocessing
 
@@ -35,11 +78,114 @@ Workshop quality reviews remain advisory and are not repeated as launch approval
 
 For Modal, CPU preprocessing runs after launch and before GPU training using the matching tokenizer, chat template and loss mask. Setup does not start or wait for preprocessing. Recommendations size context from estimated row lengths; job preparation includes pinned training and enabled validation data. Exact overflow within the model's training-method limit requests a larger context and rechecks every row. Over-limit rows, invalid tool formatting and examples without supervised next-token targets still block. Nothing is silently truncated or discarded.
 
-The GPU consumes the matching validated token artifact and saved tokenizer. Repair incompatible data in the workshop and prepare the revised version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` run the same preparation; poll with `get_job(kind="training_preparation")`.
+Preparation uploads source rows once as checksummed gzip JSONL and writes token artifacts incrementally. This applies to chat and native decision datasets. Training launch sends compact, ordered row fingerprints instead of uploading the source content again. The worker verifies the selection count, checksum and approved token artifact before using a disk index to restore the exact selected rows, including duplicates and the separate validation selection. The GPU consumes the matching validated token artifact and saved tokenizer. Repair incompatible data in the workshop and prepare the revised version. Explicit REST `POST /api/training-preparations/` and MCP `prepare_training_data` remain available; poll with `get_job(kind="training_preparation")`. Other providers retain provider-side preprocessing.
 
-Worker failures are distinct from incompatible data. A processor/code mismatch requires deploying the current Modal SFT worker, not just restarting Docker. Preprocessing logs remain at `preparations/<id>/preprocess_stdout.log` on the SFT volume. Confirmed failures can retry; uncertain submissions fail closed.
+Worker failures are distinct from incompatible data. A processor/code mismatch requires deploying the exact immutable worker release selected by the API. Set `MODAL_ENVIRONMENT` explicitly. Existing jobs retain their saved worker identity across retries; do not replace an active unpinned runtime during an upgrade. Preprocessing logs remain at `preparations/<id>/preprocess_stdout.log` on the SFT volume. Confirmed failures can retry; uncertain submissions fail closed.
+
+## Development monitoring
+
+Development checks measure learning before the independent final benchmark.
+Freeze `hyperparameters.monitoring` with the training recipe. Supported schedules
+are adaptive, fixed optimizer-step intervals, epoch boundaries and off. Adaptive
+checks use measured optimizer/check time; the overhead target is not a spend cap.
+The scheduler holds small timing changes within a 20% deadband and bounds larger
+cadence changes to half/double per completed check. Its receipts distinguish
+normal run boundaries from measured overhead conflicts. Active jobs keep the
+scheduler from their pinned worker release.
+Modal freezes sample manifests during transfer before GPU dispatch and verifies
+them in the trainer. Token preparation alone does not select a development split.
+
+The default policy requests initial development loss, fixed-sample interim checks
+and full final development validation, with 2,048 development rows and a separate
+256-row training reference. Retained whole groups may exceed those targets.
+Development-loss checkpoint selection and early stopping are explicit opt-ins;
+warnings never change labels, learning rate or data. Missing required checks fail
+closed. Verified adapter reload does not establish optimizer resume support.
+
+Modal generation probes accept agent-authored classification labels, exact matching
+or a local JSON Schema. `generation.kind=json_fields` compares agent-declared
+JSON Pointers (`fields:["/risk", "/case/id"]`) against retained JSON references.
+It accepts 1–64 distinct pointers, each at most 1,024 characters and 64 segments;
+empty string selects the whole document. Escape `/` as `~1` and `~` as `~0`.
+Only named fields count; arrays retain order, and boolean/number/null types and
+numeric precision are preserved. Missing or malformed references remain unscorable;
+wrong or missing predictions fail. Per-field and whole-example pass rates have
+separate coverage. Field checks cannot be combined with `labels` or `schema` in
+one probe. Inputs exclude the final supervised answer; no tools execute.
+Class metrics, contract pass rates, coverage, invalid labels and paired descriptive intervals remain
+distinct from final-test performance. Metered judges, independent challenge suites
+and declared-strata sampling are not supported by the monitoring policy.
+
+Use MCP `inspect_training_progress(job=...)` to page checks and inspect checkpoints;
+add `check` for retained generated examples or native probability/target records,
+or `probe` for frozen sample identities. Native per-question metrics and assessments
+appear as `collections` descriptors in MCP overviews. Pass a descriptor’s `field`
+JSON Pointer with `offset` and `limit` to page exact object entries or array items;
+append escaped keys or indices to inspect nested fields. REST
+`monitoring-evidence` exposes the same pagination. Native records keep distribution
+targets and ordinal means distinct; missing hard-label accuracy is not a zero score.
+These reads never wake workers. The Console's development section uses the same
+receipts, including failed checks and cancelled-run evidence.
+Detailed examples are collected separately from status, metrics and checkpoint
+receipts. `current.collection.state=pending` means a background download is still
+needed, not that training is still running. The collector reads each sealed Modal
+artifact once, verifies its checksum and retains completed downloads across retries.
+An unavailable evidence download does not block another run's status or completion.
+The compact MCP job summary keeps `latest_generation_check` separately from newer
+loss-only checks. Classification `facts.assessment` records represented labels
+without predictions and comparison with the majority-label baseline on the same
+scored subset. Assessments retain source receipt, rule version and observation
+time; incomplete or inconsistent counts remain inconclusive. These observations
+do not diagnose a cause, establish population performance or change training.
+Completed loss/reference/generation measurements become visible while subsequent
+parts of a check are still running; a later failure does not erase those results.
+`cancel_finetune` records cancellation before requesting provider termination. Intermediate retained
+checkpoint byte downloads are not yet supported by the deployed-model CLI handoff.
+
+Check `facts.delivery` records when the server first received a usable loss result
+and when it observed the check finish. Optional product analytics records these
+delivery milestones, coverage, timings and verified checkpoint availability after
+receipt commit. It excludes example text, labels and error messages. Missing
+resume support remains unknown. These measurements do not establish user
+understanding or satisfaction, and analytics delivery is best-effort. Local
+self-hosted analytics remains off unless `POSTHOG_PROJECT_TOKEN` is configured.
+
+## Native decision training
+
+A `DecisionJob` has its own public ID and shares the same preparation, monitoring, cancellation, billing and recovery lifecycle as its underlying `FinetuningJob`. `POST /api/decision-jobs/` and MCP `start_decision_job` return both identities; `GET /api/decision-models/` and `list_decision_training_models` show the explicit Clef, D3 and D1 families. Clef uses the qualified native training and probability-serving runtime. D3 and D1 are listed but cannot launch until their exact input, checkpoint and serving paths pass the same verification. Existing jobs from the retired independent lifecycle remain archived rather than being silently converted.
+
+For a model that selects among runtime options, a train dataset can use a `decision` column:
+
+```json
+{
+  "decision": {
+    "state": "Evidence available for this example",
+    "question": "Which outcome is supported?",
+    "kind": "choice",
+    "options": ["Outcome A", "Outcome B"],
+    "target_probabilities": [0.3, 0.7]
+  }
+}
+```
+
+The options can change between examples. Kinds are `choice`, `noul` (two options in false/true order), and `score` (ordered options). Targets must contain a finite probability for every option and sum to one. An optional positive `weight` controls the example's loss contribution. Workshop preparation preserves soft targets; it does not replace them with the most likely label.
+
+The dataset contract selects `decision_cross_entropy`. Exact preparation uses Unsloth’s Clef encoder, freezes the tokenizer and option spans, preserves your option order in returned probabilities, and rejects oversized inputs without truncation. Unsloth FastDecisionModel and DecisionTrainer train the backbone adapter and joint decision head. The loss preserves complete probability distributions and observation weights; mean-only ordinal targets use expectation error without inventing votes. Targets stay out of model inputs. Packing is disabled. The qualified method is Modal LoRA on one GPU; native full-weight training is not currently supported.
+
+Set all four chat evaluation flags to `false` for these jobs. Chat eval data and graders are then optional. Attach distinct calibration and final native decision datasets in the run’s native evaluation plan; this schedules paid matched base/candidate scoring after checkpoint verification. MCP exposes the same workflow through `schedule_native_evaluation` and `get_job(kind="native_evaluation")`.
+
+With loss validation enabled, the worker records complete probability vectors before and after training. Before publishing a native artifact, a fresh process verifies every reloaded adapter and full-precision decision-head tensor exactly and checks probabilities on probes spanning input lengths. Training and prediction use the same pinned attention backend and native head normalization. Fresh-process verification reports its own stage and measured probe count. Probability replay permits at most 0.0001 absolute error; missing trainable weights or changed saved tensors fail verification. These checks establish execution and serialization correctness, not generalization or benchmark performance. Optimizer continuation must be qualified separately.
+
+A successful native job retains its adapter, full-precision joint head, upstream configuration files, tokenizer and `decision.json` manifest. It automatically registers a native decision deployment, verifies a probability prediction and preserves routing; it does not create a chat deployment or live chat alias. MCP's finetune resource reports the training objective, `typed_probabilities` inference contract and recorded GPU cost. Generic text statistics and assumed-throughput estimates remain estimates; measure the native workload before forecasting a full run.
 
 ## Pick a model
+
+The estimate names its hardware, measurement basis and scope. Native decision forecasts use complete execution times from compatible model, training engine, processor, recipe, GPU and approximate length profile. Native estimates use the supplied recipe epoch count, normalize the unpacked default, and require matching step limits. They list supporting runs and reasons for rejecting other measurements. Workload scaling is limited to 0.5–2x using the same character-based token estimate. Fewer than three measurements receive low confidence and a wider planning range. These ranges are not statistical confidence intervals or provider spending caps. Without a match, cost and duration remain unquoted. Chat estimates retain their displayed provider assumptions.
+
+Native progress shows elapsed time and an estimated remaining-time range, without a single countdown or predicted finish timestamp. A live range requires at least five step intervals spanning 30 seconds; until then, only elapsed time is shown. The range includes a planning margin around the elapsed-time average and widens for uneven batches. It is not a confidence interval and excludes final validation and checkpoint reload. The Console rounds its endpoints outward to minutes.
+
+Run records separate recorded GPU/API charges from estimated compute costs. Preparation, native training, evaluation and performance workers save duration and CPU/memory observations. Current workspace rates from `modal.Workspace.billing.rates` convert these into estimates. The report records the fetch time; rates are cached for five minutes, with an eight-second provider timeout and no static-price fallback. Historical run charges are not used as prices. Cumulative worker snapshots are counted once, and recorded training GPU is never added twice. CPU and peak-memory observations are billing proxies. Modal workers use process resource counters because cgroup mounts are unavailable. Reaped child CPU is included; live child usage is incomplete until exit, and summed process memory peaks can overestimate simultaneous use. Missing measurements remain unknown. Image boot, later idle, storage, network, local orchestration and provider adjustments remain excluded, so the combined recorded-plus-estimated amount is not a complete invoice.
+
 
 The wizard ranks the catalogue and estimates cost and duration before launch. With a capability selected, its recorded codebase task determines the ranking; without one, the dataset's task is used. An unclassifiable selected capability stays ungraded instead of borrowing the dataset's task. Dataset measurements still drive context, tool compatibility and hyperparameters.
 
@@ -49,13 +195,13 @@ Serving context is planned separately from training sequence length, using the p
 
 The wizard shows the constraints for each model:
 
-- **Context.** Training limits can be shorter than inference windows and differ between LoRA and full training. Estimates size context but do not exclude candidates; exact preparation determines compatibility.
+- **Context.** Training limits can be shorter than inference windows and differ between LoRA and full training. Modal uses estimates to size context, not to exclude candidates; exact preparation determines compatibility. Other providers retain their existing eligibility checks.
 - **Tool calling.** If your data contains tool calls, only models that support them are offered.
 - **Adapters.** Larger dense models and every mixture-of-experts model train as LoRA adapters; the picker says so instead of offering a choice.
 
 ## Launch
 
-One run can launch several experiments at once, so you can try two learning rates or two base models side by side and compare them on the same page. Each experiment has its own **Epochs**, **Learning rate** and **Batch**, plus **Rank**, **Alpha** and **Dropout** when it's training a LoRA adapter. The panel tells you what your data looks like — rows, tokens, longest row, whether it contains tool calls — so the numbers aren't guesswork.
+One run can launch several model experiments. The platform prepares each configuration from frozen context and exact data measurements. Setup details appear alongside the run's hyperparameters; MCP can supply explicit constraints for controlled experiments.
 
 Your coding agent can do the whole thing: `/overmind finetune` checks you're ready, estimates the cost, launches the run, and follows it to the end.
 
@@ -65,9 +211,11 @@ Your coding agent can do the whole thing: `/overmind finetune` checks you're rea
   <img src="/images/platform/training-monitor.jpg" alt="Training run monitor with loss curves and configuration" />
 </Frame>
 
-A job moves from queued, through training, to deploying, and lands on succeeded. While it runs you get per-step train and validation loss, learning rate, token accuracy and gradient norm, alongside steps completed, an ETA, tokens processed and credits used. You can cancel a run at any point, and retry one that failed.
+A job shows preparation, provider submission, model loading, optional pre-training baseline evaluation and training as distinct stages when reported. Counters, last heartbeat, attempts and restored checkpoints distinguish progress from an observer outage. Successful jobs deploy through their matching chat or native decision runtime; native readiness verifies a real probability prediction. The monitor shows objective-specific measurements: training loss is not benchmark quality, and native decisions do not show assistant-token accuracy. Unknown percentages, timings and costs stay unknown. MCP provides the same run state and acknowledged controls.
 
-Before GPU submission, Retry also recovers confirmed preprocessing failures or an undersized context through a matching new preparation. Ready/in-flight artifacts are retained. Unresolved data incompatibilities and uncertain submissions refuse retry without resetting evaluations.
+Before GPU submission, exact preparation checks context and assistant targets. Incompatible inputs or uncertain submission state remain visible and do not launch another worker.
+
+GPU startup reports file staging, runtime initialisation, weight loading, adapter setup, tokenizer verification and dataset/trainer construction separately. The monitor shows time in the current stage, time since last progress and worker-heartbeat age. A heartbeat confirms a worker observation, not successful weight loading or a completed training step. Dataset construction reports processed rows; weight-loading percentages remain unavailable when the loader provides no measured counter. MCP job diagnostics expose the same timestamps and counts. New instrumentation applies to newly pinned worker releases, not already-running jobs.
 
 ## The benchmark
 
@@ -80,13 +228,13 @@ Four independent checkboxes choose what to evaluate:
 | Benchmark model | The selected benchmark | The same saved benchmark |
 | Training model | The untouched base | The trained checkpoint once serving is ready |
 
-Untouched-base-before and trained-model-after are the defaults. Incumbent comparisons are opt-in; all four can be off, but eval data and graders remain required. REST/MCP expose `eval_incumbent_before`, `eval_incumbent_after`, `eval_model_before` and `eval_model_after`.
+Untouched-base-before and trained-model-after are the defaults. Incumbent comparisons are opt-in; all four can be off, in which case chat eval data and graders are optional. REST/MCP expose `eval_incumbent_before`, `eval_incumbent_after`, `eval_model_before` and `eval_model_after`.
 
-Every selected evaluation uses the entire pinned eval version, the same prompt snapshot and frozen graders. Before evaluations run alongside training without gating it; after evaluations wait for training, and checkpoint evaluations wait for deployment. Intermediate checkpoints are not automatically judged. Recorded inputs and tools are replayed, not the live application; a capability prompt is injected only where a row lacks a system turn.
+Every selected evaluation uses the entire pinned eval version, the same prompt snapshot and frozen graders. All selected behavioural evaluations run after training; frozen starting models and incumbents remain comparison targets. Intermediate checkpoints are not automatically judged. Recorded inputs and tools are replayed, not the live application; a capability prompt is injected only where a row lacks a system turn.
 
 **Judge model**, below **Eval set**, defaults to the set's per-evaluator choices. An explicit selection is saved for this run and used on both sides of the comparison without changing the set. REST/MCP use `eval_judge_model`; it cannot change after launch. The dropdown labels estimated context fit and judge-budget differences. Estimated limit overflows turn affected selectors and **Start** orange; undersized options are greyed out but remain selectable. Clicking **Start** opens a short risk summary with **Start anyway**, without requiring a model change. Unverified, unavailable and pending checks stay neutral and do not open this warning. Shared incumbent evaluations require the same judge selection as well as matching data and benchmark context.
 
-Supported untouched bases use OpenRouter when exactly matched in its catalog; otherwise they use a Modal deployment. Once an eval or baseline deployment starts, its route stays pinned until an explicit retry. Trained checkpoints use their own deployment.
+Untouched bases use OpenRouter when configured and exactly matched in its catalogue, ahead of an unused ready hosted base. Each foundation model has an explicit OpenRouter mapping where one is known. REST and MCP `get_model_catalog` return `openrouter_id` and `openrouter_status`: `available`, `not_listed`, or `catalog_unavailable`. A saved ID is checked against the live cached catalogue; it is not an availability guarantee. A null mapping can resolve later through an exact checkpoint match. Different sizes and base/instruct variants are never substituted. Missing matches retain the existing provider/Modal route. Started evaluations and unresolved deployment attempts keep their route until an explicit retry. Trained checkpoints use their own deployment.
 
 The Evals table shows selected evaluations immediately, including what each is waiting for, and keeps updating after deployment. Evaluations that never start are skipped if training fails or is cancelled. When experiments share an incumbent-before evaluation, the group view shows that run once as **Shared · N experiments**. Each experiment still has its own base-model and trained-model evaluations, and its individual view retains the shared incumbent result and comparison.
 
@@ -102,20 +250,84 @@ When your expected outputs are labels, you also get per-class precision, recall 
   <img src="/images/platform/training-class-metrics.jpg" alt="Per-class metrics and confusion matrix on the training page" />
 </Frame>
 
+## Initial setup and recovery
+
+Interrupted external evaluation requests with no saved acknowledgement are not
+replayed. They remain missing with uncertain costs while collection continues
+through the other inputs. An explicit paused external stage can be resumed via
+MCP without a native call ID; native collectors still require their saved call ID.
+
+Training derives its setup from the selected data and available capability,
+repository and behaviour context. Exact preparation measures model-specific tokens
+and learning targets. The recipe records epochs, learning rate, batch, adapter
+settings, schedule, clipping, packing and per-family exposure with their reasons.
+Missing context stays visible. Training retains selected examples and does not
+rewrite references or use held-out answers to choose its setup.
+
+The existing configuration surface shows requested constraints, resolved settings
+and the worker's execution receipt. Explicit MCP hyperparameters constrain planning.
+The worker verifies its actual settings, step count and causal loss before updates.
+These checks establish execution correctness, not improved task performance.
+
+An invalid planner proposal gets one metered structured repair against the same
+frozen evidence, then fails visibly. MCP `retry_training_preparation` can retry
+failed initial preparation while preserving context and constraints. It refuses
+any submitted or unresolved GPU execution; checkpoint continuation is separate.
+
+Live automation focuses on failure recovery. A confirmed transient worker failure
+can resume a complete healthy checkpoint under the same recipe, within its retry
+and time allowance. Recovery preserves optimizer, scheduler and random state and
+records lost steps. Unresolved remote execution, invalid configuration, non-finite
+state and unavailable checkpoints do not start another trainer.
+
+The checkpoint setting is a maximum interval. Preparation shortens it for short
+runs and displays the frozen interval in the training setup. Runs of ten steps or
+fewer have only a final automatic checkpoint.
+
+Optional trainer-local snapshots report assistant-token reference fit, coverage
+and overhead. They do not trigger learning-rate changes or select a model. Full
+behavioural comparisons run after training. Loss and successful recovery do not
+establish better task performance.
+
+The Console shows setup, measurements and recovery history. Policy and run controls
+are available through MCP: checkpoint, pause, stop, resume, investigation and explicit
+checkpoint selection. Automatic recovery defaults to two attempts; observe/off
+modes do not recover. Diagnostic passes are disabled by default. Historical
+experiments and interventions remain readable.
+
+
+## Reproducible decision experiments
+
+Native decision training preserves option order, full probability targets, observation weights and repeated examples. Its single-GPU Modal LoRA route uses a separately pinned Unsloth decision runtime and produces a probability checkpoint. It shares exact preparation, launch receipts, cancellation, operational events, development monitoring and MCP tools with other training routes. Categorical observations compare only explicitly declared gold-label families against the majority label on the same scored subset. Chat evaluation and chat serving are separate consumers.
+
+Training records pin the source versions, requested recipe and worker release. Unsupported explicit settings are rejected rather than silently changed. A stable launch request key prevents a retry from creating another experiment. An unresolved provider acknowledgement remains visible until reconciled against the saved call.
+
+Preparation progress distinguishes transfer, tokenization, model loading, validation and training. Verified token shards can be reused after interruption. The training handoff transfers row-selection keys for an existing token artifact. Stage counters, heartbeat, attempts and saved/restored checkpoints are shown when reported; missing measurements remain unknown.
+
+Attach separate native calibration and final suites to the training job. The plan waits for verified checkpoint completion, runs an initialized decision head on the unchanged foundation and the complete trained artifact on the same inputs, fits calibration first and then scores the final suite. New plans use global then per-kind temperature scaling, preserving distribution references and fitting them locally. An initialized foundation head is identified separately from a pretrained decision head. Results retain incompatible decisions, paired coverage, source-level regressions and uncertainty. Targets stay out of prediction-worker inputs. Exact overlap findings do not rule out paraphrase or pretraining contamination.
+
+Native comparison records retain aggregate and per-benchmark metrics. Complete diagnostic slices stay in the downloadable report, with its checksum and byte count in the scoring receipt. After investigating an interrupted local stage, pause the comparison and use `resume_native_evaluation` with `stage="score"` to rebuild its report from saved predictions. The same explicit recovery is available for local input verification and calibration fitting; it does not resubmit provider inference. For an interrupted native provider collector, specify its stage and exact recorded `call_id`; missing or different call IDs are rejected, and the same provider call is observed.
+
+Transient evaluation interruptions recover automatically with 15- and 30-second backoff, up to three consecutive attempts. The run remains running during recovery and independent eligible stages continue. Native collection reuses the saved provider call; local processing reuses frozen inputs. External prediction timeouts and temporary capacity/provider failures retry only unfinished predictions, up to three attempts per input. A timed-out attempt may have been billed: its unknown cost stays in the ledger even after recovery succeeds. An unacknowledged native submission or a bare external submission intent cannot be safely replayed. Paused runs remain paused.
+
+When collection retries are exhausted, scoring finishes on the verified predictions available. Failed external inputs do not block later inputs. Failed native preparation skips dependent provider work; retained verified native predictions remain usable. The Console labels partial results **Completed with issues**. MCP and the downloadable report retain `results.completion`, including each participant's expected, scored, missing, invalid and incompatible counts and the issues that prevented full scoring. Missing predictions are not zero scores, and paired comparisons use only shared scored inputs; partial coverage can bias results. An incomplete calibration arm is marked unavailable, so raw final scores continue without invented fitted temperatures. Input verification or report-generation failures still stop the run rather than publish unverified results.
+
+Native time and GPU estimates use matching completed measurements when available. Unmeasured recipes remain unquoted. Recorded GPU cost excludes unreported CPU, memory, evaluation and storage charges, and is not an all-in invoice or enforced spending cap. A recorded charge only offsets estimates when it can be matched to the worker usage and elapsed window it covers. Later continuation usage stays visible; an unallocated charge leaves the combined total unknown. The downloadable run record preserves these distinctions and the identities used for the experiment.
+
 ## Ship it
 
-A finished job deploys its model for you. It appears on [Inference](/models/inference) and in your capability's **Models** tab with a reference like `ft-9635f347-qwen3-4b`, and its weights are downloadable from the model page or with `overmind model download-checkpoint`.
+A successful training job automatically deploys its model through its matching runtime. Native decision checkpoints serve typed probabilities through the decision runtime and do not create chat deployments. It appears on [Inference](/models/inference) and in your capability's **Models** tab with a reference like `ft-9635f347-qwen3-4b`, and its weights are downloadable from the model page or with `overmind model download-checkpoint`.
 
 Two ways to put it in front of traffic:
 
 - **Make live** wakes and verifies the model, then switches your capability’s alias `overmind/<capability-uuid>`. Inline progress persists across navigation; the previous model continues serving until verification succeeds.
-- **Copy prompt** copies instructions for your coding agent to connect your LLM client to the capability alias. The edit lands in your repository through your normal review.
+- **Copy** gives you a prompt for your coding agent that retargets your LLM client at the model directly. The edit lands in your repository through your normal review.
 
 ## Good to know
 
 - Quality comes from the data, not the hyperparameters. Get the version fitting the train contract first.
 - A run freezes the version it trained on, so its numbers stay true while you keep curating for the next one.
-- Every experiment reports what it cost when it finishes, and you see the estimate before you launch.
+- Cost estimates and recorded charges show their scope. Unmeasured components remain unknown.
 - A model serving real traffic is producing traces again — which is the data for your next round.
 
 ## Next steps
@@ -134,3 +346,22 @@ Two ways to put it in front of traffic:
     The benchmark is only as honest as the judges behind it.
   </Card>
 </CardGroup>
+
+## Saved experiments and checkpoint selection
+
+The **Experiments** tab saves explicit candidate recipes, a shared purpose, frozen training/development versions and an optional decision comparison protocol. Saving does not start training. Review the saved candidates, then launch the set once. Each candidate uses the existing preparation and training lifecycle and remains linked through the same training group.
+
+Compare requested and effective conditions and inspect which fields differ: foundation, data, seed, epochs, learning rate or adapter rank. Training-seed variation is distinct from evaluation-group uncertainty. Catalog eligibility, exact preprocessing, observed hardware execution, nonempty checkpoint reload and measured quality are shown as separate evidence.
+
+Native decision training supports complete probability distributions and declared mean-only ordinal supervision. The Workshop proposes their meaning from inspected evidence; training enforces the saved contract. Mean supervision uses error on the declared scale without inventing votes.
+
+Retain only the final checkpoint, halfway plus final, or quarter intervals. Selection uses the last checkpoint or the lowest development loss when development data is supplied. Retained artifacts are verified before publication; final comparison scores never choose the training checkpoint. Report recorded training costs separately from evaluation, CPU, memory and storage costs that are not available on the ledger.
+
+
+## Saved experiments and runtime profiles
+
+Save explicit candidates with `create_training_experiment`, prepare the frozen inputs with `prepare_training_experiment`, then inspect the saved forecast before authorized launch. Draft creation does not start training. An experiment records requested and effective settings and aggregates child outcomes.
+
+For an unmeasured recipe, `create_training_profile` saves one candidate bounded to 1–128 optimizer steps and 60–3600 seconds per provider attempt with automatic provider retries disabled. Native profiles preserve labels and sample across source length quantiles. Measurements retain hardware/runtime identity, throughput window, memory and recorded costs. Warmup-inclusive throughput and unpriced startup, validation, CPU and memory components remain explicit; profile output is not model quality evidence. Live hardware must still be qualified before drawing a speed conclusion.
+
+Optional user constraints bind the reviewed quote to the exact launch configuration. Unknown costs require an explicit planning allowance when a per-run constraint applies. These checks neither impose a default spend cap nor guarantee the final provider invoice.

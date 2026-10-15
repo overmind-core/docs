@@ -13,12 +13,11 @@
   },
   "seo": {
     "metatags": {
-      "og:image": "https://cdn.sanity.io/images/gv4t9qa3/production/82cfbaa4afc3fb109b6a6858d21694256d4f7b80-1920x1080.webp/og.jpg?w=1200&h=630&fit=crop&fm=jpg&q=85",
+      "og:image": "https://docs.overmindlab.ai/images/og-default.png",
       "og:image:width": "1200",
       "og:image:height": "630",
-      "og:image:type": "image/jpeg",
       "twitter:card": "summary_large_image",
-      "twitter:image": "https://cdn.sanity.io/images/gv4t9qa3/production/82cfbaa4afc3fb109b6a6858d21694256d4f7b80-1920x1080.webp/og.jpg?w=1200&h=630&fit=crop&fm=jpg&q=85"
+      "twitter:image": "https://docs.overmindlab.ai/images/og-default.png"
     }
   },
   "colors": {
@@ -81,7 +80,7 @@
   },
   "footer": {
     "socials": {
-      "discord": "https://discord.gg/XGsbf49EHG",
+      "discord": "https://discord.gg/Kk4MHX6Y",
       "github": "https://github.com/overmind-core/overmind",
       "x": "https://x.com/overmindlab",
       "linkedin": "https://www.linkedin.com/company/over-mind-ai/"
@@ -160,10 +159,6 @@
           {
             "label": "Trust Center",
             "href": "https://app.eu.vanta.com/overmindlab.ai/trust/qa4htl2l1qrvbw1bz8wrv"
-          },
-          {
-            "label": "Licensing",
-            "href": "/platform/licensing"
           },
           {
             "label": "Privacy",
@@ -335,7 +330,8 @@
         "group": "Core",
         "pages": [
           "core/capabilities",
-          "core/datasets"
+          "core/datasets",
+          "core/native-agent-workshop"
         ]
       },
       {
@@ -344,7 +340,8 @@
          "agent-testing/eval",
           "agent-testing/decision-engine",
           "agent-testing/trace-scoring",
-          "agent-testing/optimisers"
+          "agent-testing/optimisers",
+          "agent-testing/improvements"
         ]
       },
       {
@@ -366,8 +363,7 @@
         "pages": [
           "platform/api",
           "platform/administration",
-          "platform/glossary",
-          "platform/licensing"
+          "platform/glossary"
         ]
       }
     ]

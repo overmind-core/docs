@@ -17,7 +17,7 @@ One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, t
 
 - **Format**: `ovr_` followed by a random token. Only a SHA-256 hash is stored — the full key is **shown once, at creation**; the table keeps the first 12 characters as `prefix`.
 - **Headers**: `X-Api-Key: <key>`, `Authorization: Bearer <key>`, or `Authorization: Api-Key <key>`.
-- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of and are the only keys that can create a project. `overmind sync` stores a project-scoped key in `.overmind/credentials.toml` and the MCP entry; the onboarding prompt carries a temporary account-scoped key that `overmind sync` trades for a project one.
+- **Scope**: **project-scoped** keys see one project; **account-scoped** keys reach every project you are a member of and are the only keys that can create a project. MCP and `.overmind/credentials.toml` hold a project-scoped key; the onboarding prompt carries a temporary account-scoped key that `overmind sync` trades for a project one.
 - **Lifetime**: keys do not expire unless an `expires_at` is set on the row. Revocation is immediate, and each key records `last_used_at`.
 - **Where**: **Projects → your project → API keys** in the Console, or [over the API](/platform/api#authentication).
 
@@ -25,7 +25,7 @@ One key type serves everything programmatic: the tracing SDK, raw OTLP ingest, t
   <img src="/images/platform/project-api-keys.jpg" alt="Project page with the API keys table" />
 </Frame>
 
-Scope one key per environment and keep them out of source control. `overmind sync` writes the project key to `.overmind/credentials.toml`, and `overmind init` writes it into the IDE's MCP entry; both refuse a path git already tracks, add the file to `.git/info/exclude` (not `.gitignore`), and set mode `0600`. Claude Code's MCP entry lives in `~/.claude.json`, outside the repository.
+Scope one key per environment and keep them out of source control. `overmind sync` writes the project key to `.overmind/credentials.toml`, and `overmind init` writes it into the IDE's MCP entry; both refuse a path git already tracks, add the file to `.git/info/exclude` (not `.gitignore`), and set mode `0600`.
 
 ## Tracing connectors
 
@@ -37,22 +37,19 @@ Eval runs, optimisation runs, and training runs show in the bell in the top bar 
 
 ## Billing and credits
 
-Credits belong to the **user** and are shared across every project you are in. Work that runs on Overmind's side is metered on an append-only ledger: training runs (`finetuning-job`), inference through `/api/v1/chat/completions` (`inference`, `inference-ft-model`), the Data Workshop agent (`data-workshop`), and the optimiser's agent usage (`cursor-agent`). **Settings** shows the plan, the balance, the usage ledger, and top-up.
-
-<Frame caption="Settings on a self-hosted stack: account spend and the usage ledger. The hosted product adds the plan, the balance, and top-up above it.">
-  <img src="/images/platform/settings-credits.jpg" alt="Settings page with credits and ledger" />
-</Frame>
-
-On the hosted product a new account starts with a $50 grant, plans are Free and Pro, and launching paid work — an eval run, a re-launch, an optimisation run, a training run, a deploy, a generated judge prompt, an inference call — with no remaining balance returns `402` with `code: insufficient_credits`. Free caps 5 projects, 1 seat per project, and per calendar month 10 optimisation runs, 2 training runs and 2 deploys (`403 plan_limit_exceeded`); Pro lifts them. A self-hosted stack without Stripe keys meters the same charges with no cap and no quota — see [Self-hosting](/platform/self-hosting#billing-modes). **Trace ingest** and reading what is already computed are never credit-gated.
-
-<Note>
-Model calls made by *your own* application — including the calls the optimiser makes while replaying your agent in your checkout — go to your model provider under your keys. Overmind credits cover the work Overmind performs on its side.
-</Note>
+Platform training, evaluation and serving spend is retained on an append-only
+ledger. Historical Workshop-agent and Cursor usage remains historical evidence;
+native coding-agent funding belongs to the external agent environment. The
+Console has no funding or top-up controls. Hosted Stripe configuration continues
+to enforce its billing gates; self-hosted metering mode does not impose remaining-
+credit caps. Trace ingestion and reading existing results are not credit-gated.
 
 ## Guest workspaces
 
 `POST /api/auth/guest/` (5 per hour per address) creates a guest user with one project and returns a JWT pair. A guest can read and claim; any other write returns `403 guest_upgrade_required`. `POST /api/auth/guest/claim/` with a Clerk token moves the project to the signed-in account. Unclaimed guests are swept after 7 days.
 
 ## Console conveniences
+
+The Console uses a single dark theme, including login and flow canvases. Its appearance does not follow saved light-mode preferences or the operating system, and Settings has no theme selector.
 
 The command palette (<kbd>⌘</kbd> <kbd>K</kbd> / <kbd>Ctrl</kbd> <kbd>K</kbd>) jumps to any page, capability, action or project by name. Every filtered view in Observability is a shareable URL, and because filters map 1:1 to [API query parameters](/platform/api#conventions), a Console URL doubles as an API recipe. The project home is the **Agent** page: the capability grid, or the onboarding prompt while the project is empty.

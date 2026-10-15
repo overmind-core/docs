@@ -28,7 +28,7 @@ Configurable rubric judges default to **generative**. Jev is an explicit opt-in
 after validation on representative labelled examples for that rubric. A high
 confidence value is not proof of correctness or agreement with the existing judge.
 Fixed grounding, capability classification and workshop semantic services use
-Jev with generative fallback.
+Jev with generative fallback. Existing explicit policies and snapshots are preserved.
 
 The Console's evaluator editor exposes **Decision engine** and **Minimum confidence**.
 The REST authoring request accepts `decision_policy`. General evaluator writes and
@@ -48,7 +48,7 @@ MCP `upsert_evaluator` accept the same policy under `config.decision`:
 Set `backend` to `generative` to use the generative judge throughout that evaluator.
 The policy is frozen in new evaluator snapshots and included in verdict identities.
 The requested Jev release is pinned; the provider's actual served revision is
-recorded with each response. Changing a policy does not rescore earlier results.
+recorded with each response. Historical results are not relabelled or rescored.
 
 Responses must cover every question, use only declared options, and return valid
 probability distributions. Low-confidence answers, invalid responses, unavailable
@@ -58,8 +58,7 @@ questions. Failed behaviour steps still receive a full causal review. Claim-supp
 fallback reuses extracted claims; it does not re-extract the output.
 Jev's context guard is conservative and does not truncate evidence. Insufficient
 evidence is not a pass or not-applicable: binary checklists fall back, grounding
-keeps it outside the support/contradiction denominator, and dataset audits record
-unknown rows.
+keeps it outside the support/contradiction denominator.
 Proportional claim scoring counts a claim without evidential support as a failure;
 a verification failure remains unjudged. It does not use grounding's denominator.
 
@@ -75,29 +74,14 @@ separately; generated answers do not claim Jev confidence. Cascade batches store
 their provenance once. Recorded decision latency includes waiting, retries and
 fallback, including timed-out attempts.
 
-## Semantic dataset checks
+## Dataset transformations
 
-Ask the dataset's chat, or MCP `message_dataset_agent`, to check task alignment,
-input evidence, or answer support. Its internal `check_semantic_quality` tool takes
-named questions with `evidence_columns` and optional `answer_columns`. Answer
-support requires disjoint answer and independent evidence columns.
-
-The tool checks at most 200 rows per call, packing batches against actual context
-and question budgets. Large groups split without truncating evidence. Each completed
-batch saves results and usage before reporting progress. After an interruption,
-repeated calls resume the same version, context and check contract without rechecking
-saved rows. Results are tied to original
-`source_row` identities; unprocessed and unsupported rows remain unknown. Changed
-data or context invalidates reuse. Inspection returns a bounded summary while the
-full resumable audit and decision provenance are persisted on the version.
-Stale version or audit writes are rejected. Persisted batch billing identities
-prevent duplicate ledger charges when an audit resumes.
-
-Checks do not change rows, invent labels, approve a transformation, or replace
-preparation. Deterministic audits remain available for exact rules. Failed,
-unknown and partial reviews are advisory; technical compatibility remains the
-consumer gate. Synthetic answers are not ground truth merely because a judge
-accepted them.
+Data Workshop does not run semantic judges or a platform agent. Your native coding
+agent inspects pinned source rows and authors transformations through the
+[Workshop MCP tools](/core/native-agent-workshop). Published versions record their
+source bindings, lineage and producer; external execution is attributed, not
+independently verified. Technical compatibility remains the consumer gate.
+Generated answers are not ground truth merely because a model accepted them.
 
 ## Configuration and validation
 
