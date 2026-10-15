@@ -18,6 +18,30 @@ Nothing to run in between: no collector, no sidecar, no framework to adopt. If y
   ]}
 />
 
+## Sessions, Signals and Traces
+
+Observability has three toggles: **Sessions**, **Signals**, and **Traces**.
+Sessions groups conversations; Traces shows individual runs and their captured
+steps. Signals highlights patterns in that same evidence, such as repeated
+failures, loops, errors inside successful runs, or unusual latency.
+
+Deterministic signal checks run automatically every five minutes over spans
+received in the last 24 hours, bounded to the latest 20,000 spans per project.
+Use **Signal checks** within Signals to mute noisy checks or adjust thresholds.
+Plan drift stays off until enabled because it makes additional model calls.
+Explicit capability settings override project settings. An empty event list does
+not establish that every trace was checked or that the agent is healthy.
+
+Select **View traces** on a finding to inspect its retained source traces.
+Historical events without a source inventory keep their original trace link.
+Signals are findings to investigate, not diagnoses: a sensitive-data pattern or
+repeated tool call can also reflect legitimate behaviour.
+
+Coding agents use `list_signals` to inspect effective settings,
+`set_signal_subscription` to configure overrides, and `overmind://signal-events`
+to read saved events. `query_traces(signal_event=EVENT_ID)` retrieves the source
+traces within the same project.
+
 ## Getting traces in
 
 Ask your coding agent. `/overmind ensure-tracing` reads your repository, works out where the instrumentation belongs, applies it, and verifies one real trace before it stops. Overmind's empty **Observability** page hands you the same prompt if you'd rather paste it.
