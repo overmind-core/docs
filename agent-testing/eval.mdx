@@ -7,6 +7,83 @@ Eval is where you define what "good" means for a capability and measure it — i
 
 The **Evaluations** area of the Console has three surfaces: **Runs**, **Eval sets**, and the **Eval library**.
 
+## Finding an evaluation's definition
+
+The capability's **Evaluations** table separates **Agent-specific** rules from
+**Stock** checks supplied by Overmind. Both views show enabled rules by default;
+the status filter also exposes disabled rules and templates. Search filters the
+current view. Select an evaluation to read its criterion or Python check.
+
+The **Defined in** column identifies the current definition:
+
+- **Agent code**: a matching SDK decorator expectation, uploaded by `overmind sync`.
+- **Repository configuration**: a matching definition in the synced `overmind.toml`.
+- **Platform**: a rule added through the Console or API with a recorded creator.
+- **Overmind catalogue**: a matching built-in check shared across project capabilities.
+- **Not recorded**: no matching saved declaration or recorded creator is available.
+
+These labels describe the saved definition, not who originally authored it.
+Repository rules are updated by changing their declaration and running
+`overmind sync`. Use **Add evaluation** to create a platform rule. REST and MCP
+expose the same classification through the read-only `definition_source` field.
+
+## Evaluations on the trajectory map
+
+Each step card has an evaluation footer showing the count of enabled saved rules
+whose source anchor or action name uniquely matches the step. Select the footer
+to reveal separate evaluation rows beneath the card; the list starts collapsed.
+Steps without matching rules show a static **0 evaluations** label. Rules targeting the capability entry
+appear under **Whole-run evaluations**. Broad span rules and rules without a unique
+step match appear under **Other evaluation scopes**; the map does not guess a step.
+Select a rule to inspect its definition and scope. Disabled rules stay in the
+Evaluations table.
+
+This is configured coverage, not a playback of a scored trace. Checks and judges
+run after matching spans finish. Runtime-only expectations may not be present in
+the saved evaluation matrix.
+
+The single graph connects execution steps to compact tool-category nodes. Category
+chevrons reveal tools as separate cards on the same canvas. Select a tool card's
+**Outcomes** row to show or hide its outcome cards. Card roles
+use compact textured headers with distinct icon colours. Inputs, outputs and continuation
+conditions sit in inset fields with labels above their values. Model headers group the provider identity and model chip. Model cards also show an instruction preview that opens the complete system
+prompt directly. Node headers do not open a detail sidebar. Long fields can be focused and scrolled
+directly inside their cards. Model-call cards retain
+a model chip; an uncaptured model is shown explicitly. Expand an
+action in place to reveal its source-cited conditions, local outcomes and next steps.
+Action groups and outcome branches start collapsed. Expand a group or action in
+place, or use **Expand all** and **Collapse all** in the canvas actions. Evaluation
+footers open independently of these path controls. Shared steps remain visible
+while an open path still reaches them. The canvas opens at a readable scale near the entry and first steps; **Fit view**
+shows the full graph. The search button in the canvas actions opens a search field. Search matches node names, descriptions and
+conditions, including hidden nodes; it reveals and highlights the incoming paths to
+the selected match. Enter or the next-match button cycles through results. Clearing
+search restores the preceding collapsed state and viewport.
+
+Expanded outcomes sit side by side beneath their tool, with each condition directly
+above its card. The first outcome connects straight down; alternatives branch across
+above the conditions. Return paths join below the cards, and neighbouring tool
+groups move over to make room. All connectors use rounded corners, including return paths.
+Branch connectors show the saved condition using the same label treatment as Data
+Workshop. These labels are static, without a duplicate dropdown. **Model choice** marks
+a tool selected at runtime. **Code condition** describes a captured execution
+branch; **Prompt guidance** describes documented guidance that does not guarantee
+the model's choice. Missing branch conditions remain marked as unmapped.
+Explicit source-backed transitions connect tool outcomes to result processing and
+back into the execution loop. Collapsed groups retain their return connections. Continuation conditions appear in
+the outcome card; shared return lines do not repeat overlapping labels.
+The scan records each destination as a step anchor and a condition; the graph does
+not guess a destination from prose.
+An outcome may continue a batch, return information for another decision, change
+state or end a run. Dashed action connections indicate available choices, not an
+observed execution sequence. Tool selection remains model-driven unless the scan
+captures a specific code or prompt condition.
+
+Missing branch conditions and continuations are shown as unmapped. The map reflects
+the saved repository scan: omitted phases or tool branches need to be captured from
+the source and synced before they can appear. The capability MCP resource exposes
+the same tool branches and trajectory steps.
+
 ## Evaluators
 
 Generated evaluations preserve provider finish reasons. A response stopped by its output token limit remains inspectable, but the sample is marked degraded and its judgments are skipped rather than assigned quality zeros. Degraded samples are excluded from trusted score aggregates and counted in run health. Check this coverage before comparing model quality: a high average over the few complete samples is not a successful overall run. Training-linked evaluations with degraded evidence report failure and no headline comparison score.
@@ -63,7 +140,7 @@ Judges are authored behaviour-scoped from the behaviour's group in the Eval libr
 
 Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
 
-`overmind sync` refreshes the Default eval set of every current capability, in tiers: Tier 0, rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call); Tier 1, generative LLM judges grounded in the card, the prompt, and the behaviour map; and the behaviour outcome and step judges for trace scoring. Tier 1 authors once per capability; when it authors nothing for the generative role, one floor judge fills the role until a later push covers it. Authoring reads the capability's **evidence profile** — what its telemetry carries (declared behaviours, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
+`overmind sync` preloads the capability's Default eval set for every capability it created, remounted, or whose card changed, in tiers: Tier 0, rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call); Tier 1, generative LLM judges grounded in the card, the prompt, and the behaviour map; and the behaviour outcome and step judges for trace scoring. When Tier 1 authors nothing for the generative role, one floor judge fills the role until a later push covers it. Authoring reads the capability's **evidence profile** — what its telemetry carries (declared behaviours, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
 
 <Frame caption="The Eval library grouped by behaviour, with each behaviour's outcome and step coverage.">
   <img src="/images/platform/eval-library.jpg" alt="Eval library grouped by behaviour" />
@@ -186,11 +263,11 @@ curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/e
 curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/eval-runs/datasets/"             # datasets that have runs
 ```
 
-Execution fans out server-side: sample preparation (generation), then one scoring task per sample × evaluator, then aggregation into the run summary. A run's `status` moves `pending` → `running` → `completed`, or ends `failed` or `cancelled`.
+Execution fans out server-side: sample preparation (generation), then one scoring task per sample × evaluator, then aggregation into the run summary. A generation or scoring stage is `pending` when its remaining work is queued, including pauses between partially completed batches. It becomes `running` while a worker executes or the completed stage awaits its callback. A run ends `completed`, `failed` or `cancelled`. Queue wait does not consume the execution inactivity limit; abandoned executions and completion barriers remain covered by the watchdog.
 
 For recorded conversations, a generated variant can set `params.generation_strategy` to `per_assistant_turn`. The model produces one decision for each recorded assistant turn, using the conversation recorded before that turn as context. Tool calls are evaluated as decisions without executing their tools. Each subsequent turn uses the recorded history, keeping its context independent of the candidate's previous decisions. Such a run attaches a per-turn judge automatically, and `params.replay_dimensions` names what it grades. This also applies to conversations containing a single recorded assistant turn; a tool-only decision does not require a final answer.
 
-A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
+A sample that exceeds the generation worker's time limit or has no saved generation result records an error and is excluded from scoring. A saved response with blank output remains a model outcome. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
 
 ### Reading the report
 
@@ -204,7 +281,7 @@ Each dataset row has its own entry in the breakdown, with responses from differe
 
 The datapoint popup shows **Input** beside **Output and evaluation**. Select a model to switch both panels together. Generated output is the model's response, not a label extracted by a statistical evaluator; the **Reference answer** is shown separately as grading data. Expand **Generated messages** to inspect recorded assistant and tool messages.
 
-Generated samples capture the initial model-runner input, including the system prompt and tool definitions. This is not the provider's rendered chat template or every subsequent replay request. A sample without a captured request shows **Dataset input** from the run's pinned version. A missing pinned source is shown as unavailable, never reconstructed from a mixed input/output transcript.
+New generated samples capture the initial model-runner input, including the system prompt and tool definitions. This is not the provider's rendered chat template or every subsequent replay request. Older samples show **Dataset input** from the run's pinned version and state that the exact model request was not captured. A missing pinned source is shown as unavailable, never reconstructed from a mixed input/output transcript. Existing runs do not need to be rerun to inspect their pinned dataset input.
 
 The MCP `overmind://eval-runs/{eval_run}` resource exposes up to five bounded sample inspections with separate input, output, reference, and evaluator reasoning. `input_source` distinguishes captured requests, pinned dataset rows, and unavailable input; `samples_truncated` indicates additional samples.
 
@@ -220,3 +297,17 @@ Scores accumulate into a per-capability history (`GET /api/evaluators/score-hist
 ## Calibrating judges
 
 Samples accept **annotations** — human labels with an optional note, written through the `annotate_evaluation_sample` MCP tool — giving you ground truth to compare judge behaviour against. When a judge and your annotations disagree consistently, tighten the rubric; the compiled checklist shows which criterion is drifting.
+
+### Reproducible generation
+
+Generate variants accept explicit `temperature`, `top_p`, `seed` and `max_tokens` in `params`. These values reach generation and are retained in `model_request.params`; a seed requests provider reproducibility and does not guarantee identical GPU execution. Context checks use the same output cap. MCP `run_evaluation` can target a ready project-owned `deployment` directly, mutually exclusive with `model_ref` and `model_name`, without activating it for production.
+
+## Decision model comparisons
+
+The **Decisions** tab runs standalone comparisons of unchanged foundations, trained native artifacts and supported external probability models. It does not require a training job or a scanned capability. Choose the first participant as baseline, a frozen final suite and an optional separate calibration suite. Model eligibility is distinct from measured hardware fit.
+
+When calibration is selected, one global temperature per model is fitted and saved before final scoring. Mean-only ordinal suites omit probability temperature calibration. The report keeps raw and calibrated results separate and marks calibration-suite scores as in-sample. It includes every benchmark, paired group intervals, actual metric denominators, missing/invalid/incompatible outputs and diagnostic slices. Mean-only targets do not receive invented accuracy or cross-entropy scores.
+
+Execution keeps references local to scoring. Native call IDs and external request/response receipts are durable. Resume collects or analyses saved work; unknown provider acknowledgements are never blindly replayed. External probability rounding, scalar/choice discrepancies and provider-reported identity limitations remain inspectable.
+
+After a completed comparison, **Measure workload** records input shapes, repetitions, concurrency and shared-state question count. Results distinguish complete client latency, valid throughput, native first/warm worker requests and provider-controlled caching. Recorded request/training costs and an explicit amortization volume remain separate from unreported costs and invoices. Recovered calls without their original timing report latency as unmeasured. These measurements do not activate a serving model.

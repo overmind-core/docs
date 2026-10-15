@@ -70,7 +70,7 @@ To instrument by hand:
     Set `overmind.capability.id` as a resource attribute so your spans reach the right capability, and follow [the attributes below](#the-attributes-overmind-reads) to get the same scoring as SDK spans.
   </Tab>
   <Tab title="Traces you already have">
-    Import from **Langfuse**, **LangSmith**, **Braintrust** or **Galileo**. Add the provider's credentials with `overmind connector add <type>` (keys from env or a TTY prompt) or under **Observability → Integrations**, pick the source project and which capability its traces belong to, and Overmind backfills your history and then keeps polling for new traffic. **Sync now** pulls on demand.
+    Import from **Langfuse**, **LangSmith**, **Braintrust** or **Galileo**. Add the provider's credentials with `overmind connector add <type>` (keys from env or a TTY prompt) or under **Observability → Integrations**, load the source projects (or Galileo log streams), select the source, and choose all history, a recent period or a custom date range in the same form. Custom ranges use a calendar with month/year selectors; the end date includes that day in your local timezone, up to the current time. The source selector stays visible even when the credentials expose only one project, and the saved connection displays its source. **Count traces** shows progress, then the available trace count and estimated import duration. Langfuse counting uses lightweight observation pages across the selected range. Rate limits display retry guidance; counts that fail to finish expire instead of spinning indefinitely. Confirm the import to close setup and start pulling traces. Each integration has its own row with a progress chip, imported count and estimated time remaining. Auto-sync is optional; **Sync now** pulls on demand.
 
     | Connector | What you need | What arrives |
     | --- | --- | --- |
@@ -79,7 +79,11 @@ To instrument by hand:
     | **Braintrust** | API key or service token | Project logs, spans, scores |
     | **Galileo** | API key; API URL if self-hosted | Traces, spans, metrics |
 
-    Imported traces are scored on arrival and behave like native ones. Credentials are encrypted and only ever used to read. Provider keys never go through MCP — `overmind connector add` takes them from env or a TTY prompt, then the coding agent configures and syncs through MCP. See [CLI](/platform/cli#overmind-connector) and [MCP](/platform/mcp).
+    Imported traces keep their provider trace structure. Once import finishes, the row shows **Review**. It opens a dialog of pattern cards grouped by span structure, tools, prompt identities and input/output fields. Review examples and choose an existing capability or **Leave unassigned** on each card. Choices stay as drafts until **Confirm all assignments**, which applies the batch and closes the dialog. A stale group rejects the entire batch for a fresh review.
+
+    Confirmed choices are saved as pattern rules, including unassigned choices. Future matching traces inherit them. New patterns remain unassigned and flag the integration for review in the same dialog; rules pointing to a retired or deleted capability also require review. Scoring is queued for assigned traces.
+
+    Counts reflect the provider snapshot at count time; late updates and provider retention can change the imported total. Duration is an estimate based on the count request, provider page rate and import work. Credentials are encrypted and only ever used to read. Provider keys never go through MCP — `overmind connector add` takes them from env or a TTY prompt, then the coding agent configures and syncs through MCP. See [CLI](/platform/cli#overmind-connector) and [MCP](/platform/mcp).
   </Tab>
 </Tabs>
 
@@ -100,8 +104,6 @@ A project-scoped key pins every span to its project. Sending the same spans twic
 ### The attributes Overmind reads
 
 Overmind already understands the OTel GenAI, OpenLLMetry and OpenInference conventions, so models, providers, token counts, costs, tool names and message payloads from existing instrumentation land without any mapping of your own.
-
-Overmind prices each LLM span once, at ingest. A cost the span reports is kept; otherwise the cost comes from the model, token counts, cache reads and provider, at list prices for the span's start time. Spans from OTLP and from connectors are priced the same way.
 
 These are the ones you set:
 

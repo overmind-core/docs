@@ -1,0 +1,217 @@
+---
+title: Agent improvements
+description: Turn recurring failures into bounded experiments, reviewed training data, confirmed changes, and production verification.
+---
+
+Overmind observes scored task executions, evaluation results, and explicit task outcomes. Repeated failures become opportunities on **Agent**, the capability page, and **Optimiser**. An improvement keeps the evidence, competing hypotheses, experiment plans, local runs, training jobs, comparisons, and release together.
+
+## Start with a suggested experiment
+
+Open **Review experiment**, choose the execution budget and required gain, then prepare the plan. The plan identifies missing inputs, candidate revisions, or a task harness before it can run. Preparing a plan does not authorize its execution. **Run approved plan** freezes the specification and reserves its remaining budget.
+
+Discovery counts independent groups rather than individual spans. It separates capability versions and environments, retains successful controls, excludes tagged experiment traffic, and updates opportunities when failures are rescored or leave the observation window. Dismiss and snooze controls persist across scans.
+
+**Observation settings** controls discovery, the observation window, minimum independent groups, and background investigation. Model-based investigations use a separate total analysis budget; it starts at zero. A nonzero budget authorizes analysis within that limit. Provider calls with unknown billing outcomes retain their reservations and are not silently resubmitted. Experiment execution still requires plan approval.
+
+## Connect your application
+
+Implement an application adapter and evaluator in your repository:
+
+```python
+# app_adapter.py
+from my_agent import answer
+
+
+def run(task_input, *, config):
+    result = answer(task_input, model=config["model"] or None)
+    return {"output": result.text, "cost_usd": result.total_cost}
+```
+
+```python
+# evals/task_contract.py
+
+def judge(task_input, output, expected):
+    return {"success": output == expected, "quality": float(output == expected)}
+```
+
+The application receives the task input and candidate configuration. The evaluator separately receives the input, output, and reviewed reference. A function may be synchronous or asynchronous. Report total attempt cost, including retries and tools; omit unknown cost rather than reporting zero. Application exceptions count as failures. Harness and environment failures remain unmeasured outcomes.
+
+For stateful tasks, supply `--reset environment:reset`; that function receives the case's initial state before every attempt. Each case runs in a separate process. External databases and services still need an explicit reset or sandbox.
+
+Commit the baseline and candidate, then configure the experiment:
+
+```bash
+overmind improve prepare IMPROVEMENT_ID \
+  --harness 'uv run overmind improve harness --agent app_adapter:run --evaluate evals.task_contract:judge' \
+  --protect evals/task_contract.py \
+  --protect uv.lock \
+  --allow my_agent \
+  --candidate candidate-branch
+```
+
+Use additional `--protect` arguments for environment definitions and evaluator dependencies. `--allow` constrains changed paths. A candidate cannot change protected files. For several hypotheses, use `--candidate INTERVENTION_KEY=REVISION` to attach a revision to a specific intervention.
+
+Review the frozen plan in the Console, then run:
+
+```bash
+overmind improve approve IMPROVEMENT_ID
+overmind improve run RUN_ID
+```
+
+The runner uses detached temporary worktrees, a renewable lease, bounded process time, and immutable result uploads. Resume with the same run command after a disconnected runner's lease expires. Work already recorded on the server is skipped, including when resuming on another machine. Local result caches cover interrupted uploads. Execution budget checks use reported costs; external provider charges cannot be forcibly capped by Overmind's local adapter.
+
+## Read the comparison
+
+Experiments pair the same cases and aggregate uncertainty across independent groups. The results show quality, cost per successful task, p95 latency, missing outcomes, regressions, and confidence intervals. Planned candidate and iteration counts adjust the comparison confidence. A tiny perfect sample does not establish certainty.
+
+Model-based judges require calibration against expert reviews tied to the frozen evaluator. Assertion, expert, and external outcome sources retain their declared provenance. Replayed decisions and simulations are useful diagnostics; application-level confirmation is required before rollout selection.
+
+**Refine using reviewed cases** prepares another development iteration. **Prepare confirmation** freezes one previously tested candidate and a previously unused evaluation dataset. The platform rejects overlap with earlier cases and known training, validation, or development evaluation data. Confirmation executes the exact selected artifact; it does not search new candidates. Only an application confirmation meeting the goal and guardrails can be selected for release.
+
+## Adapt training to the task
+
+Accepted reference corrections can become a Workshop training dataset with source-case and group lineage. Workshop retains its preparation and review rules. Select separate training and development evaluation datasets plus an evaluation set, then choose **Prepare recommended training plan**.
+
+The plan uses the existing task-aware model catalog, hyperparameter recommendations, serving-context checks, and benchmark selection. Confirmed history on matching dataset versions informs recommendation order, with source comparisons available for inspection. A training job pins its cells and returns its served model to the application experiment. Model training diagnostics alone do not qualify the candidate for release.
+
+Trace-derived supervision preserves each recorded model decision's own input history, response, and tool definitions. Earlier assistant turns are masked when supervising a selected decision. Missing or truncated decisions are excluded; incompatible templates fail explicitly. Together uploads reject selected-decision masking; use the supported Modal or Baseten path for that data.
+
+The current training engine exposes final weights. This workflow does not add DPO, online reinforcement learning, or intermediate-checkpoint selection. Those techniques need separate trainer, artifact, and workload qualification before they can be offered as executable plans.
+
+## Verify a release
+
+A release records the selected manifest, target environment, assignment unit, outcome source, and fixed group count. Deploy the application artifact, then confirm the matching manifest through the Console or SDK. Overmind does not deploy your application repository.
+
+For randomized verification, use `client.improvements.assignment(release_id, group_key)` before executing each task. Keep every member of the same group in the same arm. Record the observed outcome with `record_outcome`, including the assignment, timezone-aware timestamp, and matching case/group/source fields. Use a stable external ID for retries.
+
+Verification compares independent groups once both arms reach the declared sample size. It applies the improvement's objective and quality/latency guardrails. Unknown outcomes prevent a verified claim. Observational comparisons remain observational. The final result is frozen; later outcomes cannot turn repeated inspection into a new favorable result.
+
+A tested serving policy can route the existing `overmind/CAPABILITY_ID` completion alias among available models. The published routes, fallback rules, timeout, and rollout fraction must exactly match the confirmed candidate. Requests include `metadata.conversation_id`, `metadata.user_id`, or `metadata.request_id`, according to the policy's assignment unit. Fallback is allowed only for the configured failure causes and before response content is delivered. Response headers identify the policy, release, and assignment. The previous available policy can be restored explicitly.
+
+## MCP and SDK
+
+Use the native **improve-agent** prompt. The project-scoped tool surface covers discovery and policy configuration; improvement creation, goal and plan preparation; explicit approval; runner leases/results; expert review and dataset preparation; training recommendations; confirmation; candidate selection; releases, task outcomes, and serving policies.
+
+Read `overmind://improvements/IMPROVEMENT_ID` or `overmind://jobs/improvement/IMPROVEMENT_ID` for durable state and the next action. Local code edits, Git worktrees, application execution, and deployment verification are CLI-guided. The Console and MCP call the same domain services.
+
+Python applications access the same workflow through `client.improvements`. REST exposes `opportunities`, `improvements`, `improvement-runs`, `improvement-policies`, `agent-releases`, `task-outcomes`, and `serving-policies`; use the generated OpenAPI schema for request fields.
+
+## Start from existing task cases
+
+On a capability, choose **New experiment**, then select an evaluation dataset under **Experiment cases**. The platform pins the readable version, carries references and group identity into the plan, and shows the remaining harness prerequisites. The same workflow is available through `client.improvements.prepare_cases(id, dataset_id)` and MCP `prepare_improvement_cases`.
+
+## Review the measured response
+
+Expand a case to read baseline and candidate responses before judging them. The review queue mixes a stable audit sample with targeted regressions and missing references, and retains progress across reloads. Use `client.improvements.inspect_case(id, case_key)` or MCP `inspect_improvement_case` for the same evidence. Judge calibration requires a recorded baseline response and counts correlated cases only once.
+
+The local preparation command defaults to `--metric-source judge`. Specify `--metric-source assertion` for deterministic assertions. Explicit expert labels and external outcomes have their own sources. Human-labelled cases must have actual human review; agent agreement is not an expert label. A review sample concentrated on failures does not establish accuracy across all production traffic.
+
+## Serving policy visibility
+
+The active policy appears in capability Models, the MCP capability resource, and the OpenAI-compatible model catalog. It controls the capability alias; selecting a single model cannot silently bypass it. Publish, reload, and restore controls retain their server state. Rules use a conservative input-token upper bound derived from UTF-8 bytes, plus declared task type and required tools. A policy's complete fallback and rollout settings must match its tested candidate.
+
+Expert annotation changes update discovery evidence. Internal improvement runs and their child evaluations are excluded from recurring production failures.
+
+## Coverage generation and goals
+
+In an improvement, open **Training from task evidence**, select a training dataset, and expand **Generate coverage examples**. Name the gap and choose 1–50 examples. **Prepare generation plan** pins the seed version, model, count and provider cost ceiling. Review the plan and choose **Run approved plan**. The batch runs through Workshop, retains seed lineage, and links back to the improvement. Generated answers remain synthetic; review their support before training. Unknown provider outcomes retain their reservation and are not automatically retried.
+
+MCP exposes `prepare_improvement_generation`; the SDK exposes `client.improvements.prepare_generation(improvement_id, dataset_id, coverage_gap, count=10)`. This operation prepares the plan. `approve_improvement_plan` starts its execution after budget and scope are authorized.
+
+**Goal, guardrails and budget** supports quality, cost per successful task and p95 latency objectives. Quality gain and tolerance are percentage points; cost and latency gain are relative percentages. Goals freeze when execution starts, while the budget remains editable.
+
+An observational release completes a descriptive report after its treatment-group target, even without control traffic. It cannot verify a causal improvement. Randomized releases retain a fixed group assignment and require both arms. Expert calibration requires recorded response evidence and an explicit `human_reviewed` flag, which defaults to false for API and MCP callers.
+
+## Screen models with trace replay
+
+Open an Optimiser model-comparison or hybrid experiment and use **Trace replay**.
+Choose a replay mode and maximum row count (20 by default). The experiment must
+use Overmind model access. Replay runs use model and evaluator credits and open
+in the existing evaluation comparison view.
+
+- **Recorded decisions** evaluates each model call at its recorded messages and
+  tool schemas. Each decision starts from its own recorded context.
+- **Recorded tool continuation** continues from the initial input, serving only
+  the next recorded tool call with identical arguments. Changed tool requests
+  stop the replay and produce degraded evidence. Traces with changing prompts,
+  tool availability, or branches require recorded-decision replay.
+
+Recorded responses are references, not verified answers. The selected evaluation
+set supplies the grading criteria. Replay results measure behavior in recorded
+context; they do not change the application experiment's winner or authorize
+rollout. Run the application experiment to test behavior in live task environments.
+
+Replay comparisons pin their dataset version, models and evaluator snapshots.
+Identical nonfailed requests reuse the existing run. A replay never rereads a
+mutable source trace to fill missing evidence.
+
+Training setup has the same **Replay evaluation** choice. It is fixed when the
+job is created and applies to every selected before/after evaluation. New jobs
+default to recorded decisions; existing jobs retain tool continuation. Training
+baselines are shared only when the pinned evaluation data and replay mode match.
+Replay failures and divergent tool continuations do not become quality scores.
+
+Use `start_optimizer_replay` through MCP, or run:
+
+```bash
+overmind optimise replay -e <experiment-id> --mode next_decision --rows 20
+```
+
+`inspect_optimizer_result` and `overmind://optimizer-runs/<id>` expose the linked
+evaluation runs. `start_finetune.eval_replay_mode` accepts `next_decision` or
+`recorded_replay`; improvement training plans pin the same field.
+
+
+## Failure groups and runner access
+
+Opportunity review includes observed language groups when the recorded input and
+failure text separate consistently. Groups stay inside the same task scope and
+list their independent-group counts and representative evidence. They suggest
+where to investigate; they do not establish a root cause.
+
+Create runner credentials from a trusted owner session:
+
+```bash
+overmind improve access <improvement-id> --kind optimizer
+overmind improve access <improvement-id> --kind confirmation --run <run-id>
+```
+
+Each command returns a secret once. Keys expire after one hour by default;
+`--minutes` accepts 5–1440 minutes. Revoke a key in API key settings.
+
+Configure the optimizing agent with only its optimizer key. It can inspect the
+development plan, prepare development changes and execute development runs. It
+cannot read confirmation cases, approve plans, export project data or mint keys.
+A confirmation key is limited to one frozen run. REST and MCP enforce the same
+boundary; MCP lists only the tools available to that runner. Before claiming a
+run, read `overmind://improvement-runs/<run-id>` for its frozen manifest. A
+confirmation key advertises only its own run resource; an optimizer key can
+read development runs only.
+
+Confirmation requires a separate trusted execution environment. Owner sessions
+and unrestricted project keys retain full access. Do not share those credentials
+or confirmation files with the optimizing agent. The access boundary does not
+sandbox hostile candidate code. MCP provides these instructions through
+`overmind://improvement-access`; it never returns issued keys.
+
+## Reproducible synthetic validation
+
+From a repository checkout with test dependencies installed:
+
+```bash
+DJANGO_SETTINGS_MODULE=tests.settings uv run python manage.py validate_improvements \
+  --integration --trials 1000 \
+  --output /tmp/overmind-validation.json \
+  --corpus /tmp/overmind-trajectories.jsonl
+```
+
+The report measures false promotions at the decision boundary, interval coverage,
+power, repeated-group handling, planned-comparison adjustment and failure-group
+recovery. Generated tool trajectories have exact arithmetic references and pass
+through recorded replay and training preparation. Integration checks use an
+ephemeral database and test REST/MCP credential isolation. No provider or GPU job
+is launched and no production database is populated.
+
+Reports identify synthetic provenance, uncertainty, source digests, failures and
+capabilities that remain unimplemented. These studies validate mechanisms under
+controlled conditions; they do not establish production model quality or savings.

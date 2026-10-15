@@ -19,10 +19,10 @@ Three ways to authenticate; the first is right for almost all programmatic use:
 | Method | How | Use for |
 | --- | --- | --- |
 | **API key** | `X-Api-Key: ovr_...`, `Authorization: Bearer ovr_...`, or `Authorization: Api-Key ovr_...` | SDKs, OTLP ingest, scripts, CI, the CLI, MCP, inference, `overmind sync` |
-| **JWT** | `POST /api/auth/token/` with `email` and `password` → access token (1 day) + refresh token (7 days, `POST /api/auth/token/refresh/`) | Self-hosted accounts (`POST /api/auth/local/` signs in and creates the account on first use); guest sessions |
+| **JWT** | `POST /api/auth/token/` with `email` and `password` → access token (1 day) + refresh token (7 days, `POST /api/auth/token/refresh/`) | Accounts created with `POST /api/auth/register/`; guest sessions |
 | **Clerk session** | `Authorization: Bearer <Clerk session token>` | The Console |
 
-A key has a **scope**: `project` pins it to one project, `account` reaches every project the user is a member of. `.overmind/credentials.toml` holds a project-scoped key; only an account-scoped key can `POST /api/projects/`. Keys are created and revoked under **Projects → your project → API keys** or via the API:
+A key has a **scope**: `project` pins it to one project, `account` reaches every project the user is a member of. MCP and `.overmind/credentials.toml` use a project-scoped key; of the two, only an account-scoped key can `POST /api/projects/`. Keys are created and revoked under **Projects → your project → API keys** or via the API:
 
 ```bash
 # Create (the key is returned once), inspect the calling key, list, revoke
@@ -52,8 +52,8 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score`; `GET /{id}/` |
 | Task executions | `/api/task-executions/` | read-only; one row per unit bound to a behaviour — filters in [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api); `GET /{id}/` adds `observed_route`, `step_results`, `user_intent`, `execution_score` and `flow`; `GET conversation-turns/?conversation_id=` (one row per turn) |
 | Behaviours | `/api/behaviours/` | list only (`execution_count`, `avg_success_score`); `GET coverage/?capability=`; `GET /{id}/evaluators/` (the compiled step and outcome judges); `GET /{id}/authoring-context/` (the latest contract's steps, tool set and terminal). The Console labels this column "Task" |
-| Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, read (cells with versions, chat), patch (`name`, `intent`, `capability`, `active`; intent and capability are fixed once a version is used), delete (refused while a version is referenced); `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `POST .../cells/`, `PATCH/DELETE .../cells/{id}/`, `POST .../cells/{id}/accept/`, `POST .../run/`, `POST .../chat/`, `GET .../export/`, `GET .../events/` — see [Building a dataset](#building-a-dataset) |
-| Uploads | `/api/uploads/` | `POST` with `filename` reserves an upload → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; the id goes into a dataset `source.upload_id` |
+
+| Uploads | `/api/uploads/` | `POST` with `filename` reserves an upload → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (type-specific; documents 100 MiB)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; the id goes into a dataset `source.upload_id` |
 | Feedback | `POST /api/feedback/` | Console feedback |
 | Connectors | `/api/connector-credentials/` | Langfuse, LangSmith, Braintrust, Galileo; list hides inactive rows and unfinished drafts (`?include_inactive=true`, `?include_drafts=true`); `POST .../verify/`, `GET .../source-projects/`, `POST .../preview/`, `GET .../discover-capabilities/`, `PUT .../capability-mapping/`, `POST .../config/`, `POST .../sync/` (202), `GET .../runs/`; `DELETE` disconnects and keeps imported traces |
 
@@ -86,12 +86,12 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run variants |
 | `GET /api/public/models/`, `GET /api/public/models/{slug}/` | The public model library, unauthenticated |
 | `GET /health` | Health check (no auth) |
-| `POST /api/auth/local/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Self-hosted sign-in, account, onboarding state, guest workspaces |
+| `/api/auth/register/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Account, onboarding state, guest workspaces |
 | `/api/billing/subscription/`, `ledger/`, `checkout/`, `topup/`, `cancel/`, `renew/`, `webhook/` | Plans, the credits ledger, Stripe |
 
 ## Building a dataset
 
-A dataset lands its rows as-is and its agent shapes them cell by cell; a run uses one version. The same sequence backs the Console, the CLI, and the MCP dataset tools.
+A dataset lands its rows as-is. Your native coding agent authors explicit transformations; each published output is a new cell. The same sequence backs the Console, the CLI, and the MCP dataset tools.
 
 <Steps>
   <Step title="Land a source">
@@ -102,20 +102,20 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     `search`; one row lands per trace). The selection is validated and counted first: an
     unknown filter key or a selection that matches no trace is a 400, so a dataset never lands
     empty. The response is the dataset; landing runs in the background and `state` moves from
-    `landing` to `diagnosing` while the agent runs its preparation turn, then `idle` (`error`
-    on failure). Landing proposes `capability_rank` and the `intent` when they were left out.
+    `landing` to `idle` (`error` on failure). Landing never starts an agent. An omitted
+    intent stays pending; capability ranking remains available.
   </Step>
-  <Step title="Shape it">
-    `POST /api/datasets/{id}/cells/` adds a cell (`title`, `script`, `note`) at the end of the
-    chain; `PATCH .../cells/{id}/` edits it and a script change queues it and every cell after
-    it; `DELETE .../cells/{id}/` removes it unless it is frozen; `POST .../run/` executes the
-    queued cells in order (an unchanged cell keeps its frame). `POST .../chat/` sends a message
-    to the dataset's agent, which lands cells itself; `POST .../cells/{id}/accept/` runs a cell
-    the agent proposed. Writes are refused with `409` while the agent is working.
-    `GET .../events/` streams `land_started`, `land_progress`, `land_done`, `land_failed`,
-    `run_started`, `cell_started`, `cell_done`, `cell_failed`, `run_done`, `run_failed`,
-    `chat_turn`, `chat_thinking`, `chat_step`, `chat_delta`, `chat_cell`, `chat_failed`,
-    `cells_changed` and `dataset_changed` as server-sent events, replaying what you missed first.
+  <Step title="Publish a transformation">
+    `POST /api/datasets/{id}/pipelines/` saves a named recipe with `request_key` and
+    a retained Python `package` ID. Inline operation definitions are rejected. `POST .../pipeline-runs/` executes its UUID against
+    `source_cell`, `source_fingerprint` and a stable request key.
+    For external code, `POST .../versions/import/` accepts inline rows or an uploaded
+    artifact cell, exact source bindings, a name and producer attribution.
+    `GET .../workbench/` pages recipes and receipts with `pipeline_offset`, `run_offset`
+    and `limit` (20 by default, at most 100). `POST .../cancel/` prevents
+    publication. `PATCH /api/datasets/{id}/` changes dataset metadata. Chat, arbitrary
+    script execution and mutable-cell routes are removed. `GET .../events/` streams
+    landing progress and dataset changes.
   </Step>
   <Step title="Read a version">
     The dataset's `cells` carry every version: `version`, `state`, `rows`, `columns`,

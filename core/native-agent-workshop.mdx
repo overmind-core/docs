@@ -1,0 +1,287 @@
+---
+title: Native-agent Data Workshop
+description: Author transformations in your coding agent and retain sources, step-by-step versions and execution receipts in Overmind.
+---
+
+The current MCP contract keeps Workshop planning, interpretation, code and semantic work
+to the native coding agent. Overmind stores the evidence, executes explicit
+retained script packages, validates parent lineage and publishes new versions.
+Landing a source does not start a platform agent.
+
+The Console opens with a project dataset table showing purpose, source,
+row count, active version, capability and last update. Select a row to open the
+step-by-step cell view. Its folder button reveals compact dataset navigation for
+the selected project, with search and paginated loading. Platform-agent chat,
+the prompt-style landing composer, mutable-cell editing and script replay are
+removed. Read, export and source APIs remain.
+
+## Author one transformation at a time
+
+1. Select the authorized project with `list_projects`. Account connections pass
+   `project_id` on each operation and resource read.
+2. Inspect the file's record boundaries, fields, nested types and expected count.
+   For a JSON wrapper, select its intended top-level row array with
+   `--json-rows-field FIELD`; clarify unresolved ambiguity rather than guessing.
+   Land the original file with `overmind dataset upload FILE --project-id PROJECT --json`, or use
+   `start_dataset` for a written brief and attach a source later. Existing source,
+   trace, exploration, derivation and partition operations remain available.
+3. Inspect the dataset and query the exact source cell. Compare landed counts and
+   representative nested values with the local inspection; resolve mismatches
+   before further use. State the verification coverage, not just transfer success.
+   Preserve its UUID and fingerprint. Set only the user's explicit intent with
+   `update_dataset`.
+4. Discover reusable project transformations. Validate and preview an exact revision
+   on the new source; reuse it if appropriate, or save an attributed `derived_from`
+   variant. Each ordered script becomes a separate cell in one atomic publication.
+5. Poll the returned job and inspect the published output. Hand its exact cell
+   ID to Training or Evaluation; later versions do not change existing consumers.
+
+Draft responses return an upload argument array with the selected project and
+dataset already filled in. Local artifacts alone do not complete preparation in
+Overmind. Inspect the named capability's contract before choosing target meaning;
+format compatibility does not establish that data performs the requested task.
+Readiness exposes task suitability as unmeasured, separately from technical checks.
+Keep logical preparation stages and review branches as distinct retained steps.
+
+## Decision and Jev training data
+
+A decision-training request ends in a typed `decision` column. Retained scripts
+preserve the question, evidence, runtime options and full probability targets,
+including tied maxima, example weights and valid blank states. Converting these
+targets into assistant answer text loses supervision. A recorded categorical
+label can become a one-hot target when its meaning and option mapping are known.
+Keep the original label and grouping fields outside model inputs.
+
+Record supported target meaning in `decision.target_semantics`, with evidence in
+`decision.target_provenance` and retained code. Leave unresolved interpretation
+visible in review metadata. A numeric vector alone does not establish annotator
+votes, calibrated probabilities or verified truth. Mean-only ordinal observations
+use `target_mean`, explicit increasing `option_values` and
+`target_semantics="ordinal_mean"`; do not invent a distribution.
+
+After preview and publication, verify every row's target and source identity.
+`check_finetune_readiness` reports the native decision objective and distinguishes
+technical compatibility from unmeasured task suitability. `create_data_partition`
+keeps declared groups together and projects calibration/final references outside
+`input.decision`. Training performs the model-specific Unsloth encoding through
+`prepare_training_data`; Workshop retains model-independent data.
+
+## Workshop tools
+
+| Tool | Function |
+| --- | --- |
+| `inspect_dataset_workbench` | Page saved recipes and run receipts; inspect required authoring artifacts and runner observations. |
+| `save_dataset_pipeline` | Save an immutable named recipe under a stable request key; does not execute. |
+| `run_dataset_pipeline` | Execute a saved recipe against an exact source cell and fingerprint. |
+| `validate_dataset_pipeline` | Check retained code and declared source requirements without execution. |
+| `cancel_dataset_pipeline_run` | Prevent publication of one exact run. |
+| `save_dataset_pipeline_binding` | Save a paused source-to-revision binding with explicit limits. |
+| `set_dataset_pipeline_binding_state` | Enable or pause automatic processing with an inspected version. |
+| `run_dataset_pipeline_binding` | Process one saved source snapshot without enabling automatic processing. |
+| `import_dataset_version` | Publish externally authored rows or an uploaded artifact after lineage validation. |
+| `update_dataset` | Set name, explicit intent, capability or default version; frozen intent/capability cannot change. |
+| `cancel_dataset` | Prevent pipeline publication or request source-landing cancellation. Does not stop an external agent. |
+| `get_job` | Read an exact transformation using `kind=dataset_pipeline` and the returned run ID. |
+
+`message_dataset_agent`, `run_dataset` and `manage_dataset_workflow` are no
+longer in the MCP catalog. Discover the connected contract through
+`overmind://interface/current`; refresh tools when its catalog fingerprint changes.
+
+## Inspect facts and progress
+
+`inspect_dataset` pages source files independently of cells. Use `source_offset`
+and `source_limit` (default 10, maximum 20), following `source_page.next_cursor`
+until exhausted. Response byte limits can shorten a page. Source entries retain
+their original download identities, checksums and extraction metadata, including
+page counts, OCR engine/version/languages and limitations.
+
+When the primary PDF parser finds no text on a page, PDFium checks the encoded
+text layer before OCR. `native_text_recovery` records the recovered pages,
+engine/version, row and character counts, and non-whitespace control characters.
+Rows retain their extraction method and page regions. Font-encoding artifacts
+are flagged without guessing replacements. This is source preservation, not
+visual verification, reading-order reconstruction or a guarantee against partial
+omissions on pages where the primary parser did return text.
+
+`get_job(kind=dataset_run)` exposes file and extraction stages under
+`progress.landing`. PDF OCR reports document page count and completed/total OCR
+pages. Pipeline jobs expose their current execution stage, source row count and
+output count once measured. Stages are not percentage-complete or ETA estimates.
+The native agent uses these facts to explain the work; the platform does not
+generate a narrative or treat technical completion as semantic success.
+CLI upload responses label saved states with `state_scope=at_publication`.
+Repeated uploads recover that receipt, not current landing status. Use `get_job`
+to read progress, or `--wait` for `state_scope=observed_after_landing`.
+
+Read `overmind://dataset-upload` before transferring files. Documents are capped
+at 100 MiB and PDFs at 2,000 pages. Upload reservations advertise the file-type
+byte limit, chunk writes enforce it, and PDF page limits are checked before
+extraction. Oversized files must be split before retrying.
+
+`query_dataset` returns at most 100 rows and 32 KiB of JSON. Larger results return
+`query_result_too_large` without clipping values. Select smaller columns, aggregate
+in SQL, or export the exact cell. Mixed scalars and precision-sensitive integers
+remain JSON values rather than being converted to strings or lossy floats.
+Results above 200 columns also fail rather than omitting column metadata.
+Routine Workshop receipts keep measured progress, checks and identifiers inline.
+Read their `evidence_resource` for retained row examples and preview samples;
+these are not repeated on every poll or removed from the saved receipt.
+
+The upload CLI transfers one file per command. Attach subsequent files using
+`--dataset`, waiting for landing between commands. Each attachment combines the
+preceding cell's rows with the new rows in another version. Source metadata remains
+individually inspectable. Atomic multi-file uploads have no resumable CLI/MCP
+handoff yet. An over-limit document is rejected with `file_too_large` before a
+transfer is reserved.
+
+## Recipes and externally authored results
+
+Every new transformation requires a retained Python package with 1–20 ordered
+script stages. Inline operation definitions are rejected by REST and MCP. Historical
+package-free revisions and receipts remain readable with original attribution, but
+cannot validate, execute or run through bindings. Author and upload a package and
+save a new revision instead; history is never rewritten to imply script execution.
+Revisions belong to the project, not a single source dataset.
+
+Native agents upload reusable Python packages with
+`overmind dataset pipeline-upload PATH --project-id PROJECT --json` and save the
+returned package ID as a revision. Read `overmind://dataset-upload` for the current
+manifest, script arguments and runtime requirements. Exact code is downloadable
+with `overmind dataset pipeline-download PACKAGE --project-id PROJECT --output FILE`.
+Put each step's substantive logic in its entrypoint; use shared helpers for reusable
+functions such as I/O. The cell's Script section shows that entrypoint and lets you
+inspect every retained package file, including helpers and the manifest. Reads verify
+the retained package checksum and expose each file's SHA-256 without executing code.
+Large files use explicit character pagination; follow `next_offset` for complete source.
+
+Cell `transformation` metadata links the exact completed run, revision, package and
+entrypoint. The Console distinguishes scripts executed by Overmind, historical declarative
+operations, external imports and history with no recorded execution. A review claim
+alone does not establish execution. Changed logic requires a new revision and run;
+historical scripts and receipts remain unchanged.
+
+Packages run only in an operator-approved, immutable container image on the
+dedicated controller, without network, platform credentials or host mounts.
+API/Celery processes never execute uploaded Python. Registration and validation
+do not execute code. `mode=preview` retains bounded samples and checks without
+publishing cells. Full runs publish all successful step cells atomically.
+
+Preview defers absolute `min_rows`/`max_rows` checks until full publication;
+schema, lineage and `preserve_rows` checks apply in both modes. Receipts retain
+passed, failed and deferred checks, including expected/actual failure counts.
+Queued receipts expose queue age and a polling interval. Terminal receipts include
+completion time and stop suggesting polling. A normal queue delay is not a failure.
+Workbench results carry project scope and executable next actions. Dataset inspection
+directs an unfinished transformation to its exact run rather than an earlier landing job.
+
+Agents declare step `id` and `input` (`source` or an earlier step). Repeated inputs
+form a fork. Script steps can retain a `condition` with `expression` and entrypoint
+`line`; these describe the agent's intent, while the scripts implement selection.
+MCP returns explicit `flow` nodes, edges, conditions and output with every revision.
+Run receipts separately retain actual input cells and measured output counts.
+Every step executes, including empty results. `inputs` concatenates distinct earlier
+branches in declared order; a retained script consumes the combined rows. Overlapping
+row identities fail rather than deduplicating observations. This is a disjoint union,
+requiring matching nonempty data schemas (no implicit coercion),
+not a relational key join. Job-level conditional skipping is not supported.
+`flow.unconsumed_steps` identifies branches outside the final output. Training recipes
+converge intended branches into trainable examples, retaining unresolved review metadata.
+The Console preserves the existing cells
+at full size on a grid-snapped canvas: progression runs downward, with sibling
+branches side by side on the same horizontal layer. No automatic fit-to-view
+shrinks the cells. Elbow connections expose lineage; the Process control shows
+the current execution and selected successful preparation. Corrections replace
+the displayed process, with no repair-history or restore view. Recorded source,
+script and partition links connect related datasets. Condition chips sit immediately
+above the receiving cell rather than midway along shared connectors.
+
+`pipeline_id` identifies a reusable family; the revision `id` identifies exact
+code. Family updates require `expected_revision`; adaptations use `derived_from`
+to retain their origin while leaving the original unchanged. Source compatibility
+and semantic correctness are different: the agent must inspect both.
+
+Use `author-dataset-transformation` for the connected authoring workflow. Inspect
+an exact revision with `inspect_dataset_workbench(pipeline=REVISION_UUID)`; the
+response includes family history and revision-scoped runs/bindings. Read package
+code in full before adapting it, following resource `next_offset` pages. Verify
+boundary values, nulls, duplicates and empty outputs against independent expected
+row members. A bounded preview does not establish full-source coverage, and a
+successful run does not prove branches are mutually exclusive or exhaustive.
+
+Bindings pin a revision, parameters, source and destination. They start paused;
+explicit enabling authorizes the controller to check for new full snapshots.
+Late updates and removed trace matches are included. Checkpoints commit with
+publication, failed batches require explicit retry authorization, and revision
+adoption triggers an explicit rebuild. Trace snapshots above 10,000 traces fail
+without truncation. This is bounded snapshot processing, not incremental streaming.
+
+For genuine external/provider results, run work in the coding agent's environment. Import
+up to 2,000 rows and 4 MiB inline, or upload a larger output as another dataset
+and supply its `artifact_cell` and `artifact_fingerprint`. Both datasets must be
+in the same project. The imported version retains the artifact reference.
+
+Every output row preserves its original `source_row`, or declares all contributing
+source identities in `_overmind_parent_rows`. Use explicit parent arrays for
+uploaded artifacts: their upload positions may differ from the original source.
+Unknown parents fail publication. Split and merged outputs retain inherited
+content and grouping identities for downstream leakage checks.
+
+Supply `provenance` describing the producer and code or model used. Receipts
+distinguish platform execution from `external_attributed` execution. Attribution
+does not independently verify that the described code ran or that an answer is
+correct. Imported answers do not inherit a source's human-review flag.
+
+## Recovery and trust
+
+Reuse the same request key after an uncertain response: identical inputs return
+the original record, while changed inputs conflict. A failed or cancelled run
+does not replace the selected version or alter frozen consumer inputs. Expired
+work fails without automatic replay. Cancellation blocks publication; an already
+running calculation may finish, and remote agent/provider work is not terminated.
+
+The platform measures technical compatibility and change impact. Semantic quality
+stays unmeasured unless attributable evidence exists. Quality and overlap findings
+are advisory; unreadable or technically incompatible data blocks use. Preserve
+full probability targets, weights, duplicate observations, unknown target meaning
+and declared groups. Training performs model-specific preprocessing separately.
+
+
+## Preparation execution and corrections
+
+Upload original source bytes once and pin upstream revisions. Register retained
+transformation code before processing the full data. Do not upload prepared
+outputs as unrelated sources. For corrections, update the same recipe family
+and run the corrected package against the original source; the resulting clean
+process replaces the displayed cells without repair-history or restore controls.
+Consumer-pinned artifacts remain immutable internally. Recipes belong to the
+project; reuse is optional and requires compatible source and target semantics.
+`inspect_dataset_workbench.preparation` exposes the same source-to-output graph
+as the Console, including recorded train/development/calibration/final links.
+
+Column contracts use `object` for a nested decision, never `json`. Declare the
+final step's `consumer` as `decision_train`, `decision_eval`, `chat_train` or
+`model_eval` to validate nested targets in both preview and publication. Preserve
+evidenced semantics and structured provenance; never remove them to pass checks.
+Preview samples a bounded prefix and does not establish coverage of every family.
+
+For row-independent transformations, declare step `batch_rows` (1–100000).
+Consecutive batches execute in separate restricted containers and concatenate in
+source order. Each expanded JSONL input/output must fit half the package's
+`scratch_mb`; each batch has the declared time limit. Global sorting, grouping,
+splitting and deduplication must not use batching. Row checks apply to the combined
+output, publication remains atomic, and progress records completed batches and
+rows. A failed or cancelled batch publishes no partial cells. CLI directory
+packages omit Python bytecode caches; other unsupported files remain errors.
+
+The execution controller has exclusive PostgreSQL session ownership. Restarting
+it fails interrupted recipe runs and cleans up owned containers; partial results
+are never published and scripts are never automatically replayed. Submit a new
+request key only after inspecting the failed attempt. Availability heartbeats
+continue during long validation and publication stages without advancing measured
+progress.
+
+### Retained transformations
+
+Use `save_dataset_pipeline(dataset=..., package=...)` to associate retained code with the preparation automatically. Reuse remains project-scoped; running a saved recipe also associates it with the destination. Users do not need a retention decision.
+
+Inspect the selected process and execution receipts with `inspect_dataset_workbench`. Retain scoped uncertainties and supporting evidence in the script and output. Publication validates declared row, schema and consumer requirements; execution success does not establish semantic correctness.

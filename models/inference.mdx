@@ -3,7 +3,7 @@ title: Inference
 description: Call your fine-tuned models through an OpenAI-compatible endpoint — deployment lifecycle, the capability alias, request fields, error codes, and the Console Inference page.
 ---
 
-Every successful [training run](/models/training) registers a deployment and serves it from Overmind's GPU pool through an OpenAI-compatible chat completions endpoint. You call it with your existing client and an Overmind API key; the model id is either the deployment's reference or a capability alias that follows whichever model you have made live.
+Every successful [training run](/models/training) registers a deployment through its matching runtime. Conversational models use an OpenAI-compatible chat completions endpoint; native decision models return typed probabilities. You call it with your existing client and an Overmind API key; the model id is either the deployment's reference or a capability alias that follows whichever model you have made live.
 
 The Console model list shows deployments from training runs. Base-model deployments used internally for evaluations are excluded from the list and its counts; they remain available to evaluation jobs.
 
@@ -11,8 +11,8 @@ The Console model list shows deployments from training runs. Base-model deployme
 
 A deployment moves through `queued → deploying → warming → ready`, or ends `failed`, `deleting`, `deleted`. Two shapes:
 
-- A dense or explicitly supported mixture-of-experts model trained on Modal with LoRA is served as an **adapter on a shared BF16 base**; deployments of the same base share one process and skip the `quantizing` stage.
-- Everything else — full fine-tunes, other mixture-of-experts models, models whose family has no adapter support — is **merged and quantised into a private checkpoint** (FP8 where the base supports it) and served from its own vLLM process.
+- A dense model trained on Modal with LoRA is served as an **adapter on a shared BF16 base**; deployments of the same base share one process and skip the `quantizing` stage.
+- Everything else — full fine-tunes, mixture-of-experts models, models whose family has no adapter support — is **merged and quantised into a private checkpoint** (FP8 where the base supports it) and served from its own vLLM process.
 
 Each process scales to zero when idle: two minutes without traffic for most models, fifteen for the largest. The first request after that cold-boots the model in two to seven minutes; the response is held open with an idle ping every 15 seconds so the connection survives.
 
@@ -25,6 +25,15 @@ Deployment failure does not discard or repeat successful training. The checkpoin
 Before-training evaluations report baseline deployment progress on the waiting training run. If that deployment fails, the evaluation is marked failed and the next training poll stops submission with the deployment error, even while remote cancellation is awaiting confirmation.
 
 ## Calling your model
+
+For native coding agents, MCP `run_inference` requires a stable `request_key` and
+returns an `inference_request` receipt immediately. Poll `get_job` for the answer,
+usage, finish reason and truncation facts. The same key and input recover the same
+request after a client disconnect; unknown provider submissions are not replayed.
+Linked operational timelines expose recorded worker stages and measured restore
+counts through `inspect_operation`, independently of application traffic. Reads
+do not start a worker. Missing provider telemetry remains unavailable, not zero.
+The application API below retains its ordinary streaming/non-streaming contract.
 
 Point any OpenAI-compatible client at `https://api.overmindlab.ai/api/v1` with your API key (`Authorization: Bearer <key>` or `X-Api-Key: <key>`). The model page’s **View API snippet** and coding-agent prompt use the current server’s URL, default to the capability alias and offer an explicit version pin. Reuse a project key in `OVERMIND_API_KEY`, or open the existing key-creation flow from the snippet dialog.
 
@@ -54,7 +63,7 @@ Model ids under `anthropic/`, `deepseek/`, `google/`, `meta-llama/`, `openai/`, 
 
 Serving context includes both the input and generated output. Training sequence length does not determine deployment capacity. Requests reserve an explicit positive output budget (8,192 tokens when omitted); an input that cannot fit alongside that reservation is rejected instead of silently reducing output space. Prompt truncation is not supported. `max_completion_tokens` is accepted as an alternative to `max_tokens` and takes precedence when both are supplied.
 
-Inspect each choice's `finish_reason`: `length` indicates an incomplete answer, even when HTTP transport succeeded. Streaming responses retain this finish reason. MCP `run_inference` returns `finish_reason` and `truncated`; `content_clipped` separately identifies its response-size bound. If capacity is insufficient, reduce the request or deploy with a larger supported serving context.
+Inspect each choice's `finish_reason`: `length` indicates an incomplete answer, even when HTTP transport succeeded. Streaming responses retain this finish reason. The MCP inference job result includes `finish_reason` and `truncated`; `content_clipped` separately identifies its response-size bound. If capacity is insufficient, reduce the request or deploy with a larger supported serving context.
 
 `POST /api/v1/chat/completions` accepts `model`, `messages`, `temperature`, `max_tokens`, `top_p`, `frequency_penalty`, `presence_penalty`, `tools`, `tool_choice`, `response_format`, `stream`, `stream_options.include_usage`, `reasoning_effort`, `include_reasoning` and `chat_template_kwargs`. Unknown fields are ignored.
 
@@ -112,7 +121,7 @@ Through MCP, call `set_active_model` and poll its `model_activation` receipt wit
 
 The list shows **Model**, **Base model**, **Capability**, **Training job**, **Reference**, **Status**, **Requests**, **Tokens**, **Throughput**, **Latency** and **Last active**; latency and throughput are medians over warm calls. Status shows the deployment status until it is `ready`; a ready model shows its serving state from `live/` — **Warm** when its worker pool has running containers or it served successful traffic in the last 90 seconds, **Warming** while a cold boot is in progress, **Asleep** when its measured pool has no containers, and **Unknown** only when worker measurements are unavailable and there is no recent serving signal. The list and detail page refresh this state every five seconds; checking status does not wake the model. The separate **Live model** badge identifies the capability’s selected route, independently of worker warmth.
 
-The model page focuses on **Inference performance**: request volume, success rate, end-to-end p50 and p95 response time, median warm generation speed, and estimated serving cost. The reporting period applies to both headline metrics and charts: **Last hour**, **Last 24 hours**, **Last 7 days**, **Last 30 days** or **All time**. **Application traffic** includes API-key requests to either the capability alias or a pinned model ID; **All traffic** also includes internal calls and requests with an unknown source. Metrics refresh every 15 seconds while the page is open.
+The model page focuses on **Inference performance**: request volume, success rate, end-to-end p50 and p95 response time, median warm generation speed, and estimated serving cost. The reporting period applies to both headline metrics and charts: **Last hour**, **Last 24 hours**, **Last 7 days**, **Last 30 days** or **All time**. **Application traffic** includes API-key requests to either the capability alias or a pinned model ID; **All traffic** also includes internal calls and historical requests whose source is unknown. Metrics refresh every 15 seconds while the page is open.
 
 The charts show request traffic and failures, response-time percentiles, and generation speed. Empty traffic buckets are zero; missing timing measurements remain gaps. Failed calls do not contribute to latency or speed distributions. A single empty state replaces the charts when the selected period has no requests. Refresh errors are visible and do not turn into zero traffic. The latest failure includes its request ID.
 
@@ -129,3 +138,20 @@ Both `metrics/` and `activity/` accept `period=1h|24h|7d|30d|all` and `source=ap
 - Every request through the endpoint is recorded as an inference call and traced under the project, so a live fine-tuned model feeds the datasets for its next round of training.
 - Merged checkpoints are quantised during weight preparation; adapter deployments use a shared BF16 base.
 - A retry after `failed` validates base weights again and reuses cached checkpoint preparation. It never restarts training.
+
+## Native decision inference
+
+Successful native decision training automatically registers its verified adapter
+and full-precision head with the separately pinned decision-serving runtime.
+Readiness requires a real probability prediction. `deploy_finetune` can backfill
+a historical successful job without changing application routing. Main's retired
+alternative DecisionJob checkpoints are preserved as historical records, not
+assumed compatible with this runtime.
+
+Call MCP `run_inference` with the deployment ID, explicit `project_id`, a stable
+`request_key` and `decisions` containing `state`, `question`, `kind` and ordered
+`options`. Poll the returned `inference_request` using `get_job`. Results retain
+option order, probabilities, input fingerprints and the model artifact identity.
+Repeating the same key recovers its receipt; changing inputs conflicts. An unknown
+provider acknowledgement is reconciled rather than automatically resubmitted.
+Decision checkpoints do not accept chat messages and do not become chat aliases.
