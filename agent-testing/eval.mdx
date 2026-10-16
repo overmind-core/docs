@@ -61,7 +61,7 @@ Judges are authored behaviour-scoped from the behaviour's group in the Eval libr
 
 ### Authoring
 
-Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving.
+Author from the Eval library by hand, or describe what you want to test and let Overmind generate the evaluator (`POST /api/evaluators/generate-prompt/`). The generated prompt template references the agent's output as `{{output.<path>}}` and dataset fields as `{{reference.<path>}}`, and everything stays editable before saving. Over MCP, `upsert_evaluator` compiles an `llm_judge` rubric into the same checklist unless you pass `checklist`.
 
 `overmind sync` refreshes the Default eval set of every current capability, in tiers: Tier 0, rule-based checks compiled from the capability's card (its output contract, fields, and constraints — no model call); Tier 1, generative LLM judges grounded in the card, the prompt, and the behaviour map; and the behaviour outcome and step judges for trace scoring. Tier 1 authors once per capability; when it authors nothing for the generative role, one floor judge fills the role until a later push covers it. Authoring reads the capability's **evidence profile** — what its telemetry carries (declared behaviours, explicit units, real tool spans, provenance tags, a declared deliverable) — and refuses a spec whose evidence the traces cannot supply.
 
@@ -158,11 +158,11 @@ budgets, finish reasons, usage, request IDs and costs where the provider supplie
 
 An eval run is one experiment: **one data source × N variants × M evaluators.**
 
-- **Data source** — `dataset` (the version is used and frozen, so the run stays reproducible as the dataset evolves) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
+- **Data source** — `dataset` (the run reads one immutable version and marks it used, so the run stays reproducible as the dataset grows) or `trace_filter`, drawing directly from captured traffic. `max_items` caps how many rows are drawn.
 - **Variants** — the columns of the experiment. A variant's `mode` is `generate` (re-run a model over each row) or `existing` (grade the recorded output as-is). Each pins a model (a catalogue model, a registered endpoint, or one of your trained models) and optionally a prompt; one variant is the baseline (`is_baseline`) every other is measured against.
 - **Evaluators** — attached as frozen snapshots at creation, so later library edits cannot change what a completed run measured.
 
-Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, **Evaluations → New evaluation** selects an eval dataset, eval set, model to test, maximum samples and optional run-only judge. Model selectors show the provider logo and model name, matching training setup. Judge options also show estimated context fit and cost comparisons; context warnings remain advisory. Estimates cover the full dataset, while maximum samples limits the run. Eval runs can also be created through the API and the `run_evaluation` MCP tool. An eval dataset's cell also offers **Run the optimiser** and **Use in a training job**.
+Creation refuses a run whose eval set has no live generative LLM judge, and a run over a closed-form labelled dataset whose eval set carries no comparator against the gold labels. In the Console, **Evaluations → New evaluation** selects an eval dataset, eval set, model to test, maximum samples and optional run-only judge. Model selectors show the provider logo and model name, matching training setup. Judge options also show estimated context fit and cost comparisons; context warnings remain advisory. Estimates cover the full dataset, while maximum samples limits the run. Eval runs can also be created through the API and the `run_evaluation` MCP tool. An evaluation dataset's active version also offers **Run the optimiser** and **Score a training job**.
 
 ```bash
 # Create (which also launches), follow, and compare a run
@@ -190,7 +190,7 @@ Execution fans out server-side: sample preparation (generation), then one scorin
 
 For recorded conversations, a generated variant can set `params.generation_strategy` to `per_assistant_turn`. The model produces one decision for each recorded assistant turn, using the conversation recorded before that turn as context. Tool calls are evaluated as decisions without executing their tools. Each subsequent turn uses the recorded history, keeping its context independent of the candidate's previous decisions. Such a run attaches a per-turn judge automatically, and `params.replay_dimensions` names what it grades. This also applies to conversations containing a single recorded assistant turn; a tool-only decision does not require a final answer.
 
-A sample that exceeds the generation worker's time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
+A sample that exceeds the generation time limit records an error and is excluded from scoring. Scoring starts after sample preparation finishes, so a run can be generating while its score count is still zero.
 
 ### Reading the report
 

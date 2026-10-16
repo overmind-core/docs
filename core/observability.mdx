@@ -35,7 +35,7 @@ To instrument by hand:
         service_name="research-agent",
         environment="production",
         providers="auto",  # instrument every provider SDK you have installed
-        capability_id="research-agent",  # the capability's UUID, or its key from overmind.toml
+        capability_id="research-agent",  # the capability's UUID, or its slug from overmind.toml
     )
 
     @overmind.run(intent=lambda question: question)
@@ -119,7 +119,7 @@ The Python SDK sets all of these for you.
 
 ### Reaching the right capability
 
-`overmind.capability.id` takes the capability's UUID or the `key` it has in `overmind.toml`. Both survive renames. A span-level value beats the resource-level one, so one process can serve several capabilities.
+`overmind.capability.id` takes the capability's UUID or its `slug` in `overmind.toml`. Both survive renames. A span-level value beats the resource-level one, so one process can serve several capabilities.
 
 <Warning>
 An id Overmind doesn't recognise never creates a capability. The span still arrives and is browsable under the **Unbound** filter, but it belongs to no capability, no evaluators score it, and it joins no dataset until the id resolves. Push your scan first, then copy the id or key into `init()`.

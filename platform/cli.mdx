@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: The overmind command — init, sync, chassis, dataset upload and export, connectors, the optimise loop, model checkpoints, and skills.
+description: The overmind command — init, sync, chassis, dataset upload, attach and export, connectors, the optimise loop, model-layer backtest and finetune, model checkpoints, and skills.
 ---
 
 The `overmind` command ships with the Python package. It is the local half of every workflow that touches your filesystem: it installs the workflow skills and MCP entry, syncs `overmind.toml` with the server, lands files as datasets, adds tracing connectors, drives optimisation runs in your working tree, and downloads weights. The MCP server never edits a repository or moves bytes; the CLI does. The package is MIT.
@@ -147,7 +147,9 @@ Skipped directories: `.git`, `.venv`, `venv`, `node_modules`, `__pycache__`, `.t
 ```bash
 overmind dataset upload rows.jsonl --intent eval --wait --json
 overmind dataset upload traffic.parquet --split 20 --split-position random
-overmind dataset export <dataset-id> --format csv --cell <cell-id> --output triage.csv
+overmind dataset upload handbook.pdf --wait
+overmind dataset export <dataset-id> --format csv --cell v3 --output triage.csv
+overmind dataset attach labels.csv --json
 ```
 
 ### `dataset upload FILE`
@@ -159,22 +161,32 @@ overmind dataset export <dataset-id> --format csv --cell <cell-id> --output tria
 | `--capability` | none | Capability UUID to align the dataset with |
 | `--split` | off | Land a train dataset and an eval dataset; the eval share in percent (1–99). Drop `--intent`. |
 | `--split-position` | `tail` | Where the eval rows come from: `head`, `tail`, or `random` |
-| `--wait` | off | Wait for the landing and the agent's first preparation; exit 1 with the dataset's error if either fails |
+| `--json-rows-field` | `data`, `rows`, `items` or `examples` | For a `.json` object that wraps its rows: the top-level array to import. Refused for other files |
+| `--wait` | off | Wait up to one hour until the source has landed; exit 1 with the dataset's error if landing fails or the hour runs out. A stopped import returns `state: stopped` |
 | `--api-key`, `--api-url`, `--path` | resolved | Credentials; `--path` points at `overmind.toml` |
 | `--json` | off | Print one machine-readable object |
 
-Reserves an upload at `POST /api/uploads/`, streams the file in resumable chunks with `PUT /api/uploads/{id}/chunk/` (the CLI reads the received offset back before each chunk), then creates the dataset with `POST /api/datasets/` and `source: {upload_id, filename}`. The file may be `.csv`, `.tsv`, `.json`, `.jsonl`, `.ndjson` or `.parquet`, optionally gzipped. With `--split`, it posts to `/api/datasets/split/` instead and the JSON result carries `id` (train) and `eval_id`. The JSON result also carries `state` (`landing` until the landing run finishes) and `next_mcp_actions` — `get_job(kind="dataset_run")` then `inspect_dataset` — which is how the `/overmind dataset` command reads the outcome back. See [Datasets](/core/datasets#create-a-dataset).
+Reserves an upload at `POST /api/uploads/`, streams the file in resumable chunks with `PUT /api/uploads/{id}/chunk/` (the CLI reads the received offset back before each chunk), then creates the dataset with `POST /api/datasets/` and `source: {upload_id, filename}`. The file may be a table (`.csv`, `.tsv`, `.json`, `.jsonl`, `.ndjson` or `.parquet`, optionally gzipped, up to 2 GB) or a document (`.pdf`, `.docx`, `.md`, `.txt`, `.png`, `.jpg`, `.jpeg` or `.webp`, uncompressed, up to 100 MiB), which lands as one row per text element. With `--split`, it posts to `/api/datasets/split/` instead and the JSON result carries `id` (train) and `eval_id`. The JSON result also carries `state` (`landing` until the landing run finishes) and `next_mcp_actions` — `get_job(kind="dataset_import")` then `inspect_dataset` — which is how the `/overmind dataset` command reads the outcome back. See [Datasets](/core/datasets#create-a-dataset).
+
+### `dataset attach FILE`
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--json-rows-field` | `data`, `rows`, `items` or `examples` | For a `.json` object that wraps its rows: the top-level array to read |
+| `--api-key`, `--api-url`, `--path`, `--json` | | As above |
+
+Uploads one table (`.csv`, `.tsv`, `.json`, `.jsonl`, `.ndjson` or `.parquet`, optionally gzipped) the same way as `dataset upload`, but creates no dataset. The JSON result carries `upload_id`, `filename`, `bytes`, `rows`, `sha256` and `next_mcp_actions`. A coding agent passes `upload_id` as `attachment` to `try_dataset_script` or `add_dataset_version`, and the script reads the table as the frame `attachment`. See [Rows made outside Overmind](/core/datasets#rows-made-outside-overmind).
 
 ### `dataset export DATASET`
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `--format` | `jsonl` | `jsonl` or `csv` |
-| `--cell` | active version | Cell UUID or a version such as `1.2` |
+| `--cell` | active version | A version such as `v3`, or its UUID |
 | `--output` | server filename | Local path; must not exist |
 | `--api-key`, `--api-url`, `--path`, `--json` | | As above |
 
-Streams `GET /api/datasets/{id}/export/?fmt=…[&cell=…]` to a new local file and refuses to overwrite. The export is a raw stream and never counts as a use of the dataset.
+Streams `GET /api/datasets/{id}/export/?fmt=…[&cell=…]` to a new local file and refuses to overwrite. The export is a raw stream and does not mark the version used.
 
 ## `overmind connector`
 
@@ -239,6 +251,47 @@ Each verb takes `--experiment`/`-e` (default: the active experiment) and posts i
 | `status [--json]` | Show experiment status and scores |
 | `complete` | Seal the experiment and record the winner on the server |
 
+## `overmind backtest`
+
+```bash
+overmind backtest --models openai/gpt-5-mini,anthropic/claude-sonnet-4.5 --since 7d
+```
+
+Scores candidate models on stored `llm_call` spans. It does not run the application or its tools. Each span becomes one eval row: the recorded request, and the recorded completion as the reference. The command waits, prints each model's score against that baseline, and exits 1 if any candidate regresses or cannot be scored (a judge error on a candidate or on the recorded baseline reads `unscored`). Exit 2 means the wait budget ran out.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--models` | required | 1–5 model ids, comma-separated or repeated |
+| `--capability` | the only capability in `overmind.toml` | Slug, name or id; required when the toml lists more than one |
+| `--since` | `7d` | ISO timestamp, or a duration like `7d`, `24h`, `30m` |
+| `--until` | now | ISO timestamp |
+| `--limit` | 200 | Maximum calls, newest first (at most 10,000) |
+| `--from-model` | | Only spans recorded from this model |
+| `--timeout` | `45m` | How long to wait for landing and scoring |
+| `--project-id`, `--api-key`, `--api-url`, `--path` | resolved | As for `dataset upload` |
+
+The capability needs an active eval set with generative evaluators. `overmind optimise` remains the path that reruns the repository.
+
+## `overmind finetune`
+
+```bash
+overmind finetune --models Qwen/Qwen2.5-7B-Instruct,meta-llama/Llama-3.1-8B-Instruct --since 7d
+```
+
+Builds a train dataset and an eval dataset from the same stored calls (one row per call, hash-split on `span_id`) and starts one fine-tune job per model. The jobs share a group, the capability, and the capability's active eval set. The command prints the group id and each job id and does not wait for training. A model missing from the training catalog is refused before any dataset is created. If a later job fails to queue, the command prints the jobs already started and exits 1. Exit 2 means the datasets did not land within `--timeout`.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--models` | required | 1–4 catalog model ids, comma-separated or repeated |
+| `--capability` | the only capability in `overmind.toml` | Slug, name or id; required when the toml lists more than one |
+| `--since` | `7d` | ISO timestamp, or a duration like `7d` |
+| `--until` | now | ISO timestamp |
+| `--limit` | 200 | Maximum calls, newest first (at most 10,000) |
+| `--from-model` | | Only spans recorded from this model |
+| `--eval-percent` | 20 | Share of calls that land in the eval dataset |
+| `--timeout` | `45m` | How long to wait for the datasets to land |
+| `--project-id`, `--api-key`, `--api-url`, `--path` | resolved | As for `dataset upload` |
+
 ## `overmind model`
 
 ```bash
@@ -250,7 +303,7 @@ overmind model download-checkpoint <deployment-id> --output ./weights.zip
 | `--output` | the archive's own name | Local path; must not exist |
 | `--api-key`, `--api-url`, `--path`, `--json` | | As above |
 
-Calls `GET /api/deployed-models/{id}/checkpoints/`, which returns `{name, size_bytes, download_url}` for the archived checkpoint zip — a presigned link valid for one hour — and streams it to a new local file. The deployment id comes from the Console or the `overmind://deployments/{deployment}` resource. See [Inference](/models/inference).
+Calls `GET /api/deployed-models/{id}/checkpoints/`, which returns `{"files": [{name, size_bytes, download_url}]}` for the archived checkpoint zip — a presigned link valid for one hour — and streams it to a new local file. The deployment id comes from the Console or the `overmind://deployments/{deployment}` resource. See [Inference](/models/inference).
 
 ## `overmind skills`
 
@@ -263,4 +316,4 @@ overmind skills sync overmind --ide cursor
 
 ## JSON output
 
-`--json` on `dataset upload`, `dataset export`, `connector add` and `model download-checkpoint` prints one machine-readable object and nothing else; on failure they print `{"error": "..."}` and exit 1. `optimise status --json` prints the experiment. This is how the `/overmind` commands hand a local step to the CLI and read the result back.
+`--json` on `dataset upload`, `dataset attach`, `dataset export`, `connector add` and `model download-checkpoint` prints one machine-readable object and nothing else; on failure they print `{"error": "..."}` and exit 1. `optimise status --json` prints the experiment. This is how the `/overmind` commands hand a local step to the CLI and read the result back.

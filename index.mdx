@@ -43,10 +43,11 @@ What Overmind does:
 
 - [Capability scan](/core/capabilities): your coding agent maps the repository into capabilities
 - [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the capability's eval set
-- [Datasets](/core/datasets): traces and files become eval and training data, shaped by the dataset's own agent
+- [Datasets](/core/datasets): traces and files become eval and training data, shaped by scripts your coding agent runs in the sandbox
+- [Decision models](/models/decision-models): small models trained from decision rows that return a probability for every option
 - [Eval](/agent-testing/eval): variants measured against a baseline with typed scores
 - [Optimiser](/agent-testing/optimisers): candidate code changes replayed in your repository and scored; the winning diff is yours to apply
-- [Training](/models/training): fine-tuned models you own, trained on Modal from your data
+- [Training](/models/training): fine-tuned models you own, trained from your data
 - [Inference](/models/inference): an OpenAI-compatible API for your trained models and frontier models
 - [MCP](/platform/mcp) and [CLI](/platform/cli): the same workflows from Cursor, Claude Code, OpenCode or Codex
 
@@ -74,7 +75,7 @@ What Overmind does:
   </Card>
 
   <Card title="Datasets" href="/core/datasets">
-    Source, cells, versions, contracts, the workshop agent.
+    Sources, documents, versions from your agent, contracts.
   </Card>
 
   <Card title="Eval" href="/agent-testing/eval">
@@ -110,6 +111,6 @@ What Overmind does:
   </Card>
 
   <Card title="CLI" href="/platform/cli">
-    `overmind init`, `sync`, `dataset`, `optimise`, `model`.
+    `overmind init`, `sync`, `dataset`, `connector`, `optimise`, `backtest`, `finetune`, `model`, `skills`.
   </Card>
 </CardGroup>

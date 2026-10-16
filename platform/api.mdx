@@ -45,15 +45,15 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Resource | Base path | Custom actions |
 | --- | --- | --- |
 | Projects | `/api/projects/` | `GET/POST /{project_id}/memberships/` (add by `email`), `DELETE .../memberships/{id}/` (not yourself), `GET/POST /{project_id}/invites/` (an email with no account; sent through Clerk), `DELETE .../invites/{id}/`; `POST` needs an account-scoped key |
-| Capabilities | `/api/capabilities/` | list is `status=current` unless `?status=leftover`; `PATCH` any field but `slug` (`name`, `description`, `model`, `active_model` — a `ready` deployment in the same project — the eval-spec fields); `DELETE` sets `status=deleted` and keeps traces, datasets and runs; `GET .../eval_spec/`; `GET .../prompts/` (selectable system prompts, paged) |
+| Capabilities | `/api/capabilities/` | list is `status=current` unless `?status=leftover`; `PATCH` any field but `slug` (`name`, `description`, `model`, `active_model` — a `ready` deployment in the same project — `benchmark_model` — a `ready` trained deployment in the same project, or null for the codebase incumbent — the eval-spec fields); the response carries `activation` (the [Make live](/models/inference#managing-deployments) progress); `DELETE` sets `status=deleted` and keeps traces, datasets and runs; `GET .../eval_spec/`; `GET .../prompts/` (selectable system prompts, paged) |
 | Agent graph | `GET /api/agent/?project=` | current capabilities plus `invokes` / `shares_tool` edges weighted by observed transitions |
 | Sync | `POST` / `GET /api/v1/sync` | what `overmind sync` sends: `{project_id, repo_summary, trace_provider, version, capabilities}`; API key only; project keys must match `project_id`; POST reconciles identity (carry / leftover / remount) and returns the snapshot with ids filled in; GET returns leftovers as `archived=true` |
 | Traces | `/api/traces/` | list returns one head span per trace (the root once it arrives) with `trace_status` (`live`, `completed`, `interrupted`), per-trace `total_tokens`/`total_cost`/`model`, `scoring_pending` and `feedback_score`; `?all_spans=true` lists spans instead; `GET /{trace_id}/` returns `root`, `span_count`, `trace_status`, `usage` and every span; `GET services/`, `GET models/` |
 | Sessions | `/api/sessions/` | traces grouped by `conversation.id`, with counts, activity window, usage and `session_score`; `GET /{id}/` |
 | Task executions | `/api/task-executions/` | read-only; one row per unit bound to a behaviour — filters in [Trace scoring](/agent-testing/trace-scoring#reading-executions-over-the-api); `GET /{id}/` adds `observed_route`, `step_results`, `user_intent`, `execution_score` and `flow`; `GET conversation-turns/?conversation_id=` (one row per turn) |
 | Behaviours | `/api/behaviours/` | list only (`execution_count`, `avg_success_score`); `GET coverage/?capability=`; `GET /{id}/evaluators/` (the compiled step and outcome judges); `GET /{id}/authoring-context/` (the latest contract's steps, tool set and terminal). The Console labels this column "Task" |
-| Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, read (cells with versions, chat), patch (`name`, `intent`, `capability`, `active`; intent and capability are fixed once a version is used), delete (refused while a version is referenced); `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `POST .../cells/`, `PATCH/DELETE .../cells/{id}/`, `POST .../cells/{id}/accept/`, `POST .../run/`, `POST .../chat/`, `GET .../export/`, `GET .../events/` — see [Building a dataset](#building-a-dataset) |
-| Uploads | `/api/uploads/` | `POST` with `filename` reserves an upload → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; the id goes into a dataset `source.upload_id` |
+| Datasets | `/api/datasets/` | list filters `project`, `capability`, `intent`, `search`; create, `POST split/`, read (the version tree), patch (`name`, `intent`, `capability`, `active` with optional `expected_active`; intent and capability are fixed once a version is used), delete (refused while a version is used); `POST .../resume-import/`, `POST .../cancel-import/`, `GET .../executions/`, `POST .../executions/{id}/cancel/`, `GET .../prepare-prompt/?cell=`, `GET .../attachment/?cell=`, `GET .../rows/`, `GET .../rows/{index}/`, `GET .../columns/`, `GET .../export/`, `GET .../events/`. Versions are added over MCP only — see [Building a dataset](#building-a-dataset) |
+| Uploads | `/api/uploads/` | `POST` with `filename` and optional `project` reserves an upload bound to that project (a project key's own project by default; with an account key and no `project`, your account alone) → `{upload_id, filename, chunk_bytes (8 MiB), max_bytes (2 GiB for a table, 100 MiB for a document)}`; `PUT /{id}/chunk/?offset=` appends a raw body (`409` on a bad offset); `GET /{id}/` → `{upload_id, received}` for resuming; `POST /{id}/inspect/` with `size` (and `json_rows_field`) validates the file, counts a table's rows (`rows` is null for a document) and returns its `sha256`, and is required before the id goes into a dataset `source.upload_id` or a script `attachment` |
 | Feedback | `POST /api/feedback/` | Console feedback |
 | Connectors | `/api/connector-credentials/` | Langfuse, LangSmith, Braintrust, Galileo; list hides inactive rows and unfinished drafts (`?include_inactive=true`, `?include_drafts=true`); `POST .../verify/`, `GET .../source-projects/`, `POST .../preview/`, `GET .../discover-capabilities/`, `PUT .../capability-mapping/`, `POST .../config/`, `POST .../sync/` (202), `GET .../runs/`; `DELETE` disconnects and keeps imported traces |
 
@@ -63,7 +63,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | --- | --- | --- |
 | Evaluators | `/api/evaluators/` | `GET catalog/?project=&capability=&search=` (unpaged), `GET score-history/?capability=`, `POST author/` (an `llm_judge` from a prompt; optionally attached to an eval set), `PUT /{id}/author/` (edit in place), `POST generate-prompt/` (credit-gated) |
 | Eval sets | `/api/eval-sets/` | `POST .../members/` (`role` plus `evaluator_ids` and/or `specs`), `PATCH/DELETE .../members/{member_id}/`, `POST .../activate/` |
-| Eval runs | `/api/eval-runs/` | create launches (credit-gated); `GET datasets/` (datasets that have runs), `POST .../run/` (re-launch: deletes the run's samples and scores first), `POST .../cancel/`, `GET .../comparison/` |
+| Eval runs | `/api/eval-runs/` | create launches (credit-gated); `GET datasets/` (datasets that have runs), `POST .../run/` (re-launch: deletes the run's samples and scores first), `POST .../cancel/`, `GET .../comparison/`, `POST context-check/` (advisory context and judge-budget preview; launches nothing); create accepts `judge_model`, frozen once created |
 | Verdicts | `/api/verdicts/` | list only — one row per evaluator per target; filter by `trace_id`, `target_id`, `target_id__in`, `target_kind`, `evaluator_name`, `outcome` |
 | Samples / scores | `/api/eval-samples/`, `/api/eval-scores/` | read |
 
@@ -74,6 +74,9 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | Optimisation runs | `/api/optimizer-experiments/` | `GET`, `POST` (credit-gated), `DELETE`; `?capability=`; `GET .../iterations/`, `GET .../commands/?status=`, `POST .../cancel/`, and the client-loop actions the CLI posts: `POST .../template/`, `POST .../add-iteration/`, `POST .../results/`, `POST .../evaluate/`, `POST .../complete/` |
 | Candidates | `/api/optimizer-candidates/` | read |
 | Training runs | `/api/finetuning-jobs/` | create launches (credit-gated); `GET runs/` (jobs grouped by `group_id`, whole runs per page), `GET datasets/`, `GET base-models/`, `GET models/` (the catalog by tier), `POST validate-dataset/`, `POST recommend/`, `POST estimate/`, `POST model-defaults/`, `GET dataset-overlap/?dataset=&eval_dataset=`, `GET .../events/`, `GET .../loss-curves/`, `POST .../cancel/`, `POST .../retry/`, `GET .../model-swap-prompt/?pin=` |
+| Training preparations | `/api/training-preparations/` | `POST` (`dataset`, optional `cell`, `validation_dataset`, `model`, `context_length`, `training_type`) runs exact tokenisation (202); `GET /{id}/`; `POST .../retry/` |
+| Decision models | `/api/decision-models/` | `GET` (the catalog), `POST {model}/systemone` (answer with a catalog model; credit-gated) |
+| Decision jobs | `/api/decision-jobs/` | `GET`, `GET /{id}/`, `POST` (train on `dataset` + optional `version`, `eval_dataset`, `eval_version`; credit-gated), `?project=`; `POST recommend/` (`project`, `dataset`, optional `version` → up to three `picks`, the dataset's shape and every `candidate` with `fits` and `why_not`), `POST .../cancel/`, `POST .../systemone/` (answer with the trained model; 503 with `Retry-After` while it starts) |
 | Deployed models | `/api/deployed-models/` | `GET`, `DELETE`; `POST .../deploy/`, `POST .../retry/` (both credit-gated), `POST .../undeploy/`, `GET .../metrics/`, `GET .../activity/`, `GET .../live/`, `GET .../checkpoints/` (a presigned download link) |
 
 ### Special endpoints
@@ -83,7 +86,7 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 | `POST /api/v1/traces` (alias `/v1/traces`) | [OTLP trace ingest](/core/observability#the-otlp-endpoint) — protobuf, not JSON; never credit-gated |
 | `POST /api/mcp/` | The [MCP server](/platform/mcp) — Streamable HTTP |
 | `POST /api/v1/chat/completions`, `GET /api/v1/models`, `GET|DELETE /api/v1/models/{model_id}` | [OpenAI-compatible inference](/models/inference#calling-your-model) |
-| `GET /api/models/catalog/` | The OpenRouter model catalog used for judges and run variants |
+| `GET /api/models/catalog/` | The model catalog used for judges and run variants |
 | `GET /api/public/models/`, `GET /api/public/models/{slug}/` | The public model library, unauthenticated |
 | `GET /health` | Health check (no auth) |
 | `POST /api/auth/local/`, `/api/auth/me/`, `/api/auth/onboarding/`, `POST /api/auth/guest/`, `POST /api/auth/guest/claim/` | Self-hosted sign-in, account, onboarding state, guest workspaces |
@@ -91,35 +94,49 @@ Standard REST resources follow Django REST Framework conventions: `GET` list wit
 
 ## Building a dataset
 
-A dataset lands its rows as-is and its agent shapes them cell by cell; a run uses one version. The same sequence backs the Console, the CLI, and the MCP dataset tools.
+A dataset lands its rows as-is and your coding agent adds versions with scripts; a run uses one version. The same sequence backs the Console, the CLI, and the MCP dataset tools.
 
 <Steps>
   <Step title="Land a source">
     A file goes up in chunks (`POST /api/uploads/`, then `PUT /api/uploads/{id}/chunk/?offset=`).
     `POST /api/datasets/` with `project`, `name`, optional `intent` (`train` or `eval`) and
-    `capability`, and exactly one `source`: `upload_id` (+ `filename`), `rows` or `text` for
-    pasted data, or `traces` (`trace_ids`, or a trace-list selection of `filters` and/or
-    `search`; one row lands per trace). The selection is validated and counted first: an
-    unknown filter key or a selection that matches no trace is a 400, so a dataset never lands
-    empty. The response is the dataset; landing runs in the background and `state` moves from
-    `landing` to `diagnosing` while the agent runs its preparation turn, then `idle` (`error`
-    on failure). Landing proposes `capability_rank` and the `intent` when they were left out.
+    `capability`, and exactly one `source`: `upload_id` (+ `filename`, or `uploads` for
+    several files, and `json_rows_field` for a JSON object that wraps its rows), `rows` or
+    `text` for pasted data, `traces` (`trace_ids`, or a trace-list selection of `filters`
+    and/or `search`; one row lands per trace), `llm_calls` (`{capability_id, since, until?,
+    model?, limit?}`: one row per recorded `llm_call` span; needs `intent` or, on `/split/`,
+    `position: hash`), or `version` (`{dataset, version}`: a version
+    of another dataset in the project, `v3` or its id, the active one when blank; its intent
+    and capability carry over unless given). Tables and documents cannot share a source. The
+    selection is validated and counted first: an unknown filter key or a selection that
+    matches no trace is a 400, so a dataset never lands empty. The response is the dataset;
+    landing runs in the background and `state` moves from `landing` to `idle` with `v0` active
+    (`error` on failure). Documents are extracted in the sandbox, one row per text element.
+    Landing proposes `capability_rank` and the `intent` when they were left out. A blocked
+    import shows `import_blocked`; `POST .../resume-import/` retries it.
+    `POST .../cancel-import/` stops an import that has not landed (queued, running or blocked),
+    both datasets of a split: `state` becomes `stopped` and the dataset keeps no source. With
+    no open import it answers `409 import_not_running`.
   </Step>
   <Step title="Shape it">
-    `POST /api/datasets/{id}/cells/` adds a cell (`title`, `script`, `note`) at the end of the
-    chain; `PATCH .../cells/{id}/` edits it and a script change queues it and every cell after
-    it; `DELETE .../cells/{id}/` removes it unless it is frozen; `POST .../run/` executes the
-    queued cells in order (an unchanged cell keeps its frame). `POST .../chat/` sends a message
-    to the dataset's agent, which lands cells itself; `POST .../cells/{id}/accept/` runs a cell
-    the agent proposed. Writes are refused with `409` while the agent is working.
-    `GET .../events/` streams `land_started`, `land_progress`, `land_done`, `land_failed`,
-    `run_started`, `cell_started`, `cell_done`, `cell_failed`, `run_done`, `run_failed`,
-    `chat_turn`, `chat_thinking`, `chat_step`, `chat_delta`, `chat_cell`, `chat_failed`,
-    `cells_changed` and `dataset_changed` as server-sent events, replaying what you missed first.
+    Versions are added over [MCP](/platform/mcp#datasets) (`add_dataset_version`,
+    `add_synthetic_examples`); REST reads them. `PATCH /api/datasets/{id}/` with `active` (and
+    `expected_active` to refuse with `409 active_conflict` when the active version moved)
+    picks the active version. `GET .../executions/?limit=` (1–50, default 20) lists the last script runs (mode, title or
+    first script line, state, error, parent, attachment, the version a run created, timings);
+    runs are kept 30 days. `POST .../executions/{id}/cancel/` stops a queued or running run
+    (`cancelled`, no version). `GET .../prepare-prompt/?cell=` returns the `prepare-dataset`
+    prompt for a version. `GET .../events/` streams `land_started`, `land_progress`, `land_done`,
+    `land_failed`, `land_cancelled`, `execution_queued`, `execution_started`, `execution_finished`,
+    `version_added` and `dataset_updated` as server-sent events, replaying what you missed
+    first.
   </Step>
   <Step title="Read a version">
-    The dataset's `cells` carry every version: `version`, `state`, `rows`, `columns`,
-    `intent_report` and `capability_report`, `fits` against the intent, `stats`, and `frozen`.
+    The dataset's `cells` carry every version: `version` (`v0`, `v1`, …), `parent`, `title`,
+    `script`, `rows`, `columns`, `impact` against the parent, `intent_report` and
+    `capability_report`, `fits` against the intent, `stats`, `analytics` (label balance with the
+    majority baseline, empty and one-value input fields), `attachment` (the file its script read:
+    name, bytes, rows, `sha256`; `GET .../attachment/?cell=` downloads it), and `frozen` (used).
     `GET .../rows/?cell=&offset=&limit=&sort=&dir=&filters=&search=&diff=1` pages a frame (up to
     500 rows) with `marks` (rows added, values changed with the old value) against the cell
     before it; `GET .../columns/?cell=` returns per-column stats.
@@ -128,7 +145,7 @@ A dataset lands its rows as-is and its agent shapes them cell by cell; a run use
     Eval runs, optimisation runs and training runs take `dataset` and, optionally, `cell`;
     without it the active version is used. A version whose contracts do not fit the intent, a
     dataset of the other intent, or a cell of another dataset, is refused with the reason. A
-    use freezes the version and starts a new major number.
+    use marks the version used; it cannot be deleted after that.
   </Step>
   <Step title="Pull it">
     A local loop reads the used version, never the dataset: `GET .../export/?fmt=jsonl&cell={id}`

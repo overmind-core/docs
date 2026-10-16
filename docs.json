@@ -351,6 +351,7 @@
         "group": "Model training",
         "pages": [
           "models/training",
+              "models/decision-models",
           "models/inference"
         ]
       },
