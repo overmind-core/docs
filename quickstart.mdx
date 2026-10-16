@@ -59,3 +59,11 @@ Deployed processes need `OVERMIND_API_KEY` in their runtime configuration; the s
     The tool catalog your coding agent already has after onboarding.
   </Card>
 </CardGroup>
+
+## Start with uploaded data
+
+Choose **New project → From data**, enter a project name and add your source files. Click **Create dataset** to open those files directly in Data Workshop; there is no second dataset form or capability/purpose selection.
+
+The Workshop opens **Prepare your SFT dataset**. Choose your coding agent, copy the onboarding prompt and paste it into a trusted agent workspace. The prompt contains connection credentials and the exact project and dataset IDs. It connects the agent to the selected deployment, inspects the uploaded sources and guides preparation of a supervised fine-tuning dataset through retained Workshop scripts. No repository scan is needed.
+
+The agent asks for clarification when target responses cannot be established from the source. Prepared cells and scripts appear in the same Workshop; preparation does not launch training, evaluation or inference.
