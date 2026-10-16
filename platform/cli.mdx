@@ -94,7 +94,7 @@ When Overmind is a project dependency, invoke the CLI with `uv run python -m ove
 Before `init` or the first `sync`, verify both the CLI and converter with the same project Python:
 
 ```bash
-uv run python -c "import sys, overmind; from importlib.metadata import version; from overmind.__main__ import app; from overmind.utils import convert_json_to_toml; assert sys.version_info >= (3, 10), 'Overmind onboarding requires Python 3.10+'; print('Python:', sys.executable); print('Overmind:', version('overmind')); print('Package:', overmind.__file__)"
+uv run python -c "import sys, overmind; from importlib.metadata import version; from packaging.version import Version; from overmind.__main__ import app; from overmind.utils import convert_json_to_toml; assert sys.version_info >= (3, 10), 'Overmind onboarding requires Python 3.10+'; print('Python:', sys.executable); print('Overmind:', version('overmind')); print('Package:', overmind.__file__); assert Version(version('overmind')) >= Version('0.1.94'), 'Overmind onboarding requires overmind>=0.1.94'"
 uv run python -m overmind --help
 ```
 
