@@ -68,6 +68,8 @@ Before scanning, the agent identifies its model when available, the configured O
 
 After code changes: run `/overmind setup` again; it includes the final `overmind sync`. A trajectory entry whose anchors are not call-graph reachable from its entry is stamped `verified = false`.
 
+The scan audits the complete registered-tool inventory, each tool’s source-backed outcomes and caller continuations, and the distinct observation, model, dispatch and result-processing stages. SDK 0.1.95 validates decision maps during conversion: missing tool outcomes or evidence, incomplete model contracts, unknown step anchors and unresolved transition targets must be repaired in the analysis JSON before the saved TOML is replaced. The coding agent continues the scan and retries conversion without repeating project setup. These checks establish structural coverage, not semantic correctness or exhaustive source coverage; `verified` remains an anchor-reachability check. When refreshing a scan, the agent reviews lost tools, branches and anchors against the current source instead of silently substituting a summary.
+
 ### What the server does with a sync
 
 `POST /api/v1/sync` reconciles the snapshot with the project's capabilities. Then, per capability:
