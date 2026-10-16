@@ -44,6 +44,8 @@ claude mcp add --scope local --transport http overmind https://api.overmindlab.a
 
 Codex takes the same entry in `.codex/config.toml`. Claude Code keeps the key in local scope (`~/.claude.json`), outside the repository. Self-hosted: replace the URL with your API host plus `/api/mcp/`, for example `http://localhost:8000/api/mcp/` (`overmind init --env local`, or `--api-url`).
 
+Behind TLS termination, MCP derives its public request scheme using Django's `SECURE_PROXY_SSL_HEADER` setting, just like REST. The trusted proxy must set `X-Forwarded-Proto` from the original connection and prevent clients from spoofing it. `list_projects` and `overmind://interface/current` must report the same HTTPS MCP address used by `overmind connection check`; an HTTP address here is a server configuration or deployment fault, not a reason to downgrade the client or disable endpoint validation.
+
 ## Optional plugin
 
 The Cursor, Claude Code and Codex plugins bundle the MCP connection, Overmind branding and the [workflow skills](#workflow-skills). MCP alone is the complete integration: tool descriptions, operating guidance, resources and prompts reach every client, with or without a plugin.

@@ -15,6 +15,8 @@ Overmind onboards through your coding agent. Cursor, Claude Code, OpenCode and C
   <Step title="Paste it into your coding agent">
     Open the repository root as the workspace and paste the prompt. The agent installs `overmind`, runs `overmind init` and `overmind sync`, and saves a project-scoped key to `.overmind/credentials.toml`. Reload the agent once so it loads the Overmind MCP server; in Claude Code, exit and run `claude -c`.
 
+    Before creating the project, the agent verifies compatible tooling (Python 3.10+, `overmind>=0.1.94`). If application dependencies conflict, it uses a verified isolated environment for the CLI and converter. After reload, it repeats the checks and preserves the selected endpoint and saved project connection. Tracing is checked separately in the application environment.
+
     The agent then scans the repository into [capabilities](/core/capabilities#the-scan) and syncs them to the Console. To regroup capabilities or change their evals, ask the agent.
   </Step>
   <Step title="Improve the agent with /overmind commands">
