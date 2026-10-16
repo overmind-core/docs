@@ -3,7 +3,7 @@ title: Inference
 description: Call your fine-tuned models through an OpenAI-compatible endpoint — deployment lifecycle, the capability alias, request fields, error codes, and the Console Inference page.
 ---
 
-Every successful [training run](/models/training) registers a deployment and serves it through an OpenAI-compatible chat completions endpoint. You call it with your existing client and an Overmind API key; the model id is either the deployment's reference or a capability alias that follows whichever model you have made live.
+Every successful [training run](/models/training) registers a deployment. Chat models use the OpenAI-compatible chat completions endpoint; native decision models use a typed probability endpoint. You call a chat model with your existing client and an Overmind API key; its model id is either the deployment's reference or a capability alias that follows whichever model you have made live.
 
 The Console model list shows deployments from training runs. Base-model deployments used internally for evaluations are excluded from the list and its counts; they remain available to evaluation jobs.
 
@@ -25,6 +25,16 @@ Deployment failure does not discard or repeat successful training. The checkpoin
 Before-training evaluations report baseline deployment progress on the waiting training run. If that deployment fails, the evaluation is marked failed and the next training poll stops submission with the deployment error, even while remote cancellation is awaiting confirmation.
 
 ## Calling your model
+
+### Native decision models
+
+Open the model’s **View API snippet** dialog for copyable cURL and Python examples. Each example uses the deployed model’s pinned training version: its decision kind, question, ordered output labels and a complete example input. For a Titanic classifier trained with `survived` and `died`, those are the labels in the request. Later dataset edits do not change the example.
+
+Set `OVERMIND_API_KEY` to an existing project key, then copy the example. Replace `state` with your own input while preserving the question and option order. Python requires `requests`; the shell example requires `curl`, `jq` and `uuidgen`. Both use the current server’s URL, submit to `POST /api/deployed-models/{deployment_id}/inference/`, poll `GET /api/inference-requests/{request_id}/`, and print the highest-probability label alongside the probabilities. Preserve the request key when retrying the same submission; if polling times out, continue reading that receipt rather than submitting another request.
+
+For models trained on several decision questions, use **Decision example** to choose one. The dialog shows up to eight label sets and retains complete example inputs up to 2 KiB. If the pinned source cannot be verified or a complete input is unavailable, it shows an unavailable state instead of inventing labels or truncating the input. Training targets are not included in the examples.
+
+### Chat models
 
 Point any OpenAI-compatible client at `https://api.overmindlab.ai/api/v1` with your API key (`Authorization: Bearer <key>` or `X-Api-Key: <key>`). The model page’s **View API snippet** and coding-agent prompt use the current server’s URL, default to the capability alias and offer an explicit version pin. Reuse a project key in `OVERMIND_API_KEY`, or open the existing key-creation flow from the snippet dialog.
 
