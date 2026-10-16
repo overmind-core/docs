@@ -8,3 +8,7 @@ drafts/
 
 # Scraped source content (not documentation pages)
 sources/
+
+# Agent instructions (not documentation pages)
+AGENTS.md
+CLAUDE.md

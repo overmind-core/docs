@@ -1,6 +1,6 @@
 ---
 title: "Introduction"
-description: "Production traces become datasets, evals, code diffs, and trained models."
+description: "Overmind improves production AI agents with their own data: traces in; datasets, evals, optimisation runs and trained models out."
 ---
 
 import { Ascii } from "/snippets/ascii.jsx";
@@ -33,28 +33,23 @@ import { Ascii } from "/snippets/ascii.jsx";
   ]}
 />
 
-Overmind ingests OpenTelemetry traces, scores them as they arrive, and turns them into datasets. Those datasets drive evals, the optimiser, and training.
+Overmind ingests OpenTelemetry traces, scores them as they arrive and turns them into datasets. Those datasets drive evals, optimisation runs and training runs, and every result is benchmarked against the agent you ship today.
 
-The platform is open source. [overmind-core/overmind](https://github.com/overmind-core/overmind) holds the API, the Console, and the SDK. The same code runs hosted at overmindlab.ai and [self-hosted](/platform/self-hosting).
+Use the [hosted Console](https://console.overmindlab.ai) or [self-host](/platform/self-hosting) the same code with Docker Compose. The platform is AGPL-3.0 and the SDK is MIT; see [Licensing](/platform/licensing).
 
-The Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain over OpenTelemetry. Any OTel exporter can POST to the same endpoint.
+Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, [MCP](/platform/mcp) for coding agents and OpenAI-compatible serving for models. The Python SDK instruments OpenAI, Anthropic, Gemini, Agno and LangChain, and any OpenTelemetry exporter can send to the same endpoint.
 
-- [Live scoring](/agent-testing/trace-scoring): traces carved into task executions and judged against the capability's eval set
-- [Datasets](/core/datasets): traces become eval and training data
-- [Eval](/agent-testing/eval): variants measured against a baseline
-- [Optimiser](/agent-testing/optimisers): candidates replayed in your repository; the winning diff is yours to apply
-- [Training](/models/training) and [inference](/models/inference): fine-tune on Modal or Baseten; serve over an OpenAI-compatible API
-- [MCP](/platform/mcp) and [CLI](/platform/cli): the same work from Cursor, Claude Code, OpenCode, or Codex
+What Overmind does:
 
-## Surfaces
-
-| Surface | Hosted | Self-hosted default |
-| --- | --- | --- |
-| API | `https://api.overmindlab.ai` | `http://localhost:8000` |
-| Console | `https://console.overmindlab.ai` | `http://localhost:5173` |
-| MCP | `https://api.overmindlab.ai/api/mcp/` | `http://localhost:8000/api/mcp/` |
-
-`ovr_` API keys: [Projects & administration](/platform/administration).
+- [Capability scan](/core/capabilities): your coding agent maps the repository into capabilities
+- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the capability's eval set
+- [Datasets](/core/datasets): traces and files become eval and training data, shaped by scripts your coding agent runs in the sandbox
+- [Decision models](/models/decision-models): small models trained from decision rows that return a probability for every option
+- [Eval](/agent-testing/eval): variants measured against a baseline with typed scores
+- [Optimiser](/agent-testing/optimisers): candidate code changes replayed in your repository and scored; the winning diff is yours to apply
+- [Training](/models/training): fine-tuned models you own, trained from your data
+- [Inference](/models/inference): an OpenAI-compatible API for your trained models and frontier models
+- [MCP](/platform/mcp) and [CLI](/platform/cli): the same workflows from Cursor, Claude Code, OpenCode or Codex
 
 ## Guides
 
@@ -76,11 +71,11 @@ The Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain o
   </Card>
 
   <Card title="Agent & Capabilities" href="/core/capabilities">
-    Local discovery, the scan push, tasks, telemetry attribution.
+    Local discovery, `overmind sync`, tasks, telemetry attribution.
   </Card>
 
   <Card title="Datasets" href="/core/datasets">
-    Source, cells, versions, contracts, the workshop agent.
+    Sources, documents, versions from your agent, contracts.
   </Card>
 
   <Card title="Eval" href="/agent-testing/eval">
@@ -116,6 +111,6 @@ The Python SDK auto-instruments OpenAI, Anthropic, Gemini, Agno, and LangChain o
   </Card>
 
   <Card title="CLI" href="/platform/cli">
-    `overmind init`, `scan`, `dataset`, `optimise`, `model`.
+    `overmind init`, `sync`, `dataset`, `connector`, `optimise`, `backtest`, `finetune`, `model`, `skills`.
   </Card>
 </CardGroup>

@@ -1,64 +1,47 @@
 ---
 title: Quickstart
-description: Open a console, paste one prompt into your coding agent, or run the scan yourself.
+description: Sign up or self-host, paste one prompt into your coding agent, then improve the agent with /overmind commands.
 ---
 
-<Card title="Open the Console" href="https://console.overmindlab.ai">
-  Sign up or sign in at console.overmindlab.ai.
-</Card>
+Overmind onboards through your coding agent. Cursor, Claude Code, OpenCode and Codex all work: one pasted prompt installs the SDK, connects the MCP server and scans your repository into capabilities. After that, instrumentation, datasets, training and optimisation run from the same chat.
 
-Self-host: [Self-hosting](/platform/self-hosting).
+<Steps>
+  <Step title="Open the Console">
+    Sign up at [console.overmindlab.ai](https://console.overmindlab.ai), or open your own Console, for example `http://localhost:5173` — see [Self-hosting](/platform/self-hosting). A **project** holds your capabilities, traces, datasets, runs, models and keys; the first sync creates it.
+  </Step>
+  <Step title="Copy the onboarding prompt">
+    On the **Agent** page, pick **Cursor**, **Claude Code**, **OpenCode** or **Codex**, then select **Copy onboarding prompt**. The prompt carries a temporary account key, so paste it only into your local coding agent. **Manual setup** shows the same commands for a terminal.
+  </Step>
+  <Step title="Paste it into your coding agent">
+    Open the repository root as the workspace and paste the prompt. The agent installs `overmind`, runs `overmind init` and `overmind sync`, and saves a project-scoped key to `.overmind/credentials.toml`. Reload the agent once so it loads the Overmind MCP server; in Claude Code, exit and run `claude -c`.
 
-<Tabs>
-  <Tab title="Coding agent">
-    <Steps>
-      <Step title="Copy the onboarding prompt">
-        The **Agent** page opens empty. Pick **Cursor**, **Claude Code**, **OpenCode**, or **Codex**, then **Copy onboarding prompt**. The prompt carries a temporary account-scoped bootstrap key — paste it only into a local coding agent.
-      </Step>
-      <Step title="Paste it at the repo root">
-        Paste the prompt into Cursor, Claude Code, OpenCode, or Codex with the repository root as the workspace. Reload the IDE when it finishes, then use `/overmind` commands.
-      </Step>
-    </Steps>
-  </Tab>
-  <Tab title="Manual">
-    <Steps>
-      <Step title="Create a project">
-        In the Console, create a project. A project scopes capabilities, traces, datasets, runs, models, and keys.
-      </Step>
-      <Step title="Create a project-scoped key">
-        **Projects → your project → API keys**. Copy the `ovr_` key once.
-      </Step>
-      <Step title="Install and scan">
-        ```bash
-        pip install overmind
-        export OVERMIND_API_KEY=ovr_…
-        overmind init --ide cursor   # optional: skill, /overmind commands, MCP entry
-        overmind scan
-        overmind scan finalize
-        ```
+    Before creating the project, the agent verifies compatible tooling (Python 3.10+, `overmind>=0.1.94`). If application dependencies conflict, it uses a verified isolated environment for the CLI and converter. After reload, it repeats the checks and preserves the selected endpoint and saved project connection. Tracing is checked separately in the application environment.
 
-        Self-hosted: `export OVERMIND_API_URL=http://localhost:8000` and `overmind init --ide cursor --env local`.
-      </Step>
-      <Step title="Author cards and push">
-        Fill `.overmind/cards/<key>.json`, then `overmind scan push`. What each step writes: [Agent & Capabilities](/core/capabilities#the-scan). Tracing: [Python SDK](/tracing/sdk-python). Raw OTLP: [Observability](/core/observability). Flags: [CLI](/platform/cli).
-      </Step>
-    </Steps>
-  </Tab>
-</Tabs>
+    The agent then scans the repository into [capabilities](/core/capabilities#the-scan) and syncs them to the Console. To regroup capabilities or change their evals, ask the agent.
+  </Step>
+  <Step title="Improve the agent with /overmind commands">
+    Each command drives one loop end to end. Cursor and Claude Code take them as slash commands; in OpenCode and Codex, ask for the step by name.
 
-After reload, Cursor and Claude Code get `/overmind onboard`, `/overmind setup`, `/overmind ensure-tracing`, `/overmind dataset`, `/overmind finetune`, `/overmind optimise`, and `/overmind backtest`. OpenCode and Codex get the skill and MCP entry; describe the goal instead. [CLI](/platform/cli) · [MCP](/platform/mcp).
+    | Command | What it does |
+    | --- | --- |
+    | `/overmind ensure-tracing` | Instrument the code and check that traces arrive |
+    | `/overmind dataset` | Build, clean, upload or export a dataset |
+    | `/overmind finetune` | Fine-tune, deploy and smoke-test a model |
+    | `/overmind optimise` | Run prompt and code optimisation |
+    | `/overmind backtest` | Compare models in the repository |
 
-Deployed processes need `OVERMIND_API_KEY` in their runtime. Local runs reuse `.overmind/credentials.toml` after `overmind scan push`.
+    Plain `/overmind` routes to the right workflow when you describe the goal instead.
+  </Step>
+  <Step title="Watch it land in the Console">
+    Once traces arrive, open **Observability**. **Task executions** shows one row per scored unit of work, **Root traces** one row per trace, and **Sessions** groups traces by session.
 
-## In the Console
+    <Frame caption="Task executions: one row per scored unit, with the task it bound to and its execution score.">
+      <img src="/images/platform/observability-executions.jpg" alt="Observability task executions view in the Overmind console" />
+    </Frame>
+  </Step>
+</Steps>
 
-Open **Observability**. **Task executions** is one row per scored unit; **Root traces** is one row per trace; **Sessions** groups traces by session.
-
-<Frame caption="Task executions: one row per scored unit, with the task it bound to and its execution score.">
-  <img src="/images/platform/observability-executions.jpg" alt="Observability task executions view in the Overmind console" />
-</Frame>
-
-The **Agent** page fills in as each step lands: capabilities after the first push, traffic and scores once traces arrive, **Confirmed** on a capability once a trace binds to it.
+Deployed processes need `OVERMIND_API_KEY` in their runtime configuration; the saved project key covers local runs only. Not using Python or a coding agent? Any OpenTelemetry SDK can export to the [OTLP endpoint](/core/observability#the-otlp-endpoint).
 
 ## Next steps
 
@@ -67,7 +50,7 @@ The **Agent** page fills in as each step lands: capabilities after the first pus
     Bracket each run with `overmind.run()` and add `@tool` and `@observe` spans so traces mirror your agent's real control flow.
   </Card>
   <Card title="Read the pushed capabilities" href="/core/capabilities">
-    What the scan pushed: capabilities, prompts, tools, behaviours, and the trajectory map.
+    What sync uploaded: capabilities, prompts, tools, behaviours, and the trajectory map.
   </Card>
   <Card title="Build a dataset from traces" href="/core/datasets">
     Select traces and land them as an eval or training dataset with provenance intact.

@@ -11,7 +11,7 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
 
 <Steps>
   <Step title="A capability from your code">
-    Candidates are edits to source, so the capability must be one `overmind scan push` created from an entry declared in `overmind.toml`; the CLI resolves `-c <slug>` through that file, and the run records the capability's `entrypoint_fn` as the entrypoint under test. See [Agent & Capabilities](/core/capabilities).
+    Candidates are edits to source, so the capability must be one `overmind sync` created from an entry declared in `overmind.toml`; the CLI resolves `-c <slug>` through that file, and the run records the capability's `entrypoint_fn` as the entrypoint under test. See [Agent & Capabilities](/core/capabilities).
   </Step>
   <Step title="An eval dataset">
     The run replays the agent over the rows of an eval dataset in the same project whose active version fits the **eval** contract; the inputs must be a shape the agent can be invoked with. The dataset's contracts are the only creation gate — a wrong entrypoint signature surfaces at the smoke test. See [Datasets](/core/datasets#contracts).
@@ -20,12 +20,12 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
     Candidates are graded by the eval set you pick, or the capability's active eval set by default. The set must belong to the capability. See [Eval](/agent-testing/eval#eval-sets).
   </Step>
   <Step title="A coding agent in the repository">
-    Your agent executes in **your** environment, not Overmind's. The loop is driven from your checkout by the `overmind` CLI, and the candidate diffs are written by your coding agent. **Optimiser → New run** in the Console hands you the prompt to paste — **Harness** for prompt and code optimisation, **Backtesting** for model comparison — which the `/overmind optimise` and `/overmind backtest` commands run end to end.
+    Your agent executes in **your** environment, not Overmind's. The loop is driven from your checkout by the `overmind` CLI, and the candidate diffs are written by your coding agent. **Optimiser → New run** in the Console offers **Improve prompts & code** to test changes to prompts, tool definitions and application logic, or **Compare models** to evaluate different models while keeping prompts and logic fixed. Select the capability and eval dataset, then use **Copy prompt** and paste into your coding agent in that capability's repository. Copying does not start a run. The `/overmind optimise` and `/overmind backtest` commands drive the same runs; scores and progress appear in Overmind.
   </Step>
 </Steps>
 
-<Frame caption="New run: the Harness and Backtesting prompts the coding agent runs.">
-  <img src="/images/platform/optimiser-new-run.jpg" alt="New optimiser run dialog with Harness and Backtesting tabs" />
+<Frame caption="Configure a local run and copy its coding-agent prompt.">
+  <img src="/images/platform/optimiser-new-run.jpg" alt="Optimiser setup with capability, dataset and a coding-agent prompt" />
 </Frame>
 
 The run's **budget** is the number of iterations (default 5) and candidates per iteration (default 3); patience — consecutive iterations without improvement before early stop — is 3. Starting a run requires credits and counts against the plan's optimiser quota.
@@ -33,6 +33,7 @@ The run's **budget** is the number of iterations (default 5) and candidates per 
 ## How a run works
 
 <Ascii
+  cols={79}
   lines={[
     "╔════════════╗   ╔══════════╗   ╔══════════════════════════╗             ",
     "║ Smoke test ╟──▶║ Baseline ╟──▶║ Generate candidate diffs ║             ",
@@ -52,6 +53,7 @@ The run's **budget** is the number of iterations (default 5) and candidates per 
 />
 
 <Ascii
+  cols={79}
   lines={[
     "                                        ╔══════════════════════════╗           ",
     "                                        ║ Generate candidate diffs ║           ",
@@ -85,7 +87,7 @@ overmind optimise status [--json]
 overmind optimise complete
 ```
 
-Every verb takes `-e <experiment-id>`; without it the CLI uses the run recorded in `.overmind/optimise_state.json`. `start` pulls the run's dataset version once to `.overmind/datasets/<cell-id>.jsonl` and never re-fetches it. See the [CLI](/platform/cli#overmind-optimise).
+Every verb takes `-e <experiment-id>`; without it the CLI uses the run recorded in `.overmind/optimise_state.json`. `start` pulls the run's dataset version to `.overmind/datasets/<cell-id>.jsonl`, with its fingerprint beside it, and fetches it again only when the fingerprint no longer matches. See the [CLI](/platform/cli#overmind-optimise).
 
 The **command template** is one shell command that runs the capability on a single datapoint and prints its output, with placeholders `__DATAPOINT_INPUT__`, `__EXPERIMENT_ID__`, `__CAPABILITY_ID__`, `__CANDIDATE_ID__`, `__ITERATION_ID__`, `__DATAPOINT_INDEX__` and `__PROJECT_ID__`. A run opens with a **smoke test** — before spending anything, the first datapoint runs through the template to verify the entrypoint can be invoked. Then it measures the **baseline**: your agent exactly as it is, scored across the whole dataset as iteration 0.
 
@@ -95,11 +97,13 @@ Each subsequent iteration takes the batch of candidate diffs from the coding age
 
 | Mode | Candidates | Stops on |
 | --- | --- | --- |
-| **optimize** (Harness) | Code diffs the coding agent writes | Budget or patience |
-| **model_comparison** (Backtesting) | One to five model ids — OpenRouter slugs or your own `ft-…` deployments — one iteration per model, one candidate each | Every model, always — a comparison owes a full table |
+| **optimize** (Improve prompts & code) | Code diffs the coding agent writes | Budget or patience |
+| **model_comparison** (Compare models) | One to five model ids — OpenRouter slugs or your own `ft-…` deployments — one iteration per model, one candidate each | Every model, always — a comparison owes a full table |
 | **hybrid** | Every diff crossed with every model in `--model` | Budget or patience |
 
-A backtest runs the repository with its provider calls redirected to OpenRouter: `overmind.backtest.rewrite_repo(".")` rewrites `OpenAI`, `AsyncOpenAI`, `Anthropic`, `AsyncAnthropic` and `ChatOpenAI` constructors to read `OPENROUTER_MODEL`, `OPENROUTER_API_KEY` and the OpenRouter base URL from the environment, and reports leftover call sites (`ChatAnthropic`, Google GenAI, Vertex) for the coding agent to patch. For each candidate the loop then runs the datapoints with `OPENROUTER_MODEL` set to that candidate's model and `OPENROUTER_API_KEY` from your environment (`OPENAI_API_KEY` as a fallback).
+The CLI command `overmind backtest` is separate from the `/overmind backtest` slash command above. It scores stored `llm_call` spans and does not run the repository. The recorded completion is the baseline, and the command exits 1 if a candidate regresses or cannot be scored. See [CLI](/platform/cli#overmind-backtest).
+
+A repository backtest runs the application with its provider calls redirected to OpenRouter: `overmind.backtest.rewrite_repo(".")` rewrites `OpenAI`, `AsyncOpenAI`, `Anthropic`, `AsyncAnthropic` and `ChatOpenAI` constructors to read `OPENROUTER_MODEL`, `OPENROUTER_API_KEY` and the OpenRouter base URL from the environment, and reports leftover call sites (`ChatAnthropic`, Google GenAI, Vertex) for the coding agent to patch. For each candidate the loop then runs the datapoints with `OPENROUTER_MODEL` set to that candidate's model and `OPENROUTER_API_KEY` from your environment (`OPENAI_API_KEY` as a fallback).
 
 A backtest ranks its candidates **coverage-fair**: by score, then by the share of datapoints that produced gradeable output, then by fewest excluded datapoints (failed runs and empty outputs) — so a model that scored well by failing hard datapoints does not win. The incumbent keeps the overall win on a tie. When every candidate ties and the eval suite left card claims uncovered, no model is selected and the run says so.
 
