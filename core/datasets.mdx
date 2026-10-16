@@ -7,6 +7,16 @@ A dataset is the data your eval runs, optimisation runs and training runs read. 
 
 Two things say what a dataset is for: its **purpose** (training or evaluation; `intent` in the API) and the **capability** it belongs to. Capability is optional. With no purpose given, landing sets one from the rows when they already have the training or evaluation shape; otherwise it stays unset until you decide. Both are fixed once a run uses a version; to change them, [create a dataset from that version](#from-another-datasets-version).
 
+## Start a project from data
+
+In **New project**, choose **From data**, enter a project name and upload your files. Select **Create dataset** to open Data Workshop. The **Prepare your training data** dialog lets you copy an onboarding prompt for your coding agent; no repository or capability is required.
+
+The prompt starts with exploration of the uploaded source and saved brief. Your agent examines the schema, examples, whole-source profiles, target meaning and inputs available at inference time before choosing a training representation. It asks for clarification when the task or targets remain ambiguous.
+
+Training data is not assumed to be conversational SFT. The agent selects the supported consumer contract that fits the evidence: `chat_train` for grounded response generation, or `decision_train` for typed decisions and their targets. It preserves labels, option order, probability distributions, weights and meaningful groups rather than turning soft targets into a single text answer or inventing probabilities from a mean.
+
+The agent saves a retained transformation package, previews and validates its output, then publishes the prepared cells in the same Workshop. Its handoff explains the chosen representation, validation results, exact dataset and cell IDs, and unresolved limitations. This preparation does not launch training, evaluation or inference.
+
 ## Create a dataset
 
 Select **New dataset** on the Datasets page, add files, enter a name, then choose a **Capability** (**Detect from the rows**, **None**, or a project capability) and a **Purpose**: **Decide later** (the default), **Training**, **Evaluation**, or **Split into training and evaluation**.
