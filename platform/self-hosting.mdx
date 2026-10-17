@@ -194,3 +194,14 @@ maintenance task that stops mixed consumers from accepting messages and waits fo
 their active and reserved work to finish before replacing them. A missing worker
 reply or drain timeout stops deployment and restores the old consumers. Do not
 purge queues or revoke provider work to accelerate this transition.
+
+
+MCP SQL inspection shares Redis admission across API processes. Set
+`DATASET_QUERY_MAX_IN_FLIGHT` (default `8`) and
+`DATASET_QUERY_PROJECT_CONCURRENCY` (default `2`) to bound total and per-project
+query engines. `DATASET_QUERY_TIMEOUT_SECONDS` defaults to `10`. Budgets must be
+positive and the project budget cannot exceed the global budget. Size the global
+budget for deployed API CPU and query memory; raising it is not a substitute for
+capacity testing. Unavailable Redis fails admission with a retryable error instead
+of executing without a limit. Query slots renew while active and expire after a
+worker disappears; source data is never modified by query admission.

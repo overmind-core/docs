@@ -110,7 +110,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 | --- | --- | --- |
 | `list_datasets` | `capability?`, `intent?`, `state?`, `search?`, `limit?`, `offset?`, `cursor?` | List project datasets |
 | `inspect_dataset` | `dataset`, `version?`, `version_offset?`, `version_limit?` | One dataset: its version tree, the active version and an optional `version` in full with `analytics` and `used_by`, consumer requirements (`preparation_context`), its source (files, the version it came from, its split pair), live runs, a sample and next actions |
-| `query_dataset` | `dataset`, `sql`, `version?`, `limit?` | Read-only `SELECT` over table `t` of one version (active by default); at most 100 rows and 32 KiB, 10 s timeout |
+| `query_dataset` | `dataset`, `sql`, `version?`, `limit?` | Read-only `SELECT` over table `t` of one version (active by default); at most 100 rows and 32 KiB, 10 s timeout; shared per-project admission with retryable backpressure |
 | `create_dataset` | `name`, `source`, `intent?`, `capability?`, `split?`, `request_key?` | Land a new dataset from one `source`: `{kind: "traces", trace_ids?, filters?, search?, limit?}` (one row per trace), `{kind: "llm_calls", since, until?, model?, limit?}` (one row per `llm_call` span, `limit` 200 by default and at most 10,000; needs `capability`, and `intent` or `split`) or `{kind: "version", dataset, version?}` (a version of a project dataset, keeping its intent and capability unless given). An empty selection is refused. `split` (`eval_percent?` 20 by default, `position?` `head`, `tail` (default), `random` or `hash`, which `llm_calls` require; `group_by?`, `stratify_by?`, `deduplicate?`) lands disjoint `<name> train` and `<name> eval` datasets instead of one with an intent. Returns a `dataset_import` job |
 | `try_dataset_script` | `dataset`, `parent?`, `script`, `attachment?` | Run a script on a version in the sandbox and preview the result: rows, columns, three rows, printed output. Creates nothing |
 | `probe_dataset_version` | `dataset`, `version?`, `script` | Run a script on a version and return what it prints |
@@ -258,3 +258,9 @@ Three things never cross MCP: file bytes, repository edits, and provider secrets
 `overmind skills list --verbose` prints the installed catalog. `overmind skills sync <names> --ide <client>` refreshes the named skills, and `overmind init --ide <client>` installs the full set.
 
 `/overmind onboard`, `setup`, `ensure-tracing`, `dataset`, `finetune`, `optimise` and `backtest` load the main skill's references: Cursor through command files, Claude Code through the skill itself. In OpenCode and Codex, ask for the step by name. The main skill is the only place the local scan (`/overmind setup`) lives; the native prompts cover the server-side workflows.
+
+MCP SQL inspection defaults to eight concurrent queries across API workers and two
+per project. `overmind://interface/current` reports the deployed budgets. On
+`query_capacity_busy` or `query_capacity_unavailable`, wait at least the returned
+`retry_after_seconds` and retry identical SQL against the returned exact cell.
+Do not fan out retries; use retained dataset pipelines for bulk analysis.

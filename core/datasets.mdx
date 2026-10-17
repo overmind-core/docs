@@ -263,3 +263,8 @@ Over REST you can create a dataset (from files, traces or another dataset's vers
     More real runs in means better data to curate from.
   </Card>
 </CardGroup>
+
+SQL inspection uses shared global and per-project admission so one project cannot
+occupy every query slot. Capacity errors retain the exact cell and minimum retry
+delay; sources remain unchanged. Execution deadlines release slots after expensive
+queries time out. Bulk transformations belong in retained pipelines.
