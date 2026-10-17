@@ -274,3 +274,10 @@ with bounded backoff and smaller chunks, keeping the same transfer and byte
 offset. Confirmed permission denial stops immediately. When retries are exhausted,
 repeat the identical command to resume acknowledged bytes. Error JSON exposes only
 the transport exception class, never its potentially secret-bearing text.
+
+The first source uploaded into an existing empty draft has the same durable import
+receipt as a new dataset, preserving its original brief. Inspect a stopped import
+and follow `resume_dataset_import` to retry retained bytes explicitly. Failed draft
+uploads created before these receipts can also be recovered this way. If CLI
+`--wait --json` observes a landing failure after upload, its error retains the
+published transfer and dataset IDs for inspection; it does not upload again.
