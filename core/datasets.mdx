@@ -47,6 +47,15 @@ Select **New dataset from this version** on a version card. The dialog reads **F
 
 Your coding agent calls `create_dataset` with `source: {"kind": "version", "dataset": ..., "version": "v3"}`; the active version is used when `version` is omitted. Over REST, `POST /api/datasets/` or `/api/datasets/split/` takes `source.version` as `{dataset, version}`.
 
+### Waiting for an import
+
+Your import can wait for a worker while another import in your project runs.
+Waiting does not consume an execution attempt. Imports from different projects
+share available workers fairly; one project's burst stays queued instead of
+occupying every worker. Queue waiting has no default expiry; a self-hosted
+operator can set an explicit limit. A running import has its own execution
+limit. Continue polling the existing receipt rather than uploading again.
+
 ### Stop an import
 
 Select **Stop import** while a source lands. The dataset reads **Import stopped** with no rows; it is not a failure. A split stops both datasets. A stopped import cannot be resumed: select **Start again** to create a new dataset. Your coding agent calls `cancel_dataset_job` with the dataset; over REST, `POST /api/datasets/{id}/cancel-import/`.
@@ -254,3 +263,21 @@ Over REST you can create a dataset (from files, traces or another dataset's vers
     More real runs in means better data to curate from.
   </Card>
 </CardGroup>
+
+SQL inspection uses shared global and per-project admission so one project cannot
+occupy every query slot. Capacity errors retain the exact cell and minimum retry
+delay; sources remain unchanged. Execution deadlines release slots after expensive
+queries time out. Bulk transformations belong in retained pipelines.
+
+The upload client recovers up to five transient chunk-transport interruptions
+with bounded backoff and smaller chunks, keeping the same transfer and byte
+offset. Confirmed permission denial stops immediately. When retries are exhausted,
+repeat the identical command to resume acknowledged bytes. Error JSON exposes only
+the transport exception class, never its potentially secret-bearing text.
+
+The first source uploaded into an existing empty draft has the same durable import
+receipt as a new dataset, preserving its original brief. Inspect a stopped import
+and follow `resume_dataset_import` to retry retained bytes explicitly. Failed draft
+uploads created before these receipts can also be recovered this way. If CLI
+`--wait --json` observes a landing failure after upload, its error retains the
+published transfer and dataset IDs for inspection; it does not upload again.

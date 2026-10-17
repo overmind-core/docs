@@ -124,7 +124,25 @@ Keep the `celery-landing-worker` service running. It consumes only `landing`, wi
 
 Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_IN_FLIGHT` limits admitted work across the deployment (default `12`); `EVAL_MAX_IN_FLIGHT_PER_RUN` limits each run (default `2`). Admission rotates across projects and runs. Coordinate these limits with worker capacity and provider limits. Increasing the worker count alone does not raise the admission budget.
 
-`DATASET_IMPORT_MAX_QUEUE_SECONDS` sets the maximum import wait (default `3600`). An expired wait retains the source and exposes **Retry import**. Execution starts its own deadline when a worker claims the import. Keep beat and the control worker running so publication retries and interrupted imports are reconciled.
+Landing requests wait durably in PostgreSQL before bounded broker publication.
+Each project uses at most one landing slot, with least-recent-project admission
+across projects. Hosted admission follows the observed worker count up to
+`DATASET_LANDING_MAX_IN_FLIGHT` (default `8`); without a fresh worker sample it
+uses two slots. Keep at least two landing slots available if imports from another
+project must start while one project imports a large source.
+
+`DATASET_IMPORT_MAX_QUEUE_SECONDS` sets an optional maximum import wait. Its
+default `0` leaves waiting requests queued until admitted or cancelled. A nonzero
+limit retains an expired request's source and exposes **Retry import**. Execution
+starts its own bounded deadline when a worker claims the import. Lost started
+attempts require explicit recovery; an unacknowledged delivery that never started
+can be fenced and admitted again. Keep beat and the control worker running for
+reconciliation.
+
+Landing scale-out demand counts useful competing projects, bounded by the global
+ceiling. `ScalingQueuedAgeSeconds` is zero when another worker cannot unblock a
+waiting project. Raw queue age remains available independently. Autoscaling
+cannot replace project admission or protect shared database and storage capacity.
 
 
 ## Developing on it
@@ -144,3 +162,46 @@ cd frontend && bun run typecheck && bun run lint && bun run test
 ## Licence
 
 The platform is [AGPL-3.0](/platform/licensing). The SDK and CLI under `overmind/` are MIT. A commercial licence is available from Overmind Ltd if you need different terms.
+
+## Background workload isolation
+
+Run the worker profiles in `docker/worker-topology.json` as separate services.
+The `io` worker collects training preparation and serving results; the separate
+`io_traces` worker executes live span, trajectory and signal scoring. Both disable
+prefetch. The trace worker uses four prefork processes so its five-minute task
+limit is enforced. Combining these queues on one thread pool removes this isolation.
+
+Live scoring retains waiting items in PostgreSQL and admits projects in turn,
+rotating spans, trajectories and signals within each project. Defaults are 16
+admitted items globally and two per project, across all trace workers. Configure
+`LIVE_SCORING_MAX_IN_FLIGHT` and `LIVE_SCORING_MAX_PER_PROJECT` for measured capacity;
+adding workers does not multiply a project's allowance. Duplicate deliveries are
+fenced by an admission token. Expired attempts recover through the existing scoring
+claim grace and retry budget; provider failures remain errors, not quality scores.
+
+Evaluation generation also limits admissions across every run in a project:
+`EVAL_MAX_IN_FLIGHT_PER_PROJECT` defaults to four, alongside the existing global
+and per-run limits. More jobs may wait durably without filling every worker slot.
+
+The `Overmind/Queues` metrics include live-scoring waiting/running work and oldest
+waiting age. Queue age signals saturation even when CPU use is low. Trace capacity
+scales out on demand bounded by project and global admission budgets; a single project cannot inflate this metric with unlimited waiting work. Raw waiting age remains observable and alerts without independently scaling this pool. Automatic scale-in stays suspended because stopping an occupied
+worker can interrupt an acknowledged task. Drain before reducing capacity.
+
+For the first split of a mixed IO worker, deploy the new control and trace workers
+first. `scripts/deploy_ecs.py deploy --service celery-io-worker` runs a fenced
+maintenance task that stops mixed consumers from accepting messages and waits for
+their active and reserved work to finish before replacing them. A missing worker
+reply or drain timeout stops deployment and restores the old consumers. Do not
+purge queues or revoke provider work to accelerate this transition.
+
+
+MCP SQL inspection shares Redis admission across API processes. Set
+`DATASET_QUERY_MAX_IN_FLIGHT` (default `8`) and
+`DATASET_QUERY_PROJECT_CONCURRENCY` (default `2`) to bound total and per-project
+query engines. `DATASET_QUERY_TIMEOUT_SECONDS` defaults to `10`. Budgets must be
+positive and the project budget cannot exceed the global budget. Size the global
+budget for deployed API CPU and query memory; raising it is not a substitute for
+capacity testing. Unavailable Redis fails admission with a retryable error instead
+of executing without a limit. Query slots renew while active and expire after a
+worker disappears; source data is never modified by query admission.
