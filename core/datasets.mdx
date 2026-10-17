@@ -268,3 +268,9 @@ SQL inspection uses shared global and per-project admission so one project canno
 occupy every query slot. Capacity errors retain the exact cell and minimum retry
 delay; sources remain unchanged. Execution deadlines release slots after expensive
 queries time out. Bulk transformations belong in retained pipelines.
+
+The upload client recovers up to five transient chunk-transport interruptions
+with bounded backoff and smaller chunks, keeping the same transfer and byte
+offset. Confirmed permission denial stops immediately. When retries are exhausted,
+repeat the identical command to resume acknowledged bytes. Error JSON exposes only
+the transport exception class, never its potentially secret-bearing text.
