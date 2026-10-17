@@ -124,7 +124,25 @@ Keep the `celery-landing-worker` service running. It consumes only `landing`, wi
 
 Evaluation samples wait in Postgres until the dispatcher admits them. `EVAL_MAX_IN_FLIGHT` limits admitted work across the deployment (default `12`); `EVAL_MAX_IN_FLIGHT_PER_RUN` limits each run (default `2`). Admission rotates across projects and runs. Coordinate these limits with worker capacity and provider limits. Increasing the worker count alone does not raise the admission budget.
 
-`DATASET_IMPORT_MAX_QUEUE_SECONDS` sets the maximum import wait (default `3600`). An expired wait retains the source and exposes **Retry import**. Execution starts its own deadline when a worker claims the import. Keep beat and the control worker running so publication retries and interrupted imports are reconciled.
+Landing requests wait durably in PostgreSQL before bounded broker publication.
+Each project uses at most one landing slot, with least-recent-project admission
+across projects. Hosted admission follows the observed worker count up to
+`DATASET_LANDING_MAX_IN_FLIGHT` (default `8`); without a fresh worker sample it
+uses two slots. Keep at least two landing slots available if imports from another
+project must start while one project imports a large source.
+
+`DATASET_IMPORT_MAX_QUEUE_SECONDS` sets an optional maximum import wait. Its
+default `0` leaves waiting requests queued until admitted or cancelled. A nonzero
+limit retains an expired request's source and exposes **Retry import**. Execution
+starts its own bounded deadline when a worker claims the import. Lost started
+attempts require explicit recovery; an unacknowledged delivery that never started
+can be fenced and admitted again. Keep beat and the control worker running for
+reconciliation.
+
+Landing scale-out demand counts useful competing projects, bounded by the global
+ceiling. `ScalingQueuedAgeSeconds` is zero when another worker cannot unblock a
+waiting project. Raw queue age remains available independently. Autoscaling
+cannot replace project admission or protect shared database and storage capacity.
 
 
 ## Developing on it

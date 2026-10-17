@@ -122,6 +122,13 @@ Project tools also accept `project_id`, required for account connections. `list_
 | `resume_dataset_import` | `dataset` | Retry a blocked source import |
 | `cancel_dataset_job` | `dataset`, `run?` | Stop the dataset's import (both datasets of a split), or with `run` one queued or running script run. Nothing it produced is kept; a finished import or run returns its state |
 
+Source-import admission is visible in `get_job(kind="dataset_run").progress.admission`
+and dataset-operation `landing_admission`. These report waiting, admitted, running
+and terminal states with measured timestamps. A queued request consumes no
+execution attempt; a lost started import retains its source and requires
+`resume_dataset_import`. Repeat the existing receipt's poll rather than creating
+another import.
+
 `attachment` is the `upload_id` from `overmind dataset attach FILE --json`; the script reads the table as the frame `attachment`. See [Rows made outside Overmind](/core/datasets#rows-made-outside-overmind).
 
 Script runs are idempotent. A call that returns `queued` or `running` is still working: poll the `dataset_run` job it returns with `get_job`, or repeat the identical call. The same parent and script, and the same attached file, return the same version. A failed run creates no version, and the identical call returns that failure for an hour unless the platform caused it (`transient: true`). A stopped run is not reused: the identical call runs it again. A run that waits 15 minutes for a project slot fails with `transient: true`. See [Datasets](/core/datasets#shape-it-from-your-agent).

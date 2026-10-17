@@ -47,6 +47,15 @@ Select **New dataset from this version** on a version card. The dialog reads **F
 
 Your coding agent calls `create_dataset` with `source: {"kind": "version", "dataset": ..., "version": "v3"}`; the active version is used when `version` is omitted. Over REST, `POST /api/datasets/` or `/api/datasets/split/` takes `source.version` as `{dataset, version}`.
 
+### Waiting for an import
+
+Your import can wait for a worker while another import in your project runs.
+Waiting does not consume an execution attempt. Imports from different projects
+share available workers fairly; one project's burst stays queued instead of
+occupying every worker. Queue waiting has no default expiry; a self-hosted
+operator can set an explicit limit. A running import has its own execution
+limit. Continue polling the existing receipt rather than uploading again.
+
 ### Stop an import
 
 Select **Stop import** while a source lands. The dataset reads **Import stopped** with no rows; it is not a failure. A split stops both datasets. A stopped import cannot be resumed: select **Start again** to create a new dataset. Your coding agent calls `cancel_dataset_job` with the dataset; over REST, `POST /api/datasets/{id}/cancel-import/`.
