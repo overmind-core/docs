@@ -9,8 +9,8 @@ Overmind onboards through your coding agent. Cursor, Claude Code, OpenCode and C
   <Step title="Open the Console">
     Sign up at [console.overmindlab.ai](https://console.overmindlab.ai), or open your own Console, for example `http://localhost:5173` — see [Self-hosting](/platform/self-hosting). A **project** holds your capabilities, traces, datasets, runs, models and keys; the first sync creates it.
   </Step>
-  <Step title="Copy the onboarding prompt">
-    On the **Agent** page, pick **Cursor**, **Claude Code**, **OpenCode** or **Codex**, then select **Copy onboarding prompt**. The prompt carries a temporary account key, so paste it only into your local coding agent. **Manual setup** shows the same commands for a terminal.
+  <Step title="Choose how to get started">
+    On the **Agent** page, use the **Get started** card to choose **Agent** for a repository or **Data** to upload source files. For **Agent**, pick **Cursor**, **Claude Code**, **OpenCode** or **Codex**, then select **Copy onboarding prompt**. The prompt carries a temporary account key, so paste it only into your local coding agent. **Manual setup** shows the same commands for a terminal.
   </Step>
   <Step title="Paste it into your coding agent">
     Open the repository root as the workspace and paste the prompt. The agent installs `overmind`, runs `overmind init` and `overmind sync`, and saves a project-scoped key to `.overmind/credentials.toml`. Reload the agent once so it loads the Overmind MCP server; in Claude Code, exit and run `claude -c`.
