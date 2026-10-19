@@ -31,9 +31,19 @@ Select **New dataset** on the Datasets page, add files, enter a name, then choos
   <Tab title="Upload documents">
     Drop **PDF, DOCX, Markdown, text, PNG, JPEG or WebP** files, up to 100 MiB each and 2,000 pages per PDF, uncompressed. Tables and documents cannot share a dataset.
 
-    The sandbox extracts the text and lands **one row per text element**: `text`, `page` (empty when the format has no pages), `source_name`, `_overmind_document_id` (the file's sha256, so you can match rows to your own copy) and `_overmind_provenance` (the element and its page regions). Pages without a text layer are read with English OCR. OCR text may be wrong; the dataset's source panel lists what extraction could not guarantee. Overmind does not chunk: group rows into pages, sections or chunks with a script. The uploaded file is deleted after landing.
+    The sandbox extracts the text and lands **one row per text element**: `text`, `page` (empty when the format has no pages), `source_name`, `_overmind_document_id` (the file's sha256, so you can match rows to your own copy) and `_overmind_provenance` (the element and its page regions). Pages without a text layer are read with local OCR, with automatic language detection. OCR text may be wrong; the dataset's source panel lists what extraction could not guarantee. Overmind does not chunk: group rows into pages, sections or chunks with a script. Original bytes and extraction evidence remain retained.
   </Tab>
 </Tabs>
+
+### OCR language and recovery
+
+OCR selects language models automatically using script and recognised-text evidence. An unsupported script guess is retained in the provenance and uses English for the first pass; recognised text can then select a supported language. That guess alone does not reject the document. Short or ambiguous pages remain marked as uncertain. Inspect the actual selected languages, detection evidence, engine version and recognition confidence in the source provenance; detection does not guarantee correct text. Mixed-language pages may need an explicit language override and review.
+
+Before uploading, your coding agent can set `update_dataset(project_id=..., dataset=..., ocr_languages=["eng", "fra"])` on a draft. Use up to four supported Tesseract codes, or `[]` to restore automatic detection. Upload guidance lists the supported codes. REST accepts the same field on `PATCH /api/datasets/{id}/`. Language changes apply to subsequent imports and do not change an existing import receipt or published cell.
+
+PDF pages run with bounded parallel workers and retain page order. Intermediate progress updates are throttled; stage changes, completion and failures remain immediate. MCP job details report the file, extraction stage and completed/total OCR pages.
+
+Completed OCR pages are retained for 30 days within the project. Retrying an interrupted import can reuse them when the document checksum, requested languages, OCR runtime and extraction settings match. Unchanged documents can reuse extraction too; native PDF parsing still runs. Source metadata records reused and newly processed page counts. A failed or cancelled import does not publish a partial source.
 
 Nothing is reshaped on the way in. Your rows land exactly as they arrived as `v0`, which becomes the active version.
 

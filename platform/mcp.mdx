@@ -118,7 +118,7 @@ Project tools also accept `project_id`, required for account connections. `list_
 | `add_synthetic_examples` | `dataset`, `parent?`, `rows`, `instruction` | Append 1–50 rows you wrote as a new, inactive version, with the instruction as their lineage |
 | `diff_dataset_versions` | `dataset`, `from?`, `to?` | Compare two versions row by row on `source_row` |
 | `activate_dataset_version` | `dataset`, `version`, `expected_active?` | Make a version the one training, evaluation and the optimiser read by default; `expected_active` refuses with `active_conflict` when the active version moved |
-| `update_dataset` | `dataset`, `name?`, `intent?`, `capability?` | Set the name, intent or capability |
+| `update_dataset` | `dataset`, `name?`, `intent?`, `capability?`, `ocr_languages?` | Set dataset preferences; OCR languages affect subsequent imports (`[]` selects automatically) |
 | `resume_dataset_import` | `dataset` | Retry a blocked source import |
 | `cancel_dataset_job` | `dataset`, `run?` | Stop the dataset's import (both datasets of a split), or with `run` one queued or running script run. Nothing it produced is kept; a finished import or run returns its state |
 
