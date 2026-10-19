@@ -37,7 +37,7 @@ Select **New dataset** on the Datasets page, add files, enter a name, then choos
 
 ### OCR language and recovery
 
-OCR selects language models automatically using script and recognised-text evidence. Short or ambiguous pages remain marked as uncertain. Inspect the actual selected languages, detection evidence, engine version and recognition confidence in the source provenance; detection does not guarantee correct text. Mixed-language pages may need an explicit language override and review.
+OCR selects language models automatically using script and recognised-text evidence. An unsupported script guess is retained in the provenance and uses English for the first pass; recognised text can then select a supported language. That guess alone does not reject the document. Short or ambiguous pages remain marked as uncertain. Inspect the actual selected languages, detection evidence, engine version and recognition confidence in the source provenance; detection does not guarantee correct text. Mixed-language pages may need an explicit language override and review.
 
 Before uploading, your coding agent can set `update_dataset(project_id=..., dataset=..., ocr_languages=["eng", "fra"])` on a draft. Use up to four supported Tesseract codes, or `[]` to restore automatic detection. Upload guidance lists the supported codes. REST accepts the same field on `PATCH /api/datasets/{id}/`. Language changes apply to subsequent imports and do not change an existing import receipt or published cell.
 
