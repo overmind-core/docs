@@ -26,7 +26,7 @@ Select **New dataset** on the Datasets page, add files, enter a name, then choos
   <Tab title="Upload tables">
     Drop **CSV, TSV, JSON, JSONL, NDJSON or Parquet** files in the dialog, gzip allowed, up to 2 GB per file. Up to 100 files form one source, appended in selection order. Columns and types come from the files: numbers stay numbers, nested JSON stays JSON. A JSON object that wraps its rows lands the array under `data`, `rows`, `items` or `examples`, or the field you name with `--json-rows-field`.
 
-    From a terminal: `overmind dataset upload FILE [--intent train|eval] [--capability <uuid>]`. See the [CLI](/platform/cli#overmind-dataset).
+    From a terminal: `overmind dataset upload FILE1 FILE2 ... --project-id PROJECT --json`. See the [CLI](/platform/cli#overmind-dataset).
   </Tab>
   <Tab title="Upload documents">
     Drop **PDF, DOCX, Markdown, text, PNG, JPEG or WebP** files, up to 100 MiB each and 2,000 pages per PDF, uncompressed. Tables and documents cannot share a dataset.
@@ -89,6 +89,12 @@ The attachment is a CSV, TSV, JSON, JSONL, NDJSON or Parquet table within the up
 ### Branches and impact
 
 Several versions can grow from one parent. Each records its impact against its parent: rows before and after, rows removed and added, whether row identity held, input evidence removed and task instructions changed. `diff_dataset_versions` compares two versions row by row. Two agents that activate at once can pass `expected_active`; the second gets `active_conflict` instead of silently overwriting the first.
+
+### Import related files together
+
+SDK 0.1.99 can upload up to 100 ordered files, with a combined limit of 2 GiB, as one resumable transfer. File-specific limits still apply. The batch lands as one source cell, retaining each original file and its row provenance. Attaching a batch to an existing dataset appends one combined import cell.
+
+Use one batch for a related collection instead of separate commands that repeatedly append and measure the growing source. Interrupted transfers resume from per-file offsets; no new version is published until every member is verified. Transformation remains a separate explicit operation.
 
 ## The canvas
 
