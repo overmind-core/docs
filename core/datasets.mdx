@@ -94,6 +94,10 @@ Several versions can grow from one parent. Each records its impact against its p
 
 Opening a dataset shows its versions as a tree of cards: each card under its parent, the active one framed in green.
 
+Background updates keep existing cells, expanded rows and your canvas position in place. New cells appear in the flow; affected cells and their connectors move together without refitting the view. Operation notices do not resize the canvas. If a refresh fails, the last loaded cells stay visible with a **Retry** action.
+
+Initial pages show a loading spinner. Within a cell, rows use placeholders aligned with the table's columns until the data arrives. Loading and movement respect your reduced-motion preference.
+
 <Frame caption="The Data Workshop canvas: the source, a version under it and two branches.">
   <img src="/images/platform/workshop.jpg" alt="Data Workshop canvas with version cards" />
 </Frame>
