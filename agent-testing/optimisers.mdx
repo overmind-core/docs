@@ -28,7 +28,7 @@ The Optimiser takes an agent you can already measure and edits the agent itself.
   <img src="/images/platform/optimiser-new-run.jpg" alt="Optimiser setup with capability, dataset and a coding-agent prompt" />
 </Frame>
 
-The run's **budget** is the number of iterations (default 5) and candidates per iteration (default 3); patience — consecutive iterations without improvement before early stop — is 3. Starting a run requires credits and counts against the plan's optimiser quota.
+The run's **budget** is the number of iterations (default 5) and candidates per iteration (default 3); patience — consecutive iterations without improvement before early stop — is 3. Starting a run requires credits.
 
 ## How a run works
 
@@ -138,7 +138,7 @@ curl -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer
 curl -X POST -H "X-Api-Key: $OVERMIND_API_KEY" "https://api.overmindlab.ai/api/optimizer-experiments/{id}/cancel/"
 ```
 
-The loop's own calls — `POST .../template/`, `.../add-iteration/`, `.../results/`, `.../evaluate/`, `.../complete/` — are what the CLI posts; you do not call them by hand. `POST /api/optimizer-experiments/` creates a run with `capability`, `dataset`, optional `cell` and `eval_set`, `mode`, `model_ids`, the budget fields and `openrouter_key_source` (`platform` or `local`). Over MCP, `check_optimizer_readiness` validates the dataset, eval set, model ids, credits and plan quota, `start_optimizer` schedules a run in any mode and returns the CLI command to drive it, and `inspect_optimizer_result` reads iterations, candidate patches, the winner, and the next action.
+The loop's own calls — `POST .../template/`, `.../add-iteration/`, `.../results/`, `.../evaluate/`, `.../complete/` — are what the CLI posts; you do not call them by hand. `POST /api/optimizer-experiments/` creates a run with `capability`, `dataset`, optional `cell` and `eval_set`, `mode`, `model_ids`, the budget fields and `openrouter_key_source` (`platform` or `local`). Over MCP, `check_optimizer_readiness` validates the dataset, eval set, model ids and credits, `start_optimizer` schedules a run in any mode and returns the CLI command to drive it, and `inspect_optimizer_result` reads iterations, candidate patches, the winner, and the next action.
 
 ## Good to know
 

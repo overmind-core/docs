@@ -159,5 +159,5 @@ A dataset lands its rows as-is and your coding agent adds versions with scripts;
 ## Conventions
 
 - **Filtering** uses django-filter query parameters on list endpoints (the Console's filter bar builds exactly these URLs — copy them from your browser). List responses are paged: `count`, `next`, `previous`, `results`.
-- **Errors** are JSON with `detail` and, when the client needs to tell cases apart, `code`: `401` unauthenticated, `402 insufficient_credits` on launching paid work when the credit gate is on (hosted; a positive balance passes), `403 plan_limit_exceeded` / `seat_limit_exceeded` on Free-plan caps, `403 guest_upgrade_required` when a guest writes, `404` wrong project or missing resource, `409 conflict` on a uniqueness race, `500 internal_error` with an `error_id` to quote.
+- **Errors** are JSON with `detail` and, when the client needs to tell cases apart, `code`: `401` unauthenticated, `402 insufficient_credits` on launching paid work when the credit gate is on (hosted; a positive balance passes), `403 seat_limit_exceeded` on the Free-plan seat limit, `403 guest_upgrade_required` when a guest writes, `404` wrong project or missing resource, `409 conflict` on a uniqueness race, `500 internal_error` with an `error_id` to quote.
 - **IDs** are UUIDs except spans (16-hex `span_id`) and traces (32-hex `trace_id`).

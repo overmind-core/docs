@@ -111,7 +111,7 @@ The Modal workers, including the decision worker, read their credentials from a 
 
 ### Billing modes
 
-Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: every charge still lands on the credits ledger and shows under Settings, but there is no remaining-credit cap, no `402`, no Free/Pro quota, and no signup grant. Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, and `STRIPE_CREDIT_PRICE_ID` to turn on the hosted product's plans, top-ups, and the credit gate; point Stripe's `invoice.paid` webhook at `POST /api/billing/webhook/`.
+Leave `STRIPE_SECRET_KEY` empty and the platform runs in **metering mode**: every charge still lands on the credits ledger and shows under Settings, but there is no remaining-credit cap, no `402`, no seat limit, and no signup grant. Set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`, and `STRIPE_CREDIT_PRICE_ID` to turn on the hosted product's plans, top-ups, and the credit gate; point Stripe's `invoice.paid` webhook at `POST /api/billing/webhook/`.
 
 ### Optional
 
