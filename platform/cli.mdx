@@ -157,11 +157,12 @@ Commit `overmind.toml`. Do not commit `.overmind/credentials.toml`.
 ```bash
 overmind chassis                   # print the AST digest for the current directory
 overmind chassis --root PATH
+overmind chassis --language typescript
 ```
 
-Prints a deterministic inventory of Python functions and call edges under `--root` (default `.`). `/overmind setup` runs this before it authors capability cards; the digest is the ground truth those cards must not contradict. You rarely need to run it yourself.
+Prints a deterministic inventory of functions and call edges under `--root` (default `.`). `--language` is `python` or `typescript` (JavaScript included); without it the repository's majority language is scanned. TypeScript and JavaScript are parsed with tree-sitter, and their qualnames are `<module path>.<symbol>` with the extension removed (`src/agent.ts` gives `src.agent.run`). In a JavaScript repository run the CLI through an isolated Python runner; the application needs no Python environment. `/overmind setup` runs this before it authors capability cards; the digest is the ground truth those cards must not contradict. You rarely need to run it yourself.
 
-Skipped directories: `.git`, `.venv`, `venv`, `node_modules`, `__pycache__`, `.tox`, `site-packages`, `dist`, `build`.
+Skipped directories: `.git`, `.venv`, `venv`, `node_modules`, `__pycache__`, `.tox`, `site-packages`, `dist`, `build`, `.next`, `.turbo`.
 
 ## `overmind dataset`
 

@@ -68,6 +68,8 @@ Start with `list_projects`. To see a project in the browser, read `overmind://pr
 
 **Project API keys** reach only their own project and can omit `project_id`.
 
+`create_api_key` mints a key with the same choices as **Create API key** in the Console: name, description, expiry (30, 90, 180 or 365 days, or never) and project or account scope. The plaintext is in that response only. A project API key can mint a key for its own project. An account connection can mint either scope.
+
 **Permissions.** Read access exposes the read-only tools; writes need write access. API keys keep their expiry, active-user and IP-allowlist checks, and authenticate as `X-Api-Key` or `Authorization: Bearer`.
 
 **OAuth.** A grant asks for `overmind:read` and/or `overmind:write`, and needs Console sign-in and explicit consent. Tokens use S256 PKCE, exact redirect matching, one-time codes and resource binding, and only MCP accepts them. Access tokens expire after one hour. A connection stays authorized until it is revoked: refresh tokens have no time limit, but they rotate, and reusing an old one revokes the connection. A disabled account or a lost project membership ends access.
