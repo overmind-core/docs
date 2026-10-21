@@ -31,7 +31,11 @@ Select **New dataset** on the Datasets page, add files, enter a name, then choos
   <Tab title="Upload documents">
     Drop **PDF, DOCX, Markdown, text, PNG, JPEG or WebP** files, up to 100 MiB each and 2,000 pages per PDF, uncompressed. Tables and documents cannot share a dataset.
 
-    The sandbox extracts the text and lands **one row per text element**: `text`, `page` (empty when the format has no pages), `source_name`, `_overmind_document_id` (the file's sha256, so you can match rows to your own copy) and `_overmind_provenance` (the element and its page regions). Pages without a text layer are read with English OCR. OCR text may be wrong; the dataset's source panel lists what extraction could not guarantee. Overmind does not chunk: group rows into pages, sections or chunks with a script. The uploaded file is deleted after landing.
+    The sandbox extracts the text and lands **one row per text element**: `text`, `page` (empty when the format has no pages), `source_name`, `_overmind_document_id` (the file's sha256, so you can match rows to your own copy) and `_overmind_provenance` (the element and its page regions). OCR uses English by default without detecting the document language. OCR text may be wrong; the dataset's source panel lists what extraction could not guarantee. Overmind does not chunk: group rows into pages, sections or chunks with a script. Original source bytes remain retained for review and retry.
+
+    For another source language, set `ocr_languages` on the draft through MCP `update_dataset` before uploading, for example `["fra"]` or `["eng", "fra"]`. Use up to four supported Tesseract codes; `[]` restores English. Read `overmind://dataset-upload` for the supported codes. The worker must have the requested language data installed. Inspect the actual languages and model identities in extraction provenance, and review recognition quality.
+
+    Language choices apply to subsequent imports. Resuming an existing import keeps its original choices. Completed OCR pages remain reusable when the source and extraction settings match; checkpoints from automatic language detection are not reused by the English-default policy.
   </Tab>
 </Tabs>
 
