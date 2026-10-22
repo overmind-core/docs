@@ -38,15 +38,15 @@ There is no CI, linter or formatter in this repo.
 
 The platform and SDK live in `overmind-core/overmind`, checked out at `../overmind`. A platform PR that changes user-visible behaviour ships with a linked PR here. Check a page against its source before you change it:
 
-| Page | Source in `../overmind` |
-| --- | --- |
-| `reference/cli.mdx` | `overmind/overmind/` (`__main__.py`, `init_cmd.py`, `sync.py`, `skills.py`) |
-| `reference/mcp.mdx` | `overbae/services/mcp/` and `overmind/skills/` |
-| `reference/python-sdk.mdx` | `overmind/overmind/tracing.py`, `overmind/docs/tracing-attributes.md` |
-| `reference/training.mdx`, `snippets/model-catalog.jsx` | `overbae/modal/models.json` |
-| `how-to/self-host.mdx` | `.env.example`, `docker-compose.yml` |
-| `reference/api.mdx` | `overbae/urls.py` |
-| `reference/licensing.mdx` | the `LICENSE` files |
+| Page                                                   | Source in `../overmind`                                                     |
+| ------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `reference/cli.mdx`                                    | `overmind/overmind/` (`__main__.py`, `init_cmd.py`, `sync.py`, `skills.py`) |
+| `reference/mcp.mdx`                                    | `overbae/services/mcp/` and `overmind/skills/`                              |
+| `reference/python-sdk.mdx`                             | `overmind/overmind/tracing.py`, `overmind/docs/tracing-attributes.md`       |
+| `reference/training.mdx`, `snippets/model-catalog.jsx` | `overbae/modal/models.json`                                                 |
+| `how-to/self-host.mdx`                                 | `.env.example`, `docker-compose.yml`                                        |
+| `reference/api.mdx`                                    | `overbae/urls.py`                                                           |
+| `reference/licensing.mdx`                              | the `LICENSE` files                                                         |
 
 ## Git
 
