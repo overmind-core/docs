@@ -1,17 +1,29 @@
 ---
-title: "Train a model"
-description: "Choose exact inputs, inspect a recipe and launch a reproducible training job."
+title: "How to train a model"
+description: "Fine-tune a language or decision model, follow training and assess the result."
 ---
 
 import { AgentPrompt } from "/snippets/agent-prompt.mdx";
 
 Begin with a prepared training cell, a task definition and separate development data where required. A capability is optional. Decide whether the output is conversational text/tool calls or typed probabilities before selecting a model.
 
-## Try it with your agent
+## Choose the model for your output
 
-Start with the [fraud example dataset](/reference/example-dataset). For a complete preparation-to-benchmark walkthrough, see [Train your first fraud model](/tutorials/first-dataset). This request includes training. Overmind checks the data, model compatibility and execution scope; your agent brings back decisions that need your input.
+Use a **language model** when you need text responses or tool calls. Use a **decision model** when you need typed probabilities over defined outcomes. Both paths use prepared data and a recorded training recipe, but their input formats, evaluation and serving interfaces differ.
+
+### Language models
+
+Give your agent examples of the responses you want the model to produce. This example uses the [fraud dataset](/reference/example-dataset) to train a language model that responds with a classification label. For another task, supply examples of the text or tool-call behaviour you need.
+
+<AgentPrompt text="Use Overmind to fine-tune a language model to classify transactions as fraud or not_fraud using this dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Prepare the training examples, help me choose a suitable model, explain the expected cost, and compare the trained model with its base on held-out data." />
+
+### Decision models
+
+Give your agent the inputs and the outcomes you want to predict. For a complete preparation-to-benchmark walkthrough, see [How to train a decision model](/tutorials/first-dataset).
 
 <AgentPrompt text="Train a decision model in Overmind to predict fraud using this dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Help me choose a suitable model, explain the expected cost, and follow the run through to its validation results." />
+
+Both requests include training. Your agent checks data and model compatibility, and brings back decisions that need your input.
 
 **What you get:** A training run, progress updates and a model you can evaluate.
 

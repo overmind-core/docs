@@ -11,6 +11,8 @@ The site follows [Diátaxis](https://diataxis.fr/):
 - `reference/`: factual contracts, formats, commands and boundaries.
 - `explanation/`: concepts, rationale and relationships.
 
+The homepage introduces Overmind, its workflows and how to use it before directing readers to a task. Name workflow pages after the task or model type, not the example dataset or industry; keep use-case-specific detail inside the worked example. Dataset reference pages can name their source.
+
 A feature can appear in several forms, but each page has one purpose. Link to a contract instead of repeating a field catalogue in a tutorial. Keep release history and implementation audit notes out of the reader's task flow.
 
 ## Agent-first examples
