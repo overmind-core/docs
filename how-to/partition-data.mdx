@@ -7,8 +7,6 @@ import { AgentPrompt } from "/snippets/agent-prompt.mdx";
 
 Use a saved partition when repeated observations, conversations or related source examples must stay together. Begin with an inspected, prepared source cell and a known task contract.
 
-## Try it with your agent
-
 Start with the [fraud example dataset](/reference/example-dataset) from [Prepare data](/how-to/prepare-data). The agent inspects related transactions and chooses an appropriate split.
 
 <AgentPrompt text="Create training, development and held-out evaluation splits in Overmind for this fraud dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Check for overlap that could make the evaluation misleading, then explain the split sizes and label balance." />
