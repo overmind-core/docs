@@ -415,6 +415,7 @@
         "pages": [
           "tutorials/index",
           "tutorials/first-dataset",
+          "tutorials/fine-tune-language-model",
           "tutorials/first-trace",
           "tutorials/first-evaluation"
         ]

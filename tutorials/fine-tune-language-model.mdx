@@ -1,0 +1,49 @@
+---
+title: "How to fine-tune a language model"
+description: "Prepare examples, fine-tune a language model and compare its responses with the base model."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Fine-tuning adapts a pretrained language model to examples of the behaviour you want. Use it for text responses, structured answers or tool calls. Your coding agent can prepare the examples, train the model and compare its outputs with the original base model in one workflow.
+
+This walkthrough uses the same [ecommerce fraud dataset](https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl) as the decision-model tutorial. Here, the model generates a text label: `fraud` or `not_fraud`. The [decision-model walkthrough](/tutorials/first-dataset) covers typed probability outputs.
+
+## Before you begin
+
+[Connect your coding agent](/how-to/connect) and select a separate tutorial project. You do not need an application repository or a previously trained decision model. This workflow includes training and benchmark inference, which can incur provider costs. Your agent explains the proposed model and expected cost before launch.
+
+## Try it with your agent
+
+<AgentPrompt text="Use Overmind to fine-tune a language model to classify transactions as fraud or not_fraud using this dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Prepare the data, train a suitable model, and benchmark it against the base model on held-out examples. Show me where it improves and where it makes mistakes." />
+
+The agent carries the workflow through preparation, training and benchmarking, bringing back decisions that need your input. You do not need a separate request for each stage.
+
+## What happens next
+
+1. **Prepare examples.** The agent turns transaction details into user messages and the supplied labels into assistant responses. It keeps `is_fraud` out of the input, retains the preparation, and separates training, development and held-out data.
+2. **Define the comparison.** It prepares held-out inputs with separate reference labels and proposes checks for valid output labels and classification correctness. You review the evaluation criteria before they are used.
+3. **Fine-tune a model.** It selects a compatible language model, checks the training setup and expected cost, and follows the accepted run through development validation.
+4. **Benchmark the result.** It compares generated responses from the base and fine-tuned models on the same held-out examples using the same checks.
+
+The agent prepares chat-training examples for this path. See [conversation and evaluation formats](/reference/datasets#chat-training) if you want to inspect their structure. Development checks help monitor training; the final held-out comparison measures the result separately.
+
+## Check the result
+
+At the end, the agent should show:
+
+- The completed training run, selected base model and exact data versions used.
+- Base-model and fine-tuned responses alongside the held-out reference labels.
+- Classification results, including missed fraud and legitimate transactions flagged as fraud.
+- Invalid responses, missing results and the number of examples scored for each model.
+- Whether the fine-tuned model improved on the base model, with representative mistakes and limitations.
+
+A response can use the correct label format and still be wrong. The source also contains many more non-fraud transactions than fraud transactions, so overall accuracy alone is insufficient. The [dataset reference](/reference/example-dataset) records its label counts and limitations.
+
+These are synthetic examples. A better result here does not establish performance on real transactions, and fine-tuning may not improve on the base model.
+
+## Continue in the same conversation
+
+<AgentPrompt text="Show me examples where the fine-tuned language model and base model disagree. Explain the remaining classification and response-format errors, and recommend what to try next." />
+
+Use [Monitor training](/how-to/monitor-training) to inspect the run, [Run an evaluation](/how-to/evaluate) for another comparison, or [Serve a model](/how-to/serve) to call a ready deployment from your application.
