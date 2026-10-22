@@ -1,0 +1,52 @@
+---
+title: "Run an evaluation"
+description: "Freeze a dataset and checks, compare targets and inspect paired results."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use this guide to measure recorded answers or generated model outputs. For typed probability outputs, use [Compare decision models](/how-to/compare-decisions).
+
+## Try it with your agent
+
+Select the two chat models and a fraud eval set in the conversation. For probability outputs, use [decision-model comparison](/how-to/compare-decisions).
+
+<AgentPrompt text="Compare the two models we selected on a held-out evaluation set from this fraud dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Use Overmind to show their accuracy, which fraud cases they miss and where their predictions disagree." />
+
+**What you get:** Frozen comparable runs, paired results and examples explaining their differences.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## 1. Pin the data and checks
+
+Inspect an eval dataset and choose its exact cell. Confirm that model inputs exclude the reference answer. Create or select eval matrix rows, then a named eval set if needed.
+
+Use `create_eval_matrix_row` for a deterministic script or a one-sentence `llm` expectation. Use `create_eval_set(rows=[...])` to group row IDs. Existing runs retain their frozen matrix when definitions change.
+
+## 2. Define the comparison
+
+Build `targets` for `check_evaluation_readiness` and `run_evaluation`:
+
+- `mode="recorded"` scores the dataset's recorded outputs.
+- `mode="generate"` generates outputs with `model_name` or `model_ref`.
+- Mark one target `is_baseline=true` when comparing changes.
+
+Use consistent data, reference handling, generation parameters and explanation judge across the comparison. The `judge_model` field selects the model that explains low scores; it does not replace Jev's expectation scoring.
+
+## 3. Check and launch
+
+Call `check_evaluation_readiness` with `dataset`, `cell`, `eval_set`, `targets`, optional `judge_model` and `project_id`. Resolve technical incompatibilities. Review context and cost estimates; context warnings are advisory and do not change the selected model.
+
+Call `run_evaluation` with the same configuration, a name and deliberate `max_items`/`sampling` values. This starts work and returns one run per target in a shared group. Poll the returned jobs; submitting again creates another evaluation.
+
+Standalone evaluations are launched through MCP or REST. The Console displays results; it is not the standalone launch path described here.
+
+## 4. Inspect results before choosing a winner
+
+Use `compare_evaluations` with the candidate run and its baseline. Read the paired count, wins, losses, ties and metric deltas alongside coverage and technical failures.
+
+Open individual run rows to inspect input, reference, model output and score reasons. A truncated generation or grading failure is not a quality zero. A high average over a small surviving subset does not establish a successful comparison.
+
+If a criterion is wrong, correct its source and start a new run. Do not reinterpret an old frozen run as if it used the replacement check.
+
+See [Evaluation reference](/reference/evaluation) for target fields and row contracts.

@@ -163,7 +163,7 @@
           },
           {
             "label": "Licensing",
-            "href": "/platform/licensing"
+            "href": "/reference/licensing"
           },
           {
             "label": "Privacy",
@@ -198,15 +198,15 @@
     },
     {
       "source": "/context/agents",
-      "destination": "/core/capabilities"
+      "destination": "/explanation/capabilities"
     },
     {
       "source": "/context/repositories",
-      "destination": "/core/capabilities"
+      "destination": "/explanation/capabilities"
     },
     {
       "source": "/context/datasets-and-traces",
-      "destination": "/core/datasets"
+      "destination": "/how-to/prepare-data"
     },
     {
       "source": "/onboarding/onboarding",
@@ -214,87 +214,87 @@
     },
     {
       "source": "/onboarding/tracing",
-      "destination": "/core/observability"
+      "destination": "/how-to/investigate"
     },
     {
       "source": "/onboarding/instrumentation",
-      "destination": "/core/observability"
+      "destination": "/how-to/investigate"
     },
     {
       "source": "/onboarding/integrations",
-      "destination": "/core/observability"
+      "destination": "/how-to/investigate"
     },
     {
       "source": "/evaluation/eval-metrics",
-      "destination": "/agent-testing/eval"
+      "destination": "/how-to/evaluate"
     },
     {
       "source": "/evaluation/optimizers",
-      "destination": "/agent-testing/optimisers"
+      "destination": "/how-to/optimise"
     },
     {
       "source": "/agent-testing/optimizers",
-      "destination": "/agent-testing/optimisers"
+      "destination": "/how-to/optimise"
     },
     {
       "source": "/fine-tuning",
-      "destination": "/models/training"
+      "destination": "/how-to/train"
     },
     {
       "source": "/inference",
-      "destination": "/models/inference"
+      "destination": "/how-to/serve"
     },
     {
       "source": "/core/agents",
-      "destination": "/core/capabilities"
+      "destination": "/explanation/capabilities"
     },
     {
       "source": "/guides/sdk-python",
-      "destination": "/tracing/sdk-python"
+      "destination": "/reference/python-sdk"
     },
     {
       "source": "/guides/sdk-js",
-      "destination": "/tracing/sdk-typescript"
+      "destination": "/how-to/instrument"
     },
     {
       "source": "/guides/sdk-reference",
-      "destination": "/platform/api"
+      "destination": "/reference/api"
     },
     {
       "source": "/guides/getting-started",
-      "destination": "/quickstart"
+      "destination": "/tutorials/index"
     },
     {
       "source": "/guides/how-to-use-overmind",
-      "destination": "/quickstart"
+      "destination": "/tutorials/index"
     },
     {
       "source": "/guides/how-to-use-tracing",
-      "destination": "/core/observability"
+      "destination": "/how-to/investigate"
     },
     {
       "source": "/guides/integrations",
-      "destination": "/core/observability"
+      "destination": "/how-to/investigate"
     },
     {
       "source": "/guides/platform-overview",
-      "destination": "/core/capabilities"
+      "destination": "/explanation/capabilities"
     },
     {
       "source": "/guides/how-it-works",
-      "destination": "/core/capabilities"
+      "destination": "/explanation/capabilities"
     },
     {
       "source": "/guides/skills",
-      "destination": "/core/capabilities"
+      "destination": "/explanation/capabilities"
     },
     {
       "source": "/guides/overmind_optimizer",
-      "destination": "/agent-testing/optimisers"
+      "destination": "/how-to/optimise"
     },
     {
       "source": "/guides/fine-tuning-beta",
-      "destination": "/models/training"
+      "destination": "/how-to/train"
     },
     {
       "source": "/guides/overmind_doc",
@@ -302,73 +302,191 @@
     },
     {
       "source": "/guides/:slug*",
-      "destination": "/quickstart"
+      "destination": "/tutorials/index"
     },
     {
       "source": "/api/:slug*",
-      "destination": "/platform/api"
+      "destination": "/reference/api"
     },
     {
       "source": "/evaluation/:slug*",
-      "destination": "/agent-testing/eval"
+      "destination": "/how-to/evaluate"
+    },
+    {
+      "source": "/quickstart",
+      "destination": "/tutorials/index"
+    },
+    {
+      "source": "/core/capabilities",
+      "destination": "/explanation/capabilities"
+    },
+    {
+      "source": "/core/datasets",
+      "destination": "/how-to/prepare-data"
+    },
+    {
+      "source": "/core/native-agent-workshop",
+      "destination": "/reference/pipelines"
+    },
+    {
+      "source": "/core/observability",
+      "destination": "/how-to/investigate"
+    },
+    {
+      "source": "/agent-testing/eval",
+      "destination": "/how-to/evaluate"
+    },
+    {
+      "source": "/agent-testing/decision-engine",
+      "destination": "/explanation/decision-models"
+    },
+    {
+      "source": "/agent-testing/trace-scoring",
+      "destination": "/explanation/evaluation"
+    },
+    {
+      "source": "/agent-testing/optimisers",
+      "destination": "/how-to/optimise"
+    },
+    {
+      "source": "/agent-testing/improvements",
+      "destination": "/how-to/investigate"
+    },
+    {
+      "source": "/models/training",
+      "destination": "/how-to/train"
+    },
+    {
+      "source": "/models/inference",
+      "destination": "/how-to/serve"
+    },
+    {
+      "source": "/platform/mcp",
+      "destination": "/reference/mcp"
+    },
+    {
+      "source": "/platform/cli",
+      "destination": "/reference/cli"
+    },
+    {
+      "source": "/platform/api",
+      "destination": "/reference/api"
+    },
+    {
+      "source": "/platform/administration",
+      "destination": "/how-to/manage-access"
+    },
+    {
+      "source": "/platform/self-hosting",
+      "destination": "/how-to/self-host"
+    },
+    {
+      "source": "/platform/glossary",
+      "destination": "/reference/glossary"
+    },
+    {
+      "source": "/tracing/sdk-python",
+      "destination": "/reference/python-sdk"
+    },
+    {
+      "source": "/tracing/sdk-typescript",
+      "destination": "/how-to/instrument"
+    },
+    {
+      "source": "/platform/licensing",
+      "destination": "/reference/licensing"
+    },
+    {
+      "source": "/models/decision-models",
+      "destination": "/explanation/decision-models"
     }
   ],
   "navigation": {
     "groups": [
       {
-        "group": "Overview",
+        "group": "Start here",
         "pages": [
           "index",
-          "quickstart",
-          "platform/self-hosting"
+          "how-to/connect"
         ]
       },
       {
-        "group": "Tracing",
+        "group": "Tutorials",
         "pages": [
-          "core/observability",
-          "tracing/sdk-python",
-          "tracing/sdk-typescript"
+          "tutorials/index",
+          "tutorials/first-dataset",
+          "tutorials/first-trace",
+          "tutorials/first-evaluation"
         ]
       },
       {
-        "group": "Core",
+        "group": "How-to guides",
         "pages": [
-          "core/capabilities",
-          "core/datasets"
+          {
+            "group": "Connect and observe",
+            "pages": [
+              "how-to/map-agent",
+              "how-to/instrument",
+              "how-to/import-traces",
+              "how-to/investigate"
+            ]
+          },
+          {
+            "group": "Prepare and evaluate",
+            "pages": [
+              "how-to/prepare-data",
+              "how-to/partition-data",
+              "how-to/evaluate",
+              "how-to/compare-decisions"
+            ]
+          },
+          {
+            "group": "Train and ship",
+            "pages": [
+              "how-to/train",
+              "how-to/monitor-training",
+              "how-to/optimise",
+              "how-to/serve"
+            ]
+          },
+          {
+            "group": "Operate",
+            "pages": [
+              "how-to/manage-access",
+              "how-to/recover",
+              "how-to/self-host"
+            ]
+          }
         ]
       },
       {
-        "group": "Agent Testing",
+        "group": "Reference",
         "pages": [
-         "agent-testing/eval",
-          "agent-testing/decision-engine",
-          "agent-testing/trace-scoring",
-          "agent-testing/optimisers"
+          "reference/mcp",
+          "reference/example-dataset",
+          "reference/cli",
+          "reference/python-sdk",
+          "reference/otlp",
+          "reference/datasets",
+          "reference/pipelines",
+          "reference/evaluation",
+          "reference/training",
+          "reference/inference",
+          "reference/api",
+          "reference/configuration",
+          "reference/glossary",
+          "reference/licensing"
         ]
       },
       {
-        "group": "Model training",
+        "group": "Explanation",
         "pages": [
-          "models/training",
-              "models/decision-models",
-          "models/inference"
-        ]
-      },
-      {
-        "group": "Agents & CLI",
-        "pages": [
-          "platform/mcp",
-          "platform/cli"
-        ]
-      },
-      {
-        "group": "Platform",
-        "pages": [
-          "platform/api",
-          "platform/administration",
-          "platform/glossary",
-          "platform/licensing"
+          "explanation/native-agent",
+          "explanation/capabilities",
+          "explanation/data-lineage",
+          "explanation/evaluation",
+          "explanation/model-lifecycle",
+          "explanation/decision-models"
         ]
       }
     ]

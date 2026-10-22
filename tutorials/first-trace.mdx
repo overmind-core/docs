@@ -1,0 +1,56 @@
+---
+title: "Record your first trace with a prompt"
+description: "Let your coding agent write, run and inspect a tiny Python application."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+You will record a local order lookup and inspect its span tree through MCP. The example application makes no model calls and needs no external dataset. Enabled platform scoring can still invoke models after trace ingestion.
+
+## Before you begin
+
+[Connect Overmind](/how-to/connect), select your tutorial project and open an empty working directory with Python available. Configure its API key through your environment's secret mechanism. MCP login alone does not configure the Python SDK's telemetry credentials.
+
+## Try it with your agent
+
+<AgentPrompt text="Create and run a simple local Python example that looks up an order and records a trace in Overmind. Show me the captured inputs, output and timing so I can understand what tracing records." />
+
+This prompt requests one local run and its telemetry upload. If credentials or host permissions are missing, complete that setup before the agent runs it.
+
+## Inspect the code it creates
+
+The central tracing code should have this shape. The agent supplies a unique conversation ID and the verified deployment configuration:
+
+```python
+import overmind
+
+if not overmind.init(service_name="order-tutorial"):
+    raise RuntimeError("Configure an Overmind API key before running this example")
+
+
+@overmind.tool()
+def lookup_order(order_id: str) -> dict:
+    return {"id": order_id, "status": "shipped"}
+
+
+with overmind.run("order-status", conversation_id="UNIQUE_TUTORIAL_SESSION") as run:
+    result = lookup_order("A-1001")
+    run.deliver(result)
+    print(result)
+```
+
+The agent installs `overmind[tracing]` in an isolated environment, runs the script once and queries the session using `query_traces`. The run flushes buffered telemetry when its context exits.
+
+## Check your result
+
+Expect the local output to contain order `A-1001` with status `shipped`. The matching trace should have an `order-status` root and child spans for `lookup_order` and delivery. Inspect the actual captured input and output, not just the span names.
+
+There should be one trace for the unique session. If none arrives, the agent checks credentials, destination and flush behaviour. A retry should be reported as another execution.
+
+No capability is declared in this lesson. The trace can remain unbound while still being inspectable.
+
+## Try a follow-up
+
+<AgentPrompt text="Walk me through this trace from the initial request to the result. Explain which steps ran, how long they took and whether any failed." />
+
+For your own application, continue with [Map an agent repository](/how-to/map-agent) and [Instrument an application](/how-to/instrument).

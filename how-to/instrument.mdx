@@ -1,0 +1,50 @@
+---
+title: "Instrument an application"
+description: "Add trace boundaries, capability identity and useful input/output evidence."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use this guide to make a real request inspectable in Overmind. Begin with a connected project and, for capability attribution, a synced capability ID or slug.
+
+## Try it with your agent
+
+Use this in your application repository after [mapping its capabilities](/how-to/map-agent).
+
+<AgentPrompt text="Add Overmind tracing to this application so I can follow a request through its main steps. Capture useful inputs, outputs and failures, then verify the setup with a local example." />
+
+**What you get:** Tracing edits, local checks and an explicit run to verify the captured evidence.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## Python
+
+1. Install `overmind[tracing]` into the application's environment.
+2. Call `overmind.init()` at process startup with the deployment URL, service name and capability identity. Provide the API key through protected runtime configuration.
+3. Wrap the request's entry point in `overmind.run()` or an entry-point decorator. Capture the application input and delivered result.
+4. Trace meaningful tools, retrievals and workflows. Use provider instrumentation for model calls; avoid recording the same call twice.
+5. Add source-level `expectations=["…"]` to the relevant supported decorators when the code declares evaluation criteria. Sync after changing these declarations.
+6. Run a representative request with a unique conversation ID, flush, and inspect the actual trace.
+
+The installed `/overmind ensure-tracing` workflow can apply these changes. `get_instrumentation_plan` returns Python placement tickets; `verify_instrumentation` inspects supplied spans without writing another trace.
+
+Check nesting, capability binding, input/output values, errors, model identity and measured usage. Decorator presence alone is not verification. See the [Python SDK reference](/reference/python-sdk).
+
+## TypeScript, JavaScript and other languages
+
+Use your application's existing OpenTelemetry setup. There is no current Overmind JavaScript SDK, and Python placement tickets are not supplied for JavaScript anchors.
+
+For Overmind Cloud, set an explicit trace endpoint to avoid exporter path ambiguity. For self-hosting, use your installation’s API base with the same `/api/v1/traces` path:
+
+```bash
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://api.overmindlab.ai/api/v1/traces"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+```
+
+Configure the exporter header `x-api-key` through your application's secret mechanism. Stamp `overmind.capability.id`, a meaningful span type and the actual input/output evidence. Add `conversation.id` for a multi-turn session. Use the [OTLP reference](/reference/otlp) for the wire contract.
+
+## Missing or incomplete traces
+
+Check the exporter destination, project credential, process flush and request boundary. Unrecognised capability identities remain unbound; they do not create capabilities. A short-lived process can exit before buffered spans are sent.
+
+Inspect payload capture before enabling it on sensitive application paths. `capture="none"`, ignored arguments and explicit formatting let you control which values enter telemetry; automatic secret-key redaction is not a complete data policy.

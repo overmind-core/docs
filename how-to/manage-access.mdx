@@ -1,0 +1,40 @@
+---
+title: "Manage project access and API keys"
+description: "Choose credential scope, issue keys and keep account and project boundaries explicit."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Projects own capabilities, traces, datasets, runs, connectors and deployments. Choose the project before changing membership or credentials.
+
+## Try it with your agent
+
+Use the selected project and keep the returned key in protected configuration. Your agent will guide secure storage if the client needs a separate step.
+
+<AgentPrompt text="Create a project-scoped API key for my application in Overmind that expires in 30 days. Help me store it securely and explain which project it can access." />
+
+**What you get:** A scoped credential and verified access through the appropriate secure setup flow.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## Issue a key
+
+Use the Console's API key dialog or MCP `create_api_key`. Supply a name, description and supported expiry: 30, 90, 180 or 365 days, or no expiry.
+
+Omit `project_id` to request an account key; pass it for a project key. An account key reaches authorized projects, while a project key remains restricted to one. A project key cannot mint an account key.
+
+Store the plaintext returned at creation in a secret manager or protected local configuration. It is shown once; later listings return metadata. Do not commit it to source control or paste it into an agent prompt.
+
+## Share project access
+
+Use the project's membership controls. Account membership determines which projects an account connection can discover and use. Keep each client operation explicitly project-scoped; another chat's choice does not select a project for this one.
+
+Use the deployment's supported invitation flow for a new member. Self-hosted email/password authentication and hosted Clerk sign-in are different login configurations; API keys are the common programmatic path.
+
+## Rotate or revoke
+
+Create and install the replacement credential in the systems that need it, verify their access, then revoke the old key through the key management surface. Inspect expiry and last use when diagnosing a suddenly failing client.
+
+For repository setup, the CLI protects credential-bearing files and refuses to write a key into a tracked file. Keep the manifest's identity metadata separate from `.overmind/credentials.toml`.
+
+See [API authentication](/reference/api#authentication) for headers and [Connect your coding agent](/how-to/connect) for endpoint-bound local configuration.

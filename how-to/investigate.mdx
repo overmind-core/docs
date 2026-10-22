@@ -1,0 +1,35 @@
+---
+title: "Investigate a failure"
+description: "Follow a score, error or latency signal back to recorded evidence."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Start with a project, a time window and the symptom you need to explain.
+
+## Try it with your agent
+
+Select the project and capability in your conversation. This needs application traces; a Hugging Face dataset cannot substitute for observed failures.
+
+<AgentPrompt text="Investigate why this capability has been failing over the last 24 hours in Overmind. Find the main failure patterns, show representative traces and suggest what I should investigate in the code." />
+
+**What you get:** A bounded diagnosis with trace links, coverage and a proposed experiment.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+1. Call `inspect_capability_health` for the capability and period. The same observations can also be inspected in the Console's Traces, Sessions and Signals views. Compare error rate, latency and scoring coverage as separate measurements.
+2. Use `query_failures` for scored failures or `query_traces` for errors, session IDs, models and time filters. Keep the trace IDs that support the finding.
+3. Open the trace resource and inspect its span tree. Read the input, output and relevant tool or retrieval evidence before inferring a cause.
+4. Identify whether the result is a low quality score, abstention, technical grading error or pending work. Inspect the row definition and recorded reason. Missing scores are not passes or zeros.
+5. Compare with successful requests from the same task and conditions. Check whether the apparent pattern is multiple independent cases or repeated observations of one conversation.
+6. Record a bounded finding: affected cases, the measured symptom, evidence and unresolved hypotheses.
+
+For recurring observations, use `list_signals` to inspect the catalogue and `set_signal_subscription` to configure the relevant project or capability subscription. Signals appear in Observability. Model-backed plan drift is opt-in; a signal is a reason to investigate, not a confirmed diagnosis.
+
+## Turn evidence into an experiment
+
+Select relevant traces and create a dataset, then [prepare its inputs and references](/how-to/prepare-data). A recorded response is evidence of what happened, not automatically a correct answer.
+
+Use [evaluation](/how-to/evaluate) for an output comparison or [the optimiser](/how-to/optimise) for changes that must execute in the repository. Keep cases used to develop the change separate from final assessment.
+
+See [How evaluation works](/explanation/evaluation) for the relationship between live scoring and frozen runs.

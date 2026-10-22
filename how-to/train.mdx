@@ -1,0 +1,62 @@
+---
+title: "Train a model"
+description: "Choose exact inputs, inspect a recipe and launch a reproducible training job."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Begin with a prepared training cell, a task definition and separate development data where required. A capability is optional. Decide whether the output is conversational text/tool calls or typed probabilities before selecting a model.
+
+## Try it with your agent
+
+Start with the [fraud example dataset](/reference/example-dataset). For a complete preparation-to-benchmark walkthrough, see [Train your first fraud model](/tutorials/first-dataset). This request includes training. Overmind checks the data, model compatibility and execution scope; your agent brings back decisions that need your input.
+
+<AgentPrompt text="Train a decision model in Overmind to predict fraud using this dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Help me choose a suitable model, explain the expected cost, and follow the run through to its validation results." />
+
+**What you get:** A training run, progress updates and a model you can evaluate.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## 1. Inspect eligibility and readiness
+
+Use `get_model_catalog` for chat training or `list_decision_training_models` for native decision training. Inspect the model's supported method, context and runtime constraints.
+
+Call `check_finetune_readiness` with the exact dataset/cell and planned validation/evaluation inputs. Resolve format and model compatibility failures in Data Workshop. Readiness does not certify the labels or expected task performance.
+
+For native decision training, the qualified path is Clef with Modal LoRA on one GPU. D3 and D1 catalogue paths remain launch-disabled until their runtimes qualify. Preserve runtime options, target distributions, weights and declared ordinal means.
+
+## 2. Choose development and final assessment
+
+Pin train, validation and eval cells deliberately. For chat comparisons, select the eval set and the before/after targets. All four chat evaluation flags can be disabled; native jobs use a separate probability evaluation plan.
+
+Freeze the monitoring policy with the recipe. Declare classification labels, exact matching, a JSON Schema or JSON field pointers when generation checks need them. Keep development measurements separate from final held-out evaluation.
+
+For an evidence-linked programme, save a training plan with task meaning and exact partition identities. A full experiment can launch directly. Use a development-only pilot and measured selection when you want to compare recipes first; a pilot is optional. Exploratory jobs remain available separately.
+
+## 3. Inspect preparation and forecast
+
+Use `estimate_finetune` for the selected model and recipe. Inspect hardware, rate fetch time, evidence, missing cost components and duration uncertainty. An unmeasured total is unknown, even when a GPU hourly rate is known.
+
+Explicit `prepare_training_data` creates a visible setup job and starts model-specific preprocessing. It does not admit GPU training. The preparation pins tokenization and source selections; a matching launch promotes that same job.
+
+For multiple candidates, use `create_training_experiment`, then `prepare_training_experiment`. Review the saved forecast before `launch_training_experiment`. A bounded `create_training_profile` can measure a recipe with missing runtime evidence; it is still paid execution.
+
+## 4. Launch the accepted recipe
+
+Use `start_finetune` or the decision-specific `start_decision_job`. Supply exact cells and a stable `request_key`. Omitted hyperparameters use the platform's supported planning path; explicit settings constrain the recipe and unsupported settings are rejected.
+
+Example launch `hyperparameters` object:
+
+```json
+{"training_type": {"type": "Lora"}}
+```
+
+For `start_decision_job`, omit chat capability, eval-set, benchmark-model and group selections, and keep all four chat evaluation flags false. Its held-out probability comparison uses the [decision comparison workflow](/how-to/compare-decisions).
+
+Inspect the returned job, requested and effective recipe, runtime identity and input pins. Reuse the same key with identical inputs after an uncertain response. A changed recipe under the same key conflicts.
+
+## 5. Follow completion and assess the result
+
+Follow [Monitor training](/how-to/monitor-training). Successful training starts deployment through the matching chat or decision runtime. Deployment readiness and benchmark completion remain separate outcomes.
+
+Compare the selected final results, coverage and failures before claiming improvement. Download weights through the deployment handoff when available. [Activation](/how-to/serve) is a separate decision from training and benchmarking.

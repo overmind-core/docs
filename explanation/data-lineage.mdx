@@ -1,0 +1,42 @@
+---
+title: "Data lineage and held-out evidence"
+description: "Why original sources, immutable cells and group identity matter."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+A dataset is a retained source and the published steps derived from it. A cell identifies a concrete version of rows. A recipe revision identifies the code used to create an output, and a run receipt records its execution against exact inputs.
+
+## Try it with your agent
+
+Ask this in the project conversation after creating the relevant [tutorial or workflow](/tutorials/index) results.
+
+<AgentPrompt text="Trace one prepared fraud example back to its original source in Overmind. Explain what changed along the way and which saved preparation and dataset version a training run would use." />
+
+## Original evidence and prepared data
+
+Original bytes remain available after landing. Document extraction retains page and region evidence, parser/OCR facts and known limitations. Extracted text is a representation of a source, not proof that every visual detail was recovered.
+
+Preparation changes data through retained code. Publication checks structure, lineage and declared requirements. It cannot establish that an ambiguous numeric column means calibrated probabilities or that a generated answer is correct.
+
+Preserve uncertainty in the output and supporting explanation. Technical compatibility and semantic suitability answer different questions.
+
+## Versions belong to consumers
+
+A training or evaluation consumer pins exact cells. A later preparation cannot silently change what an earlier result measured. Correcting a recipe produces a new revision and output; historical inputs stay reproducible even when the Console shows the corrected preparation.
+
+A displayed version number is a navigation aid. Cell IDs and fingerprints identify the actual data. Exporting a cell reads its rows; it is not the same action as freezing a consumer's inputs.
+
+## Related observations are not independent samples
+
+Duplicate observations, multiple turns from one conversation, shared source content and synthetic descendants can carry related information. Splitting them across fitting and final evaluation can reveal the answer indirectly.
+
+Saved partitions preserve inherited identities and declared groups. They retain duplicate observations rather than erasing their frequency or weights. Exact overlap checks cannot rule out paraphrases or pretraining contamination.
+
+Development data supports choices during fitting. Calibration data supports fitted calibration. Final data supports a later comparison after those choices are fixed. Reusing final outcomes to choose a recipe changes what that comparison can establish.
+
+## Execution attribution
+
+A platform run links its package, revision, source and output. An external import validates supplied lineage and records its producer. Those are different claims: attributed external execution is not independently verified execution.
+
+See [Prepare data](/how-to/prepare-data), [Partition data](/how-to/partition-data) and [Pipeline reference](/reference/pipelines).

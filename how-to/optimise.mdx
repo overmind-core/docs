@@ -1,0 +1,42 @@
+---
+title: "Improve prompts, code or model choice"
+description: "Run a bounded repository experiment against frozen data and checks."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use the Optimiser when a candidate must execute your application. You need a synced capability, an eval dataset, appropriate checks and a repository that can run one datapoint reproducibly.
+
+## Try it with your agent
+
+Use your application repository, a synced capability and an eval set. To practise with the [example dataset](/reference/example-dataset), use a fraud-classification application that can run one transaction reproducibly.
+
+<AgentPrompt text="Improve this capability’s prompt using our Overmind evaluation set. Compare the proposed changes with the current version and show which cases improved, regressed or still fail." />
+
+**What you get:** A bounded experiment with the baseline, candidate results and a reviewable diff.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+1. Call `check_optimizer_readiness` with the capability, dataset/cell, eval set and intended mode. Inspect prerequisites and the provider costs of running your own application.
+2. Choose `optimize` for prompt/code changes, `model_comparison` for model candidates or `hybrid` for combinations. Set iteration and candidate limits deliberately.
+3. Create the experiment with `start_optimizer`, or use the Console's copied coding-agent prompt. Copying a prompt does not launch execution.
+4. Attach the CLI to the returned experiment:
+
+```bash
+overmind optimise start --experiment EXPERIMENT_ID
+overmind optimise next
+```
+
+5. Follow the next-action response. Write a command template that accepts one datapoint and prints its result; register it with `set-template`. Run the smoke test, then the unmodified baseline before submitting candidate diffs.
+6. Let `run-iteration` execute candidates in separate local worktrees and submit outputs for platform scoring. Inspect candidates and their evaluation runs with `inspect_optimizer_result`.
+7. Stop at the declared budget or completion condition. Review the retained winning diff and apply it through the repository's normal review process; a model comparison requires an explicit configuration change.
+
+The platform retains the dataset version and frozen matrix. Your coding environment authors changes and executes the application. Provider calls made by your application use its credentials and can incur costs even during the smoke test.
+
+## Assess the result
+
+Read coverage, failed outputs, score deltas and regressions alongside the winner. Repeated development comparisons can overfit the examples; use independent held-out cases before rollout.
+
+Recorded tool replay answers a narrower question than running the live application. It cannot establish how a new tool choice would behave in an environment that was never executed.
+
+The optimiser does not deploy your application repository or authorize production activation. Use [evaluation](/how-to/evaluate) and [serving](/how-to/serve) for those separate checks.

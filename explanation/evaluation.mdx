@@ -1,0 +1,42 @@
+---
+title: "How evaluation works"
+description: "The relationship between live scores, frozen comparisons and decision benchmarks."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Overmind uses explicit evaluation definitions to turn evidence into measurements. The definition, the evidence it receives and the population it scored determine what the result means.
+
+## Try it with your agent
+
+Ask this in the project conversation after creating the relevant [tutorial or workflow](/tutorials/index) results.
+
+<AgentPrompt text="Explain the difference between checking answer format and measuring fraud-detection accuracy. Use examples from our Overmind evaluation to show what each result establishes and what evidence is still missing." />
+
+## Live and controlled evaluation
+
+Enabled eval matrix rows score matching spans. A deterministic row runs a constrained Python check; an `llm` row states an expectation judged by Jev. Finished traces can also receive trajectory measurements on their root span. Scores append history and remain inspectable with their reasons and errors.
+
+A controlled evaluation freezes a matrix and a dataset cell. Each target gets its own run in a shared group. Recorded targets use saved outputs; generated targets request new outputs. Comparison pairs rows both sides scored.
+
+A dataset row represents the capability's answer, so answer-level checks apply even when their live `span_name` names the function producing that answer. Tool-only checks do not automatically become checks of the final dataset answer.
+
+## What a score does not establish
+
+Abstention means a check did not produce a judgement. A technical error means judging failed. A pending row has not finished. None is a quality zero or a pass.
+
+The same principle applies to generation: a token-limited response can be transport-successful while incomplete. Read coverage and degraded outcomes before comparing means. A high mean over the few completed cases can hide a weak overall result.
+
+Jev supplies the expectation decision. A separate generative model can explain a low score. Selecting an explanation judge does not replace the scoring engine, and a provider failure does not silently switch to a generative grader.
+
+## Decisions need their own measurements
+
+A probability model predicts over options supplied with the question. Full distributions, hard observations and ordinal means carry different information. Their metrics must preserve that distinction.
+
+Native comparisons freeze suites and optionally fit calibration before final scoring. Raw and calibrated results remain separate. A calibrated score on calibration data is in-sample evidence, not final generalisation performance.
+
+Model speed is another experiment: it depends on input shape, concurrency, batching, warm state and measurement boundaries. Quality results alone cannot establish serving throughput or an all-in cost saving.
+
+## Improvement is a comparison claim
+
+Keep the task, data roles, model identities, checks and coverage visible. Development gains can guide another experiment. A defensible final result requires an appropriate held-out population and an honest account of missing or incompatible outputs.

@@ -1,0 +1,33 @@
+---
+title: "Map an agent repository"
+description: "Discover capabilities, review the source-grounded map and sync it to a project."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use this guide when you have application code and want Overmind to relate its structure to traces and evaluation criteria. A data-only project does not need this step.
+
+## Try it with your agent
+
+Open the application repository and [connect Overmind](/how-to/connect) first.
+
+<AgentPrompt text="Map this repository’s capabilities in Overmind. Explain what the agent can do, where each capability lives in the code and which parts already have evaluation coverage." />
+
+**What you get:** A source-backed capability map and the repository provenance attached to it.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+1. [Connect your coding agent](/how-to/connect) from the repository root and verify the destination project.
+2. Ask the agent to run the installed Overmind setup workflow. On clients with slash commands, use `/overmind setup`.
+3. Review the discovered product purposes. A capability should describe work such as routing a support request; internal workers or model roles do not automatically need separate capabilities.
+4. Review the source-backed entry points, prompts, tools, branches and expected outcomes. Repair unmapped transitions from the code before syncing.
+5. Review `overmind.toml` and the endpoint, project and metadata to be uploaded. The workflow runs `overmind chassis`, authors the map and runs `overmind sync`. It does not upload a repository archive, but captured prompts and source metadata are included.
+6. Verify the successful sync and read `overmind://project/current?project_id=PROJECT_ID` or inspect the Agent page. Check capability IDs and repository provenance.
+
+The chassis supports Python and TypeScript/JavaScript. Structural verification confirms source anchors and reachability; it does not prove that the application always follows the intended path.
+
+Keep capability slugs stable when changing display names. A capability absent from a later scan becomes a leftover; its data remains. Commit the manifest, keeping `.overmind/credentials.toml` and credential-bearing client configuration out of version control.
+
+After changing source code, refresh the scan. If the checkout changed during scanning, repeat it so the retained provenance describes the code actually inspected.
+
+Next, [instrument the application](/how-to/instrument). A scan alone does not emit traces.

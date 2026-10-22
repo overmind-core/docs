@@ -1,0 +1,38 @@
+export const AgentPrompt = ({ text }) => {
+  const [status, setStatus] = useState("idle");
+  useEffect(() => {
+    if (status !== "copied") return;
+    const timer = setTimeout(() => setStatus("idle"), 2000);
+    return () => clearTimeout(timer);
+  }, [status]);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus("copied");
+    } catch {
+      setStatus("failed");
+    }
+  };
+  return (
+    <div className="om-prompt" role="group" aria-label="Example prompt">
+      <div className="om-prompt-toolbar">
+        <div className="om-prompt-chrome" aria-hidden="true">
+          <img src="/images/prompts/prompt-controls.svg" alt="" width="459" height="28" className="om-prompt-controls" />
+          <img src="/images/prompts/prompt-stripes.svg" alt="" width="327" height="28" className="om-prompt-stripes" />
+        </div>
+        <button type="button" className="om-prompt-copy" onClick={copy}>
+          {status === "copied" ? "Copied" : "Copy prompt"}
+        </button>
+      </div>
+      <div className="om-prompt-body">
+        <div className="om-prompt-frame">
+          <p className="om-prompt-text">{text}</p>
+        </div>
+      </div>
+      <span className="om-prompt-status" role="status">
+        {status === "copied" ? "Prompt copied to clipboard." : ""}
+      </span>
+      {status === "failed" && <p className="om-prompt-error" role="alert">Copy unavailable. Select the prompt text and copy it manually.</p>}
+    </div>
+  );
+};

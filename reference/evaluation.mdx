@@ -1,0 +1,83 @@
+---
+title: "Evaluation matrix and runs"
+description: "Row definitions, deterministic span fields, targets and result interpretation."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+## Try it with your agent
+
+Use this after the relevant [tutorial](/tutorials/index), or substitute a resource from your own project.
+
+<AgentPrompt text="Inspect our latest Overmind evaluation. Explain which data, models and checks it used, how to interpret the scores and whether any examples failed to produce usable results." />
+
+## Matrix rows
+
+| Field | Contract |
+| --- | --- |
+| `name` | Row name |
+| `type` | `deterministic` or `llm` |
+| `source` | Python `evaluate(span)` script, or one-sentence expectation |
+| `capability` | Optional capability scope; otherwise project-wide |
+| `span_type` | Blank or `llm_call`, `tool_call`, `retrieval`, `workflow` |
+| `span_name` | Optional exact live span name |
+| `enabled` | Whether the saved row participates |
+| `definition_source` | `stock`, `code`, `config`, `custom` or `unknown` |
+
+`create_eval_matrix_row` creates a row. The MCP contract does not edit row definitions in place: delete and create a replacement. Deletion removes current set membership; existing results and frozen run snapshots remain.
+
+The Default set can include source decorator expectations, valid TOML catalogue checks, legacy declared expectations and seeded checks. Source declarations update through sync. A missing declaration is not reconstructed from a display label.
+
+## Deterministic scripts
+
+A check defines `evaluate(span)` in import-free Python. It sees read-only fields and bounded related spans. Supported globals include limited `json` and `re` helpers; arbitrary imports, files and network access are unavailable.
+
+Core span fields are `span_id`, `parent_id`, `trace_id`, `span_type`, `name`, `tool`, `status`, `input`, `output`, `expected`, `duration_s`, `usage` and `attributes`. Access them as attributes, such as `span.output`. Related evidence includes `parent`, `children` and `siblings`.
+
+```python
+def evaluate(span):
+    if not span.output:
+        return None
+    return float(span.output in ("delivery", "account"))
+```
+
+Return a boolean, a score from 0 to 1, a two-item `(score, reason)` tuple/list or `None` to abstain. Script failures are errors, not failed quality checks. The executor applies AST, CPU, memory and wall-time bounds.
+
+Stock checks include JSON validity, tool selection, exact match, contains, regex, required keys, field conformance, goal state, tool arguments, model-call count, latency and cost budgets. Templates needing a reference, pattern or budget stay disabled until configured.
+
+## LLM expectations
+
+Jev evaluates whether the output meets the expectation using the available input and evidence. A generative model supplies reasons for low scores. `judge_model` selects that explanation model; blank uses the configured default. Jev failures do not fall back to generative grading.
+
+Live span, trajectory and plan-drift work have bounded attempts; exhausted attempts remain error metrics. Live scores reside in `Span.eval_attributes` and append `EvalScore` history.
+
+## Eval sets
+
+`create_eval_set` requires `name` and `rows` (1–200 row IDs or names), with optional `capability` and `activate` (default false). Creating a set does not launch an evaluation.
+
+## Readiness and launch
+
+Shared selection fields are `dataset`, optional `cell` or displayed `version`, `eval_set` and `judge_model`. Readiness defaults to the capability's active set or applicable enabled rows when a set is not supplied.
+
+`run_evaluation` requires a name and 1–6 `targets`. Each target accepts:
+
+| Field | Contract |
+| --- | --- |
+| `label` | Display name |
+| `mode` | `generate` or `recorded` |
+| `model_name`, `model_ref` | Supported generated-target model identity |
+| `params` | Supported generation configuration |
+| `is_baseline` | Marks the group's baseline |
+| `output_tokens` | Planned output reservation |
+
+`max_items` defaults to 100, bounded to 1–100,000. `sampling` is greater than zero and at most one. Launch returns one run per target with a shared group ID and the pinned cell.
+
+Dataset answer scoring uses matrix rows with blank or `llm_call` span type, regardless of a live `span_name`. Runs freeze the selected matrix and explanation judge. The Console displays results; use MCP or REST for standalone launch.
+
+## Comparison and health
+
+`compare_evaluations` accepts a run and optional baseline, defaulting to the completed baseline in its group. It returns paired count, wins/losses/ties, per-metric deltas and trust information.
+
+Scores, abstentions, technical errors, pending work and degraded generation remain distinct. Paired results use only rows both runs scored. Inspect missing coverage before interpreting the overall delta.
+
+Context estimates include reserved output for generation and explanations. Warnings are advisory; unknown capacity is not a confirmed overflow. At execution, rejected requests and exhausted grading attempts remain technical failures. Output-token exhaustion is inspectable and excluded from trusted quality aggregates where degraded.

@@ -1,0 +1,53 @@
+---
+title: "Serve and activate a model"
+description: "Verify a trained deployment and connect an application to its supported inference contract."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Successful training automatically starts deployment through the matching inference runtime. Start from the returned deployment ID and inspect its status. For an older successful job without a deployment, use `deploy_finetune`; deployment failure does not require retraining.
+
+## Try it with your agent
+
+Use the deployment returned by the completed job. For the fraud example, supply a transaction in the conversation. This smoke request uses the serving provider.
+
+<AgentPrompt text="Test our trained fraud model in Overmind on a few transactions and explain its predictions. Show me a working application request using the deployed model’s actual input and response format." />
+
+**What you get:** A recorded inference result and an application integration snippet for that deployment.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## 1. Verify the deployed contract
+
+Read the deployment resource and operational timeline. A chat model accepts messages. A native decision model accepts typed decisions and returns option probabilities. Use the contract recorded on the deployment.
+
+For a smoke request, call `run_inference` with the deployment and a stable `request_key`:
+
+- Chat: supply `messages` and an intentional output budget.
+- Decisions: supply `decisions` with `state`, `question`, `kind` and ordered `options`; omit chat generation parameters.
+
+Poll the `inference_request` receipt. Check the output, usage and errors. For chat, inspect `finish_reason` and `truncated`; for decisions, verify the option/probability mapping.
+
+## 2. Connect the application
+
+Use the deployment's verified API snippet or [Inference reference](/reference/inference). A pinned chat model ID addresses one deployment. A capability alias follows the capability's selected chat model.
+
+For native probabilities, use the typed inference endpoint or returned deployment-specific request contract. A decision deployment is not a chat model and does not become one by using a chat alias.
+
+## 3. Activate a chat alias when needed
+
+When you want the selected capability's application alias to use this chat model:
+
+<AgentPrompt text="Make this chat model active for the selected capability in Overmind. Verify that activation completed and show me how to confirm my application is calling it." />
+
+If the application uses `overmind/CAPABILITY_UUID`, call `set_active_model` with that capability and ready deployment. Follow the returned `model_activation` job.
+
+Activation wakes and verifies the deployment before switching the alias. The previous selection continues serving until verification succeeds. Read the failure stage before retrying.
+
+Send a real application API-key request through the alias after activation. A verification probe or a request pinned directly to the model does not confirm that your application adopted the alias.
+
+## 4. Monitor the deployed workload
+
+Inspect request success, latency, throughput and measured cost with a stated time period and traffic source. Deployment readiness, worker warmth, active routing and application connection are separate states.
+
+For a confirmed failed deployment, use `retry_deployment` after inspecting its error. For an uncertain remote submission, reconcile the existing attempt first. See [Recover interrupted work](/how-to/recover).

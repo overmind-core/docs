@@ -1,0 +1,94 @@
+---
+title: "MCP interface"
+description: "Authentication, discovery, tool families, resources and asynchronous receipts."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+The Streamable HTTP endpoint is `/api/mcp/` on the selected deployment. MCP shares domain services with REST and the Console. It is not a generic HTTP proxy.
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Inspect the Overmind tools available in this chat. Explain which ones support datasets, evaluation, training and inference, and show how I can ask you to use them for a typical workflow." />
+
+## Discovery and scope
+
+| Surface | Contract |
+| --- | --- |
+| `list_projects` | Authorized active projects, pagination and `connection.mcp_url` |
+| `overmind://interface/current` | Connected contract version, permission-scoped catalogue fingerprint and interface metadata |
+| Project tools | Account connections pass `project_id` explicitly |
+| Project resources | Add `?project_id=PROJECT_ID` or follow the returned scoped link |
+| Project API key | Restricted to its bound project |
+
+Use the connected `tools/list`, `prompts/list` and resources for complete argument schemas. Tool availability depends on permissions and the deployed version; a static tool count is not a capability guarantee.
+
+## Authentication
+
+API-key connections use `X-Api-Key` or a supported bearer header. Account keys reach authorized projects; project keys retain narrower scope. OAuth is supported for MCP account connections and requires the deployment's login and consent flow. MCP OAuth tokens do not authenticate ordinary CLI file transfers.
+
+Read permission exposes inspection operations; writes require the operation's permission scope. Expiry, account state and membership continue to apply.
+
+## Tool families
+
+This index identifies the entry points; it does not replace their schemas.
+
+| Area | Inspection or preparation | Execution or mutation |
+| --- | --- | --- |
+| Projects | `list_projects` | `create_api_key` |
+| Observability | `inspect_capability_health`, `query_traces`, `query_failures` | Signal subscriptions through `set_signal_subscription` |
+| Signals | `list_signals` | `set_signal_subscription` |
+| Instrumentation | `get_instrumentation_plan`, `verify_instrumentation` | Repository edits happen locally |
+| Sources | `list_datasets`, `inspect_dataset`, `query_dataset` | `start_dataset`, `create_dataset_from_traces`, `update_dataset`, `resume_dataset_import` |
+| Workshop | `inspect_dataset_workbench`, `validate_dataset_pipeline` | `save_dataset_pipeline`, `run_dataset_pipeline`, `cancel_dataset_pipeline_run`, `import_dataset_version` |
+| Bindings | Workbench binding inspection | `save_dataset_pipeline_binding`, `set_dataset_pipeline_binding_state`, `run_dataset_pipeline_binding` |
+| Data roles | `explore_dataset`, workflow inspection | `derive_dataset`, `create_data_partition`, `retry_data_partition` |
+| Matrix evaluation | `check_evaluation_readiness`, `compare_evaluations` | `create_eval_matrix_row`, `delete_eval_matrix_row`, `create_eval_set`, `run_evaluation` |
+| Decision comparison | `list_decision_models`, `prepare_native_evaluation`, `inspect_native_evaluation` | `create_native_evaluation`, `launch_native_evaluation`, `pause_native_evaluation`, `resume_native_evaluation` |
+| Training | `get_model_catalog`, `list_decision_training_models`, `check_finetune_readiness`, `estimate_finetune`, `inspect_training_progress` | `prepare_training_data`, `start_finetune`, `start_decision_job`, `cancel_finetune` |
+| Experiments | `list_model_workflows`, `prepare_training_experiment` | `save_training_plan`, `create_training_experiment`, `launch_training_experiment`, `create_training_profile` |
+| Performance | Workflow/job inspection | `measure_decision_performance`, `resume_decision_performance`, explicit `reuse_evaluation_predictions` |
+| Serving | Deployment resources, `get_model_swap_prompt` | `deploy_finetune`, `retry_deployment`, `run_inference`, `set_active_model`, `set_benchmark_model` |
+| Optimiser | `check_optimizer_readiness`, `inspect_optimizer_result` | `start_optimizer`; local execution uses the CLI |
+| Connectors | `inspect_connectors` | `configure_connector`, `sync_connector` |
+| Operations | `get_job`, `inspect_operation` | Use each workflow's named lifecycle controls |
+
+Preparation tools can create records or run preprocessing. An inspection-style name is not a guarantee of zero provider cost; read the tool's impact and result contract before executing it.
+
+## Resources
+
+| URI | Content |
+| --- | --- |
+| `overmind://project/current` | Project identity, scan provenance and Console URL |
+| `overmind://dataset-upload` | CLI handoff, format limits, package manifest and runtime requirements |
+| `overmind://dataset-export` | Version export guidance |
+| `overmind://checkpoint-download` | Checkpoint download guidance |
+| `overmind://connector-setup` | Provider-credential CLI handoff |
+| `overmind://capabilities/{capability}` | Saved capability map and related state |
+| `overmind://traces/{trace_id}` | Recorded span evidence |
+| `overmind://datasets/{dataset}` | Cells, source facts and dataset state |
+| `overmind://eval-runs/{eval_run}` | Frozen run state and result evidence |
+| `overmind://finetunes/{job_id}` | Training state, pinned inputs and monitoring |
+| `overmind://deployments/{deployment}` | Serving identity, readiness and metrics |
+| `overmind://operations/{id}` | Recorded events and separate progress clocks |
+| `overmind://jobs/{kind}/{id}` | Workflow-specific job state |
+
+Follow returned resource links for packages, revisions, bindings and data-first workflows. Their identifiers and pagination belong to the connected contract.
+
+## Jobs, pagination and retries
+
+Background operations return durable identities. `get_job(kind=..., id=...)` reads the receipt; `inspect_operation` pages stored events without waking a worker. Use returned polling guidance while active and next actions after completion.
+
+Requests that accept a stable key recover the same work when the key and payload match. Changed payloads conflict. Do not assume every mutation is idempotent: `run_evaluation`, for example, creates new runs.
+
+Pagination can be limited by both item count and response bytes. Follow returned cursors, offsets, `collections` descriptors and `evidence_resource` links for complete retained evidence.
+
+Tool errors include a structured code, message, retryability and field details where applicable. Authentication and authorization failures remain distinct from workflow failures.
+
+## Prompts and local handoffs
+
+Prompts include `author-dataset-transformation`, `develop-model-from-data`, `investigate-capability`, `instrument-repository`, `prepare-evaluation`, `evaluate-change`, `finetune-capability`, `optimize-capability`, `compare-models`, `ship-model`, `upload-dataset-file`, `export-dataset`, `connect-traces` and `download-checkpoint`.
+
+The CLI transfers bytes and runs local repository work. Provider secrets enter protected local configuration or the appropriate Console flow, not MCP tool arguments. See [Connect your coding agent](/how-to/connect).

@@ -1,0 +1,130 @@
+---
+title: "Python tracing SDK"
+description: "Initialization, capture controls, span decorators and evaluation declarations."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Install the tracing extra in the application environment:
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Review this Python application’s Overmind tracing. Explain what is already captured, identify gaps in its main request flow and show the relevant SDK changes that would fill them." />
+
+```bash
+python -m pip install "overmind[tracing]"
+```
+
+The base package provides the CLI and inference client. Tracing names require the extra. See [Record a Python trace](/tutorials/first-trace) for an example to run after configuring the API key and project.
+
+## Initialization
+
+This example sends traces to Overmind Cloud. For a self-hosted installation, supply its API base URL.
+
+```python
+import overmind
+
+overmind.init(
+    service_name="support-service",
+    overmind_base_url="https://api.overmindlab.ai",
+    capability_id="support-triage",
+    providers="auto",
+)
+```
+
+| Parameter | Meaning |
+| --- | --- |
+| `overmind_api_key` | Explicit key; otherwise resolve protected repository/environment credentials |
+| `overmind_base_url` | API base URL; otherwise environment, repository configuration or hosted default |
+| `project_id` | Project attribution, particularly for account-scoped credentials |
+| `service_name` | `service.name` resource attribute |
+| `environment` | Deployment environment label |
+| `capability_id` | UUID or slug sent as `overmind.capability.id` |
+| `capability` | Display label only |
+| `providers` | `"auto"` or selected installed provider instrumentors; omission enables none |
+| `redact_keys` | Additional case-insensitive dictionary keys to redact |
+| `export_orphan_spans` | Whether standalone function fragments may export; default false |
+| `debug` | Diagnostic logging |
+
+Call once at startup before provider calls. Missing credentials normally return `False` and leave helpers inactive; `OVERMIND_STRICT_MODE=true` makes missing configuration raise. Reinitialization refreshes identity without constructing another exporter.
+
+Supported instrumentors cover OpenAI, Anthropic, Google, Agno and LangChain, including LangGraph through the LangChain instrumentor. Only installed integrations can be enabled.
+
+## Environment and credentials
+
+Identity/configuration variables include `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_PROJECT_ID`, `OVERMIND_SERVICE_NAME`, `OVERMIND_ENVIRONMENT`, `OVERMIND_CAPABILITY_ID` and `OVERMIND_CAPABILITY_NAME`.
+
+Repository credentials in `.overmind/credentials.toml` are checked against the manifest's endpoint/project. Explicit identity arguments do not merge a missing half with unrelated capability environment defaults.
+
+`OVERMIND_SPAN_FLUSH_INTERVAL_MS` and `OVERMIND_SPAN_MAX_EXPORT_BATCH_SIZE` configure batching. `OVERMIND_GIT_SHA` overrides detected revision; `SERVICE_VERSION` sets the service version. An incoming `TRACEPARENT` can continue a remote trace.
+
+Optional product analytics uses the separate `analytics` extra. `OVERMIND_ANALYTICS_ENABLED=false` or `DO_NOT_TRACK=1` disables it; CI also disables it. Core tracing does not require PostHog.
+
+## Run and delivery
+
+```python
+with overmind.run("answer", intent=question, conversation_id=session_id) as run:
+    result = answer(question)
+    run.deliver(result)
+```
+
+`run` is a context manager or sync/async decorator. It captures the boundary, intent, conversation, tags and error status, and flushes on exit. Decorator identity/intent values can be callables receiving the wrapped arguments. A return value is not automatically a `deliver` call.
+
+`deliver(payload, grounded_by=None, name="deliver", provenance="agent")` records the delivered payload on a child span. Optional grounding identifies evidence span IDs or handles.
+
+## Decorators
+
+`observe` accepts a span name and type. Typed shortcuts are `entry_point`, `workflow`, `tool` and `retrieval`. They support sync and async functions and re-raise exceptions after recording them.
+
+```python
+@overmind.observe(
+    type="llm",
+    capture="messages",
+    expectations=["The answer cites only evidence present in the input."],
+)
+def answer(messages):
+    return call_model(messages)
+```
+
+| Option | Meaning |
+| --- | --- |
+| `span_name` | Name or callable; defaults to function qualified name |
+| `type` | `entry_point`, `workflow`, `tool_call`, `function`, `llm_call` or `retrieval` |
+| `capture` | `auto`, `none` or `messages` |
+| `ignore` | Arguments excluded from capture |
+| `self_attrs` | Explicit receiver attributes to include |
+| `format_input`, `format_output` | Explicit payload formatting functions |
+| `capability_id`, `capability` | Binding identity and display label |
+| `intent` | Declared purpose of the operation |
+| `expectations` | List of one-sentence criteria |
+| `reference_trajectory` | List of declared trajectory steps |
+| `provenance` | `user`, `agent`, `environment` or `harness` |
+| `unit` | Optional unit metadata |
+
+Expectations are lists, not one bare string. `overmind sync` reads supported source decorator declarations and creates scoped matrix rows. Removing a declaration removes its corresponding managed row on sync. Runtime span evidence and the saved matrix are related but distinct.
+
+Automatic capture scrubs common secret-key names and bounds binary-looking payloads. Use `capture="none"` or explicit formatting where values must not enter telemetry.
+
+## Context and metadata
+
+| Helper | Purpose |
+| --- | --- |
+| `capability(name=None, id=None)` | Scoped capability identity; name alone is a display label |
+| `task(key, unit=None)` | Task metadata; `unit="turn"` groups a turn's spans |
+| `session(conversation_id)` | Scoped conversation identity |
+| `set_conversation_id(id)` | Conversation identity for subsequent spans |
+| `set_user(user_id, email=None, username=None)` | User metadata |
+| `set_tag(key, value)` | Current-span attribute |
+| `capture_exception(exc)` | Record an explicitly handled exception |
+| `start_span(name, span_type=..., attributes=...)` | Context manager for a block rather than a function |
+| `force_flush_traces()` | End open turn scopes and flush before process exit |
+
+`intent`, `expect`, `checkpoint`, `eval_context` and `end_conversation` emit runtime evidence events. Their presence is not proof that every declared criterion produced a score; inspect the resulting matrix/trace metrics.
+
+## Existing OpenTelemetry setup
+
+When the application owns its `TracerProvider`, add an Overmind OTLP exporter to that provider and use `overmind.tracing.enable_tracing(providers)` for the SDK processors and selected integrations. Avoid creating competing global providers.
+
+`PromptString` retains a prompt template and its arguments for supported provider instrumentation. The `overmind.integrations.langgraph` binding helper can attach task scopes and delivery metadata to graph nodes; match these to the actual application structure.

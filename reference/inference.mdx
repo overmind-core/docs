@@ -1,0 +1,79 @@
+---
+title: "Inference contracts"
+description: "Chat completions, typed decisions, durable requests and deployment state."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Show the request format for calling our deployed model in Overmind. Use its actual deployment details to give me an example input and explain the response and readiness state." />
+
+## Chat completions
+
+The OpenAI-compatible base is `API_URL/api/v1`. Authentication accepts an authorized Overmind API key.
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    base_url=os.environ["OVERMIND_API_URL"].rstrip("/") + "/api/v1",
+    api_key=os.environ["OVERMIND_API_KEY"],
+)
+response = client.chat.completions.create(
+    model="YOUR_DEPLOYMENT_MODEL_ID",
+    messages=[{"role": "user", "content": "Classify: reset my password"}],
+    max_tokens=128,
+)
+print(response.choices[0].message.content)
+```
+
+`model` can pin a deployment's `model_id` or use `overmind/CAPABILITY_UUID` for an active chat alias. Supported frontier models may route through the configured provider; catalogue presence and access depend on the deployment.
+
+`POST /api/v1/chat/completions` supports message input, model generation parameters, tools, structured response configuration and streaming according to the selected runtime. Read the deployed schema and model contract for supported fields.
+
+Input plus reserved output must fit the serving context. The default output reservation is 8,192 tokens; `max_completion_tokens` is an alternative to `max_tokens` and takes precedence when both are supplied. Requests do not silently shrink the output budget to fit. Serving context is separate from training sequence length.
+
+`finish_reason="length"` means the generated answer is incomplete. A successful HTTP status alone does not establish a complete result.
+
+## Streaming and long requests
+
+SSE and long completions retain 15-second idle keepalives. Streaming failures can carry an error frame. A non-streaming failure after keepalives committed headers can terminate without complete JSON and appear as a transport error. Retain `X-Request-ID` for failure investigation.
+
+## Durable MCP inference
+
+`run_inference` requires `deployment` and `request_key`, with exactly one input contract:
+
+| Input | Fields |
+| --- | --- |
+| Chat | `messages`; optional `temperature`, `max_tokens` |
+| Native decision | `decisions` containing `state`, `question`, `kind`, `options`; no generation parameters |
+
+The call returns an `inference_request` job. Identical retries recover the receipt; changed inputs conflict. Unknown provider acknowledgement is reconciled without blind resubmission. Job reads do not wake a worker.
+
+For chat results, `truncated` describes generation exhaustion. `content_clipped` separately describes the MCP response-size limit; follow the result resource to page the retained answer.
+
+## Typed decision API
+
+`POST /api/deployed-models/{deployment_id}/inference/` creates a durable deployment request; `GET /api/inference-requests/{request_id}/` reads it. The system-one endpoint is `POST /api/v1/systemone`. Use its schema or the deployment's generated snippet for the exact synchronous request contract.
+
+Native decisions preserve supplied option order and return typed probabilities. They are not chat completions, and generation-temperature/token parameters do not apply.
+
+## Deployment and routing state
+
+Deployment status, worker state, active routing and application connection are separate fields. Worker observations can be warm, warming, asleep or unknown; missing measurements are not zero containers.
+
+Compatible dense and explicitly supported MoE LoRA models can share a BF16 base. Other supported chat artifacts use their checkpoint preparation route. Native decision artifacts use their separately qualified runtime. Inspect the deployment's actual profile instead of inferring precision or cold-start time from its model family.
+
+`set_active_model` starts a durable activation, verifies the target and only then switches a chat alias. `set_benchmark_model` changes future benchmark selection independently. A successful application API-key alias call confirms application connection; internal probes and pinned model calls do not.
+
+## Metrics and downloads
+
+Deployment resources and REST metrics accept `period=1h|24h|7d|30d|all` and `source=application|all`. Application traffic includes alias and pinned-model API-key calls; all traffic also includes internal and historical unknown-source calls.
+
+Reported latency/speed distributions depend on measured successful requests; failed calls and missing timing remain separate. Cost coverage must accompany estimated totals.
+
+`overmind model download-checkpoint DEPLOYMENT_ID` downloads the retained deployment archive. Deployment retries reuse successful training artifacts; they do not rerun training.

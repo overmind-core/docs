@@ -1,0 +1,36 @@
+---
+title: "Capabilities and repository evidence"
+description: "How a source map relates to observed behaviour without replacing it."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+The Agent is the project's map of the application. A capability is a purpose the application serves, such as finding evidence or routing a ticket. Internal roles, tools and model calls describe how that purpose is implemented.
+
+## Try it with your agent
+
+Ask this in the project conversation after creating the relevant [tutorial or workflow](/tutorials/index) results.
+
+<AgentPrompt text="Explain how this project’s capability map relates to its recorded traces in Overmind. Use a real capability to show the connection between repository code, observed executions and evaluation coverage." />
+
+A local scan combines an AST chassis with coding-agent interpretation. It records entry points, prompts, tools, conditions and transitions in `overmind.toml`. Python and TypeScript/JavaScript source can participate in the chassis.
+
+## A map is not an execution
+
+A trajectory map describes source-backed possibilities. An available tool is not proof that the model selected it. A prompt instruction is not equivalent to a code-enforced branch. Missing conditions remain unmapped until the source establishes them.
+
+Anchor reachability checks establish structural consistency. They do not guarantee semantic correctness, exhaustive coverage or behaviour in production. Traces supply observed evidence for particular executions.
+
+The saved repository snapshot identifies the checkout at scan time. Sync time is separate: uploading an old scan later does not make it a fresh analysis. Older snapshots without provenance remain unknown, and live traces can come from a different revision.
+
+## Stable identity
+
+Telemetry binds through `overmind.capability.id`, using a known UUID or slug. A display name is not the binding key. Ingest stores unknown identities as unbound rather than creating a capability from an arbitrary span.
+
+A scan that omits a capability makes it leftover and keeps its data. An explicit deletion removes it from current identity lookup while preserving historical evidence. Stable slugs allow display-name changes without changing identity.
+
+## Optional context
+
+Capabilities help tie code, traces and task criteria together. They are optional for uploaded datasets, data-first training and standalone decision comparisons. The absence of a repository is not missing evidence when the task itself begins with data.
+
+For the procedure, see [Map an agent repository](/how-to/map-agent).

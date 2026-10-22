@@ -1,0 +1,31 @@
+---
+title: "Separate training and held-out data"
+description: "Save group-preserving train, development, calibration and final roles."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use a saved partition when repeated observations, conversations or related source examples must stay together. Begin with an inspected, prepared source cell and a known task contract.
+
+## Try it with your agent
+
+Start with the [fraud example dataset](/reference/example-dataset) from [Prepare data](/how-to/prepare-data). The agent inspects related transactions and chooses an appropriate split.
+
+<AgentPrompt text="Create training, development and held-out evaluation splits in Overmind for this fraud dataset: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Check for overlap that could make the evaluation misleading, then explain the split sizes and label balance." />
+
+**What you get:** A saved partition recipe, actual role counts and exact cells without shared groups.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+1. Identify related records: source groups, conversations, repeated inputs and synthetic descendants. Declare additional grouping fields from evidence rather than guessing from column names.
+2. Choose role fractions and a fixed seed. Use **train** for fitting, **development** for recipe/checkpoint decisions, **calibration** for fitting calibration and **final** for the independent comparison. Leave unused roles out of the recipe.
+3. Call `create_data_partition` with `name`, `request_key`, `source_cell` and `recipe`. The recipe accepts `seed`, `fractions`, `group_by`, optional `stratify_by` and explicit `holdouts`.
+4. Follow the returned job through construction. Inspect actual role counts and group assignment; group sizes may prevent exact requested fractions.
+5. Verify the output cells against their intended consumer. Train/development roles receive training intent, while calibration/final roles receive evaluation intent. Native decision rows in calibration/final members are projected into input-only decisions and separate references. Other row formats are retained; changing intent alone does not convert them.
+6. Save the role cell IDs and use them explicitly in later jobs.
+
+Do not deduplicate repeated observations merely to achieve a ratio. Preserve their weights and provenance. Missing declared group fields are an error to resolve, not a reason to silently drop the grouping rule.
+
+Use `retry_data_partition` only after inspecting a failed construction and the supported recovery action. It resumes the saved recipe rather than inventing another split.
+
+For a data-first modelling project, retain the task definition and exact role cells in `save_training_plan`. Final answers must not guide recipe selection. See [Data lineage and held-out evidence](/explanation/data-lineage).

@@ -1,0 +1,40 @@
+---
+title: "Fraud example dataset"
+description: "The ecommerce transaction source used in the walkthroughs."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+The examples use [apex0data/ecommerce-fraud-detection-synthetic-10k-sampl](https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl) on Hugging Face—the ecommerce fraud dataset used in our earlier model-training workflow.
+
+## Try it with your agent
+
+<AgentPrompt text="Explore this ecommerce fraud dataset in Overmind: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Explain the fields, what the fraud label means and how balanced the examples are. Tell me what it can help us test and its main limitations." />
+
+## Source facts
+
+The source is a CSV of synthetic ecommerce transactions. Its target is `is_fraud`. The [dataset card](https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl/blob/main/README.md) describes the source and lists an MIT license.
+
+| Property | Verified value |
+| --- | --- |
+| File | `ecommerce_fraud_sample_10k.csv` |
+| Rows | 10,000 |
+| Non-fraud | 9,580 |
+| Fraud | 420 |
+| Revision inspected | `8314a33ce236442577ac988c104c2f72f17fda7f` |
+
+The available fields are `transaction_id`, `timestamp`, `user_id`, `transaction_amount`, `merchant_category`, `device_fingerprint`, `ip_address` and `is_fraud`.
+
+## What preparation should establish
+
+The coding agent inspects which transaction fields are available at prediction time and how related observations should be grouped. It keeps the target out of model input and retains the original source, preparation and exact versions used by consumers.
+
+For a binary decision, the supplied hard label can become a reference over non-fraud and fraud options in an explicit order. This does not imply that the source contains calibrated probabilities.
+
+Class imbalance matters: predicting non-fraud for every row gives 95.8% accuracy on the full source. Inspect fraud precision, recall and coverage alongside aggregate accuracy. Repeated users, devices or IPs need examination before choosing a split; the agent should explain its choice.
+
+## Reproducing the source check
+
+The original CSV was inspected at the revision above, with SHA-256 `05f63f3c49fc9a3fab5e230e8474e064052a239fb56c1aa1e10be98821e3a44c`. Pin that revision when reproducing these counts. Newer source revisions may differ.
+
+Synthetic-data results demonstrate the workflow. Assess real fraud-detection performance on suitable independently held-out operational data.

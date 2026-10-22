@@ -1,0 +1,64 @@
+---
+title: "Glossary"
+description: "Terms used in the Console, MCP, CLI and result receipts."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+## Try it with your agent
+
+Use this after the relevant [tutorial](/tutorials/index), or substitute a resource from your own project.
+
+<AgentPrompt text="Explain datasets, cells, evaluation runs and deployments using our fraud project in Overmind. Connect each term to something we have created so I can understand how the workflow fits together." />
+
+| Term | Meaning |
+| --- | --- |
+| Account connection | Credentials with access to projects authorized for that account |
+| Project | Tenant boundary for capabilities, data, runs, connectors and models |
+| Agent | The project's application map, composed of capabilities |
+| Capability | A product purpose tied to source context and observed telemetry; optional for data-first workflows |
+| Scan | Local source discovery and interpretation, retained in a manifest |
+| Repository snapshot | Provenance of the checkout inspected during the scan; distinct from upload time |
+| Trace | Spans sharing a trace ID |
+| Span | One recorded operation with timing, attributes and evidence |
+| Session | Related traces grouped by conversation identity |
+| Unbound | Telemetry without a resolvable capability identity |
+| Signal | A recorded observation matching a configured condition; not a root-cause diagnosis |
+| Dataset | A task brief, intent and retained source/preparation history |
+| Intent | Train, eval, explore or pending until explicitly selected |
+| Cell | A concrete dataset version with rows, schema and fingerprint |
+| Fingerprint | Content identity used to bind exact data or artifacts |
+| Lineage | Recorded relationship between source and derived rows/cells |
+| Package | Retained transformation code and manifest |
+| Pipeline family | Identity grouping immutable revisions of a preparation recipe |
+| Pipeline revision | One saved recipe, package and declared flow |
+| Pipeline run | An execution receipt against exact source inputs |
+| Preview | Bounded execution/check evidence without publication |
+| Binding | A saved source-to-revision processing configuration, initially paused |
+| Consumer pin | Exact dataset cell retained for a run |
+| Eval matrix row | A deterministic check or an LLM expectation with scope |
+| Eval set | Named collection of matrix rows |
+| Evaluation target | Recorded answers or a selected model generating answers |
+| Eval run | One target evaluated with frozen data and matrix |
+| Baseline | The explicitly selected comparison target |
+| Paired coverage | Examples both compared targets scored |
+| Abstention | No judgement produced because the check cannot apply |
+| Grading error | Technical failure while evaluating, separate from quality failure |
+| Development check | Measurement used while training or choosing a recipe |
+| Calibration suite | Data used to fit calibration before final scoring |
+| Final suite | Held-out comparison data reserved from fitting and selection |
+| Decision | State, question and ordered options with typed probability output |
+| Ordinal mean | Mean observation on a declared scale, without an implied target distribution |
+| Training preparation | Model-specific tokenization and validation of pinned examples |
+| Checkpoint | Retained trained state; exact contents and resume support depend on the runtime |
+| Deployment | An artifact registered with its matching inference runtime |
+| Activation | Verify a ready chat deployment, then switch a capability alias |
+| Benchmark model | Default comparison selection, independent of active serving |
+| Warmth | Current worker availability or recent serving evidence |
+| Request key | Stable identity for retrying an operation with identical inputs |
+| Operation receipt | Retained stages, events, identities and measured progress |
+| Heartbeat | Worker-aliveness observation, distinct from forward progress |
+| Forecast | Estimate with assumptions, evidence and unavailable components |
+| Recorded spend | Metered usage supported by receipts; not necessarily the entire provider invoice |
+
+Read [Working with a native coding agent](/explanation/native-agent) for how these concepts connect.

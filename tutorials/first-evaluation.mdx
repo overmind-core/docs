@@ -1,0 +1,32 @@
+---
+title: "Run your first evaluation"
+description: "Ask your agent to run a small check and explain the result."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+This lesson checks whether recorded answers use the expected fraud labels. It introduces evaluation with a deliberate failure, so you can see what a failed check looks like.
+
+## Before you begin
+
+Use [Prepare data](/how-to/prepare-data) to prepare the [fraud example dataset](/reference/example-dataset) in a separate tutorial project. A trained model is not required. This exercise checks answer format; it does not benchmark a trained fraud model. The platform may use its configured model to explain a low score.
+
+## Try it with your agent
+
+<AgentPrompt text="Use examples from this fraud dataset to teach me how evaluations work in Overmind: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Create a small label-format check with one deliberately invalid answer, run it, and explain the result." />
+
+Your agent prepares a separate exercise dataset, defines the check and follows the evaluation through completion.
+
+## Check the result
+
+Valid recorded answers use the labels `fraud` and `not_fraud`. An intentionally invalid answer, such as `unknown`, should fail that vocabulary check. The agent should show the evaluated answers, their scores and any errors or unscored rows.
+
+This verifies the answer format. A valid label can still be the wrong answer for a transaction. Measuring accuracy requires model predictions compared with separate reference labels on held-out examples.
+
+Keep the deliberately modified exercise separate from training and final assessment. Use a tutorial project because enabled project-wide checks can also participate in live scoring.
+
+## Continue in the same conversation
+
+<AgentPrompt text="Show me the failed example, the answer it contained and the rule it broke. Explain what this result tells us about answer format and what it cannot tell us about fraud accuracy." />
+
+Once you have a trained decision model, [compare it with Jev](/how-to/compare-decisions) on held-out transactions.
