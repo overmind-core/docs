@@ -703,6 +703,43 @@ body,
   color: var(--text-disabled);
 }
 
+/* Expandable groups are controls; their pages sit beneath an indented guide. */
+#navigation-items .sidebar-group li > button[aria-expanded] {
+  width: 100%;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px !important;
+  color: var(--text-2) !important;
+  clip-path: none;
+}
+
+#navigation-items .sidebar-group li > button[aria-expanded]:hover {
+  color: var(--text) !important;
+}
+
+#navigation-items .sidebar-group li > button[aria-expanded] svg {
+  width: 14px;
+  height: 14px;
+  color: var(--copper-400);
+}
+
+#navigation-items .sidebar-group li > button[aria-expanded="true"] {
+  color: var(--text) !important;
+}
+
+#navigation-items .sidebar-group li > button[aria-expanded] + ul {
+  margin: 2px 0 8px 8px;
+  padding-left: 10px;
+  border-left: 1px solid var(--stone-600);
+}
+
+@media (max-width: 1023px), (pointer: coarse) {
+  #navigation-items .sidebar-group li > button[aria-expanded] {
+    min-height: 44px;
+  }
+}
+
 /* ─── Content column ────────────────────────────────────────────────────── */
 
 #content-area {
