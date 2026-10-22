@@ -7,8 +7,6 @@ import { AgentPrompt } from "/snippets/agent-prompt.mdx";
 
 Successful training automatically starts deployment through the matching inference runtime. Start from the returned deployment ID and inspect its status. For an older successful job without a deployment, use `deploy_finetune`; deployment failure does not require retraining.
 
-## Try it with your agent
-
 Use the deployment returned by the completed job. For the fraud example, supply a transaction in the conversation. This smoke request uses the serving provider.
 
 <AgentPrompt text="Test our trained fraud model in Overmind on a few transactions and explain its predictions. Show me a working application request using the deployed model’s actual input and response format." />

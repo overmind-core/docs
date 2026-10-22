@@ -1,17 +1,19 @@
 ---
-title: "Train your first fraud model"
+title: "How to train a decision model"
 description: "Prepare data, train a decision model and benchmark its results with one prompt."
 ---
 
 import { AgentPrompt } from "/snippets/agent-prompt.mdx";
 
-Start with the [ecommerce fraud dataset](https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl): 10,000 synthetic transactions with a supplied fraud label. Your coding agent can take it through data preparation, model training and a benchmark in Overmind from one request.
+Train a decision model to return probabilities for a defined set of outcomes, then compare it with a baseline on held-out data. Your coding agent handles preparation, training and benchmarking from one request.
+
+This walkthrough uses the [ecommerce fraud dataset](https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl): 10,000 synthetic transactions with a supplied fraud label. Fraud detection is the worked example; the workflow also applies to other classification and routing tasks when you supply suitable data and target definitions.
+
+For generated text responses or tool calls, follow [How to fine-tune a language model](/tutorials/fine-tune-language-model).
 
 ## Before you begin
 
 [Connect your coding agent](/how-to/connect) and select a project for the tutorial. You do not need an application repository. This workflow includes training and benchmark inference, which can incur provider costs. Your agent explains the proposed model and expected cost before launch.
-
-## Try it with your agent
 
 <AgentPrompt text="Use Overmind to prepare this ecommerce fraud dataset, train a decision model, and benchmark its results on held-out data: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Show me how it compares with a baseline and where it makes mistakes." />
 

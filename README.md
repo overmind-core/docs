@@ -11,11 +11,13 @@ The site follows [Diátaxis](https://diataxis.fr/):
 - `reference/`: factual contracts, formats, commands and boundaries.
 - `explanation/`: concepts, rationale and relationships.
 
+The homepage introduces Overmind, its workflows and how to use it before directing readers to a task. Name workflow pages after the task or model type, not the example dataset or industry; keep use-case-specific detail inside the worked example. Dataset reference pages can name their source.
+
 A feature can appear in several forms, but each page has one purpose. Link to a contract instead of repeating a field catalogue in a tutorial. Keep release history and implementation audit notes out of the reader's task flow.
 
 ## Agent-first examples
 
-Lead with the outcome a user can ask their coding agent to achieve. Every public page includes a short, copyable request rendered with `AgentPrompt` from `snippets/agent-prompt.mdx`. Give prompts enough context to stand alone: the user’s task, source and desired result in a few concise sentences. Include the full Hugging Face URL when a prompt starts work from the example dataset; follow-up requests can refer to the existing work. Let the connected workflow handle implementation details. Tutorials use one main prompt, observable checkpoints and a known result; guides add prerequisites and execution boundaries; reference prompts inspect the relevant contract; explanation prompts help the user understand recorded evidence. Keep the four Diátaxis purposes distinct.
+Lead with the outcome a user can ask their coding agent to achieve. Every public page includes a short, copyable request rendered with `AgentPrompt` from `snippets/agent-prompt.mdx`. Place prompts in the page flow without a repeated “Try it with your agent” heading. Give prompts enough context to stand alone: the user’s task, source and desired result in a few concise sentences. Include the full Hugging Face URL when a prompt starts work from the example dataset; follow-up requests can refer to the existing work. Let the connected workflow handle implementation details. Tutorials use one main prompt, observable checkpoints and a known result; guides add prerequisites and execution boundaries; reference prompts inspect the relevant contract; explanation prompts help the user understand recorded evidence. Keep the four Diátaxis purposes distinct.
 
 Place detailed commands, tool names and schemas after the user-facing workflow. They explain what the agent does, rather than requiring the reader to orchestrate every call. Do not imply that MCP transports local bytes or replaces login, secret entry and unsupported administration controls. Native MCP prompts and copyable user requests are different things.
 

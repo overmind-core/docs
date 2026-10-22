@@ -1,48 +1,51 @@
 ---
-title: "Drive Overmind from your coding agent"
-description: "Describe the job. Your coding agent prepares data, investigates traces, evaluates changes and trains models through MCP."
+title: "Overmind overview"
+sidebarTitle: "Overview"
+description: "Understand your AI application, prepare data, evaluate changes and train models from your coding agent."
 ---
 
 import { AgentPrompt } from "/snippets/agent-prompt.mdx";
 
-Tell your coding agent what you want to achieve. With Overmind connected through MCP, it can inspect your project, prepare datasets, investigate failures, compare models, run training and help connect the result to your application—all from the same conversation.
+Overmind is a platform for building and improving AI applications and models. It brings together observability, data preparation, evaluation, model training and inference, so you can follow an improvement from the source data or observed failure through to a measured result.
 
-## Try it with your agent
+You can start with an existing application or a dataset and a task. Connect Overmind to your coding agent, describe what you want to achieve, and work through the results in the same conversation.
 
-[Connect Overmind](/how-to/connect), choose a project, then paste:
-
-<AgentPrompt text="Use Overmind to prepare this ecommerce fraud dataset, train a decision model, and benchmark its results on held-out data: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Show me how it compares with a baseline and where it makes mistakes." />
-
-Your agent takes the workflow from source data through preparation, training and benchmarking. You get a trained model and a comparison against a baseline on held-out examples. Follow [Train your first fraud model](/tutorials/first-dataset) for the full walkthrough. This request includes training and benchmark execution; the agent explains the proposed model and expected cost before launch.
-
-## Ask for the outcome
-
-| Your task | Example prompt | Guide |
-| --- | --- | --- |
-| Understand the application | “Map this repository's capabilities in Overmind.” | [Map an agent](/how-to/map-agent) |
-| Find a failure pattern | “Investigate this capability's failures over the last 24 hours and show the evidence.” | [Investigate](/how-to/investigate) |
-| Prepare data | “Turn these files into training examples and keep the preparation reproducible.” | [Prepare data](/how-to/prepare-data) |
-| Compare results | “Compare these two models on the same evaluation set and explain the regressions.” | [Evaluate](/how-to/evaluate) |
-| Improve the application | “Try two prompt changes against this eval set and show the best diff.” | [Optimise](/how-to/optimise) |
-| Train a model | “Train a fraud decision model on this dataset.” | [Train](/how-to/train) |
-| Follow a running job | “How is this training run doing, and what do its development checks show?” | [Monitor](/how-to/monitor-training) |
-| Use the trained result | “Test this deployment and show me how to call it from my app.” | [Serve](/how-to/serve) |
-
-A single request can span several steps. The agent carries the returned dataset, model and job identities forward, checks the results and reports the evidence. You do not need to construct each tool call yourself.
-
-## Two ways to start
-
-**Have data?** Start with files or a Hugging Face dataset and describe the prediction you want to make. Repository scans and capabilities are optional.
-
-**Have an application?** Open its repository in your coding environment. Ask the agent to map it, add tracing, investigate recorded behaviour and evaluate a change.
-
-MCP handles platform operations. Your agent also uses local files, the Overmind CLI and your application's tools. Initial login, secrets and client permissions still belong to their normal setup flows. The Console is available for visual inspection; it is not required for every step. [See how the interfaces work together](/explanation/native-agent).
-
-## Find the right kind of help
+## What you can do with Overmind
 
 <CardGroup cols={2}>
-  <Card title="Tutorials" href="/tutorials/index">Paste a prompt and follow a small lesson with a known result.</Card>
-  <Card title="How-to guides" href="/how-to/connect">Give your agent a concrete job and verify the outcome.</Card>
-  <Card title="Reference" href="/reference/mcp">Look up tool contracts, commands and data formats.</Card>
-  <Card title="Explanation" href="/explanation/native-agent">Understand how evidence, evaluations and model lifecycles fit together.</Card>
+  <Card title="Understand your application" href="/how-to/investigate">Map what your agent does, trace its executions, and investigate failures, quality, latency and model usage.</Card>
+  <Card title="Prepare data" href="/how-to/prepare-data">Turn files, datasets or recorded traces into reproducible training and evaluation inputs.</Card>
+  <Card title="Evaluate and improve" href="/how-to/evaluate">Measure outputs against explicit checks, compare models, and test prompt or code changes.</Card>
+  <Card title="Train and serve models" href="/how-to/train">Fine-tune language or decision models, benchmark their results, and call ready deployments from your application.</Card>
 </CardGroup>
+
+These workflows connect: a failure found in a trace can become an evaluation example, and a prepared dataset can support training and a held-out comparison. You can also use each workflow on its own.
+
+## How you use it
+
+Your **coding agent** is where you describe the task. Through **MCP**, it discovers your Overmind projects and uses the platform's tools to prepare data, run evaluations, launch training and inspect results. It also writes code and uses the CLI for local files and repository work.
+
+The **Overmind Console** gives you a visual view of the same project: datasets, traces, evaluations, training progress and deployments. Use it to inspect what the agent has created and follow running jobs.
+
+A single prompt can cover a complete workflow. The agent works out the steps, carries the project context forward and brings back the results or decisions that need your input. Overmind retains the data, recipes and run records so you can inspect or continue the work later.
+
+[Learn how the interfaces work together](/explanation/native-agent).
+
+## Get started
+
+1. **Connect your coding agent.** Paste the setup prompt below into your coding environment and follow the account and client setup steps.
+2. **Choose a project and starting point.** Bring a dataset and describe the output you need, or open your application's repository to work from its code and traces.
+3. **Ask for an outcome.** Request data preparation, an investigation, a model comparison or a training run. Your agent checks the proposed execution and expected cost before launching training.
+
+<AgentPrompt text="Read https://console.overmindlab.ai/setup.md and follow the instructions to set up Overmind in my coding agent." />
+
+The [connection guide](/how-to/connect) explains setup and verification. Once connected, choose a task:
+
+<CardGroup cols={2}>
+  <Card title="Train a decision model" href="/tutorials/first-dataset">Learn the full preparation, training and benchmarking workflow for predictions with typed probabilities.</Card>
+  <Card title="Fine-tune a language model" href="/tutorials/fine-tune-language-model">Train a model for text responses or tool calls using examples of the behaviour you want.</Card>
+  <Card title="Connect an application" href="/how-to/map-agent">Map a repository's capabilities, then add tracing and evaluate its behaviour.</Card>
+  <Card title="Explore the tutorials" href="/tutorials/index">Follow a worked example of training, tracing or evaluation.</Card>
+</CardGroup>
+
+For a specific task, use the how-to guides. Use [Reference](/reference/mcp) for tools and formats, or [Explanation](/explanation/native-agent) for the concepts behind the workflows.
