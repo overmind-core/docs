@@ -1,0 +1,46 @@
+---
+title: "Monitor training and inspect checkpoints"
+description: "Read saved progress, development checks and failed stages without starting more work."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use the job ID returned by training or explicit preparation. Read `get_job` and follow its operation resource; `inspect_training_progress` provides detailed development evidence.
+
+## Try it with your agent
+
+Use the job returned by [training](/how-to/train). In a new conversation, provide the job link or ID.
+
+<AgentPrompt text="Check our latest fraud-model training run in Overmind. Show its current stage, recent validation results and any failures or stalled progress, then explain what the recorded results tell us so far." />
+
+**What you get:** A report from stored progress and checks, without starting another job.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## Identify what is happening
+
+Read the current stage and its measured counters. Transfer, runtime initialisation, weight loading, adapter setup, tokenizer verification, dataset construction, training, validation and checkpoint verification can report separate progress.
+
+Compare three clocks:
+
+- **Observation:** when the platform last read a state.
+- **Heartbeat:** when the worker last reported being alive.
+- **Forward progress:** when the worker last advanced measured work.
+
+A fresh heartbeat alone does not establish that weight loading or an optimizer step advanced. Missing loader counters cannot produce a measured percentage.
+
+## Inspect development evidence
+
+Call `inspect_training_progress(job=...)` and follow the returned check or checkpoint identities. Use `check` for retained examples and `probe` for frozen sample identities. When an overview returns `collections`, pass its `field` JSON Pointer with `offset` and `limit` to retrieve the exact entries. `check`, `probe` and `field` are mutually exclusive inspection modes; send only one per call.
+
+Read loss, coverage, invalid predictions, check failures and checkpoint reload verification separately. For classification, inspect the majority-label comparison on the same scored subset. Missing predictions for a represented label are evidence to investigate; they are not a diagnosis of the cause.
+
+Detailed examples may still be collecting after a check completes. A pending evidence download does not mean the trainer is still running. Inspection reads stored receipts and does not wake a worker.
+
+## Decide whether to stop
+
+Use `cancel_finetune` to record cancellation intent before the provider request. Inspect acknowledgement and terminal state. Retained checks and checkpoints remain useful evidence even if training is cancelled.
+
+Do not assume that a reloadable adapter supports full optimizer continuation. Use only the recovery capabilities exposed by that job and runtime. If provider acknowledgement is unknown, inspect its saved call identity instead of launching another trainer.
+
+A completed training job can still have a failed deployment or incomplete final comparison. Report each outcome separately. See [Training reference](/reference/training) and [Recover interrupted work](/how-to/recover).

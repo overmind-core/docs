@@ -1724,3 +1724,99 @@ ul.toc .toc-item[data-active-deepest] > a {
 #search-input {
   font-family: var(--font-body);
 }
+
+
+/* Prompt window from the supplied Figma brand asset, node 1152:69298. */
+#content-area .om-prompt {
+  margin: 1rem 0;
+  border: 2px solid #000;
+  background: #fff;
+  color: #000;
+  min-width: 0;
+}
+#content-area .om-prompt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 3px 4px;
+  border-bottom: 2px solid #000;
+}
+#content-area .om-prompt-chrome {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 14px;
+  overflow: hidden;
+}
+#content-area .om-prompt-controls {
+  width: 230px;
+  height: 14px;
+  max-width: none;
+  flex: 0 0 230px;
+  margin: 0;
+}
+#content-area .om-prompt-stripes {
+  flex: 1;
+  width: 164px;
+  min-width: 0;
+  height: 14px;
+  margin: 0;
+}
+#content-area .om-prompt-copy {
+  min-height: 24px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  border: 2px solid #000;
+  background: #fff;
+  color: #000;
+  font: 500 14px var(--font-caption);
+}
+#content-area .om-prompt-copy:hover {
+  background: var(--stone-200);
+}
+#content-area .om-prompt-copy:active {
+  background: var(--stone-300);
+}
+#content-area .om-prompt-copy:focus-visible {
+  outline: 3px solid var(--copper-500);
+  outline-offset: 2px;
+}
+#content-area .om-prompt-body {
+  padding: 6px;
+}
+#content-area .om-prompt-frame {
+  border: 14px solid transparent;
+  border-image: url("/images/prompts/prompt-panel.png") 84 / 14px / 0 stretch;
+  background: var(--surface-2);
+  background-clip: padding-box;
+  padding: 6px;
+}
+#content-area p.om-prompt-text {
+  margin: 0;
+  color: #fff;
+  font: 400 16px / 1.75 var(--font-body);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  user-select: text;
+}
+#content-area .om-prompt-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+#content-area p.om-prompt-error {
+  margin: 0;
+  padding: 0 12px 12px;
+  font: 400 14px / 1.5 var(--font-body);
+  color: #000;
+}
+@media (pointer: coarse) {
+  #content-area .om-prompt-copy { min-height: 44px; }
+}

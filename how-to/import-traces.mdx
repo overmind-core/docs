@@ -1,0 +1,32 @@
+---
+title: "Import traces from another provider"
+description: "Inspect source boundaries, confirm capability mapping and import retained traces."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Overmind supports tracing connectors for Langfuse, LangSmith, Braintrust and Galileo. You need a destination project and read credentials for the source provider.
+
+## Try it with your agent
+
+Replace `Langfuse` with your supported provider. Enter provider credentials through the CLI or its secure configuration.
+
+<AgentPrompt text="Import the last 24 hours of traces from our Langfuse project into Overmind. Check the integration and show me what arrived, including any mapping gaps or import failures." />
+
+**What you get:** A reviewed mapping, an import receipt and evidence that the selected trace boundaries landed.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+1. Create the connector with `overmind connector add PROVIDER --project-id PROJECT_ID --json`, supplying the intended `--api-url`. Provider credentials come from environment variables or a terminal prompt. Alternatively, use Integrations in the Console. Do not paste provider keys into MCP calls.
+2. Call `inspect_connectors` with `include_source_projects=true` and select the source project or stream. Use its preview options when examining source observations.
+3. Inspect `suggested_boundaries`, alternatives, `unmapped_roots`, observation shapes and available capability mappings. The selected boundary names describe trace roots; selecting an ancestor drops nested child boundaries.
+4. Call `configure_connector` with the source, time range, proposed `capability_mapping` and explicit polling settings. Leave `confirm_mapping=false` to stage the proposal. Inspect the returned pending mapping and unmapped roots.
+5. Present that staged mapping to the human responsible for the application. After their reply, call `configure_connector` again with `confirm_mapping=true` to confirm the unchanged pending mapping. A first call that proposes a new mapping cannot also confirm it, even if the flag is true. Verify `mapping_pending=false`.
+6. Call `sync_connector` to queue the configured import. Follow its returned job and polling guidance rather than submitting another sync to refresh status.
+7. Inspect representative traces and capability attribution through the returned Console link or MCP trace resources. Check that the imported boundary captures the intended application input and output.
+
+If the source or mapping boundaries changed since the last import, sync can recarve existing connector spans. Inspect the returned `recarving` state and verify the result. Keep unmapped roots visible when the evidence does not support an assignment.
+
+Enable ongoing polling only when wanted. Disconnecting a connector keeps already imported traces. Counts and available history reflect the provider's retained data, which can change over time.
+
+See [CLI reference](/reference/cli#connectors) for credential environment variables and [Investigate a failure](/how-to/investigate) for the next step.

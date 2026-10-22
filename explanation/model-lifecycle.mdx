@@ -1,0 +1,37 @@
+---
+title: "Training, benchmarking and serving"
+description: "Why a trained artifact, a ready deployment and a live route are different states."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Training creates a model artifact from pinned data and a recorded recipe. Deployment prepares that artifact for its supported inference runtime. Evaluation measures task behaviour. Activation selects a verified chat deployment for an application alias.
+
+## Try it with your agent
+
+Ask this in the project conversation after creating the relevant [tutorial or workflow](/tutorials/index) results.
+
+<AgentPrompt text="Inspect our model in Overmind and explain whether it has finished training, has a ready deployment and is being called by the application. Show the evidence for each state and any remaining steps." />
+
+These states are related, but none substitutes for the others.
+
+| State | Evidence it provides |
+| --- | --- |
+| Prepared | Model-specific inputs were built and validated |
+| Trained | The recorded training attempt finished and retained its artifact |
+| Reload verified | Saved weights and required components can be loaded under the qualified contract |
+| Deployment ready | The runtime passed its readiness verification |
+| Worker warm | A worker is currently available or recent traffic establishes warmth |
+| Benchmarked | A comparison measured the artifact on its pinned evidence |
+| Active | A capability alias selects the deployment after activation verification |
+| Application connected | A successful application request reached that alias |
+
+Successful training automatically starts the matching chat or decision deployment. An unsuccessful deployment does not invalidate the fact that training finished, and a retry does not require repeating training.
+
+A capability's benchmark model is independent of its active serving model. Changing the benchmark default changes future comparisons; it does not reroute application traffic.
+
+Activation preserves the previous selection until the new deployment verifies. Workers can later scale down, so being active does not guarantee a permanently warm worker. A direct request to a pinned deployment does not prove the application uses the alias.
+
+Native decision artifacts include a decision head and probability contract. They deploy through that runtime, not the chat-completions contract.
+
+Costs also have distinct boundaries. A forecast is an estimate with assumptions and missing components; a worker receipt records measured usage; a ledger charge records metered spend. None should be presented as a complete provider invoice unless the evidence actually covers it.

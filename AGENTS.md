@@ -15,7 +15,7 @@ There is no CI, linter or formatter in this repo.
 
 ## Layout
 
-- Pages: `index.mdx`, `quickstart.mdx`, and the `tracing/`, `core/`, `agent-testing/`, `models/` and `platform/` folders.
+- Pages: `index.mdx` and the Diátaxis folders `tutorials/`, `how-to/`, `reference/` and `explanation/`. Every public page uses the shared `AgentPrompt` snippet; see README.md for authoring and validation.
 - `docs.json` holds the theme, navbar, footer, the navigation groups and the redirects. A new page is an `.mdx` file plus its extensionless path in a group's `pages`. A moved or renamed page also needs an entry in `redirects`.
 - `snippets/`: `ascii.jsx` (the `<Ascii>` diagram frame) and `model-catalog.jsx` (a hard-coded model table).
 - `images/`, `logo/`, `fonts/`: static assets. Screenshots go in `images/platform/` as `.jpg`.
@@ -28,7 +28,7 @@ There is no CI, linter or formatter in this repo.
 - Headings: `##` and `###`, sentence case. CLI sections may use the command as the heading (`` ## `overmind sync` ``).
 - British English: behaviour, optimise, licence, cancelled. Keep code identifiers and API names as they are (`optimizer`, `catalog`).
 - Second person, present tense. State the fact and stop: no marketing tone, no reassurance, no emojis. UI labels in **bold**, identifiers in `code`.
-- Links are root-absolute without the extension, with anchors where useful: `/core/observability#the-otlp-endpoint`.
+- Links are root-absolute without the extension, with anchors where useful: `/reference/otlp`.
 - Images: `<Frame caption="A full sentence.">` around `<img src="/images/platform/x.jpg" alt="Short noun phrase" />`.
 - Components in use: `Card` and `CardGroup cols={2}`, `Steps`/`Step`, `Tabs`/`Tab`, `CodeGroup` (with titled blocks such as `json Cursor (.cursor/mcp.json)`), `Note`, `Tip`, `Warning`, `Frame`. Prefer these over new ones.
 - Snippets are imported right after the frontmatter with an absolute path: `import { Ascii } from "/snippets/ascii.jsx";`.
@@ -40,13 +40,13 @@ The platform and SDK live in `overmind-core/overmind`, checked out at `../overmi
 
 | Page | Source in `../overmind` |
 | --- | --- |
-| `platform/cli.mdx` | `overmind/overmind/` (`__main__.py`, `init_cmd.py`, `sync.py`, `skills.py`) |
-| `platform/mcp.mdx` | `overbae/services/mcp/` and `overmind/skills/` |
-| `tracing/sdk-python.mdx` | `overmind/overmind/tracing.py`, `overmind/docs/tracing-attributes.md` |
-| `models/training.mdx`, `snippets/model-catalog.jsx` | `overbae/modal/models.json` |
-| `platform/self-hosting.mdx` | `.env.example`, `docker-compose.yml` |
-| `platform/api.mdx` | `overbae/urls.py` |
-| `platform/licensing.mdx` | the `LICENSE` files |
+| `reference/cli.mdx` | `overmind/overmind/` (`__main__.py`, `init_cmd.py`, `sync.py`, `skills.py`) |
+| `reference/mcp.mdx` | `overbae/services/mcp/` and `overmind/skills/` |
+| `reference/python-sdk.mdx` | `overmind/overmind/tracing.py`, `overmind/docs/tracing-attributes.md` |
+| `reference/training.mdx`, `snippets/model-catalog.jsx` | `overbae/modal/models.json` |
+| `how-to/self-host.mdx` | `.env.example`, `docker-compose.yml` |
+| `reference/api.mdx` | `overbae/urls.py` |
+| `reference/licensing.mdx` | the `LICENSE` files |
 
 ## Git
 

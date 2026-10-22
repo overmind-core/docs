@@ -1,0 +1,87 @@
+---
+title: "Training inputs, monitoring and receipts"
+description: "Exact preparation, frozen recipes, decision qualification and measured progress."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Inspect our fraud-model training run in Overmind. Explain the data versions, model and settings it used, then summarise its validation results and recorded costs, including anything still unmeasured." />
+
+## Input selection
+
+Training accepts a dataset and optional exact cell/version, capability, validation dataset/cell and evaluation dataset/cell. A capability is optional. Consumer inputs are pinned atomically so later Workshop changes cannot alter the job.
+
+Exact preparation uses the selected tokenizer, template and supervised targets. Invalid tool formatting, over-limit examples and missing supervised targets fail rather than silently truncate or discard rows. Preparation preserves ordered row fingerprints, duplicates and separate validation selection. Training reuses the verified token artifact.
+
+Explicit `prepare_training_data` creates the dashboard job before dispatching preprocessing. The job remains preparing, awaiting launch or preparation failed until a matching launch promotes it. Preparation alone does not enter GPU dispatch.
+
+## Recipe and launch identity
+
+`start_finetune` accepts `request_key`, `dataset`, `base_model`, optional exact cell selections and `hyperparameters`. Omission uses the supported planner; explicit settings constrain it. The effective optimizer `batch_size` is distinct from private worker microbatch implementation.
+
+The following is the launch `hyperparameters` object:
+
+```json
+{"training_type": {"type": "Lora"}}
+```
+
+Inside launch `hyperparameters`, `training_type` must be an object. The separate `prepare_training_data` tool instead accepts a top-level `training_type="lora"` or `"full"` string, plus a required `context_length`. Native decision full-weight training and unqualified packing are unavailable. Explicit unsupported settings are rejected, not silently clamped.
+
+Receipts bind inputs, recipe, provider intent and runtime release/environment. Reusing a launch key with the same recipe returns the same job; changing the recipe conflicts. Unknown provider acknowledgement is reconciled against saved metadata.
+
+## Chat benchmark selection
+
+| Field | Purpose |
+| --- | --- |
+| `baseline_model` | Run-specific benchmark; otherwise capability benchmark default or codebase incumbent |
+| `eval_incumbent_before` | Include the saved incumbent comparison target |
+| `eval_incumbent_after` | Include the saved incumbent after target |
+| `eval_model_before` | Include the untouched base target |
+| `eval_model_after` | Include the trained target |
+| `eval_judge_model` | Frozen low-score explanation judge for this job |
+
+Untouched-base and trained-model comparisons are the normal defaults; all four can be off. Selected chat comparisons require compatible eval data/checks. Training labels and live routing do not silently choose a benchmark.
+
+The before/after names identify model snapshots; consult the job's stages for actual execution timing. Final comparisons are distinct from development checks. Truncated/degraded output does not produce a trusted headline improvement.
+
+## Development monitoring
+
+Monitoring is frozen with readiness, preparation, estimates and launch. Supported schedules are adaptive, steps, epoch and off. Adaptive cadence uses measured optimization/check time, not quality-driven recipe changes.
+
+Manifest-bound samples and check identities remain inspectable. Development-loss selection and early stopping are explicit opt-ins. A reload-verified checkpoint is not proof of full optimizer resume.
+
+Generation probes support declared classification labels, exact matching, JSON Schema or `json_fields`. Field checks use 1–64 JSON Pointers, each at most 1,024 characters and 64 segments. Escape `/` as `~1` and `~` as `~0`; empty string selects the whole document. Arrays remain ordered and equality preserves types and numeric precision.
+
+Missing reference fields are unscorable; wrong/missing predictions fail. Field coverage and whole-example pass rates are separate. Field checks cannot combine with labels/schema in one probe. No tools execute during generation probes. Metered judges, independent challenge suites and declared-slice sampling are not part of this monitoring contract.
+
+`inspect_training_progress` accepts job, check/probe selection and pagination. Collection descriptors expose `field` JSON Pointers for large native metrics. The latest generated check remains visible independently of newer loss-only checks. Classification assessment compares the same scored subset with its majority-label baseline; inconsistent counts remain inconclusive.
+
+## Native decision qualification
+
+Clef uses the qualified single-GPU Modal LoRA path with Unsloth's decision runtime. D3 and D1 paths are catalogued but launch-disabled pending runtime qualification. Complete target distributions, option order, weights and mean-only ordinal supervision are preserved.
+
+`hyperparameters.pre_training_baseline` defaults to true. False skips only the initial development baseline; checkpoint and final validation remain.
+
+A successful artifact retains the adapter, full-precision decision head, tokenizer/configuration and manifest. Fresh-process verification checks reloaded components and probability behaviour. Successful training starts a matching decision deployment whose readiness requires a probability prediction. Chat benchmarking and serving remain separate.
+
+`start_decision_job` requires a stable request key and rejects chat `capability`, `eval_set`, `baseline_model` and `group_id` selections. Native training uses its own probability validation; keep the four chat evaluation flags false and use a separate native comparison for the held-out benchmark.
+
+`DecisionJob` provides a public decision-job ID over the shared training lifecycle. Receipts can return both it and the FinetuningJob ID; these do not identify two independent trainers.
+
+## Experiments and profiles
+
+`create_training_experiment` saves explicit variants, purpose and optional training-plan/comparison bindings. `prepare_training_experiment` builds a configuration-bound forecast; `launch_training_experiment` launches the reviewed set.
+
+A runtime profile is bounded to 1–128 optimizer steps and 60–3,600 seconds per provider attempt, without automatic provider retries. It measures execution, not model quality. Evidence-linked quality pilots use separate plan/stage and development-selection rules.
+
+Native training attempts retain the provider's 24-hour function timeout. `runtime_limit_seconds` is not a complete invoice cap. Optional planning constraints bind a reviewed quote; missing charges and unmeasured components remain explicit.
+
+## Progress and costs
+
+Stages can report selected rows, acknowledged transfer bytes, provider materialization, tokenization, dataset construction, optimization and verification. Acknowledged file bytes are not live network throughput. Stage, observation, heartbeat and forward-progress times are distinct.
+
+Forecasts use live rate snapshots and compatible completed measurements where available. A GPU rate can be known while duration and total remain unquoted. Recorded usage, ledger charges and estimated unreported components remain separate; unknown cost is not zero.

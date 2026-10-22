@@ -12,3 +12,7 @@ sources/
 # Agent instructions (not documentation pages)
 AGENTS.md
 CLAUDE.md
+
+# Maintainer analysis and verification
+docs-audit.md
+docs-fact-check.md

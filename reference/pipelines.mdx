@@ -1,0 +1,85 @@
+---
+title: "Retained transformation packages"
+description: "Revision identity, execution, branching, validation and publication contracts."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+A new Dataset Pipeline revision requires a retained Python package. Saving a revision does not execute it. Inline operation definitions and execution of package-free historical revisions are not supported.
+
+## Try it with your agent
+
+Use this after the relevant [tutorial](/tutorials/index), or substitute a resource from your own project.
+
+<AgentPrompt text="Show how our fraud dataset was prepared in Overmind. Walk through the saved transformation steps, the run that produced the current version and the validation results recorded for that output." />
+
+## Package and revision
+
+A package contains `manifest.json` and its Python files. The manifest pins version `1`, the deployment-advertised immutable `sha256:…` runtime, ordered steps, parameter schema and execution limits. Read the exact manifest and script I/O contract from `overmind://dataset-upload`; runtime hashes are deployment-specific.
+
+Upload with `overmind dataset pipeline-upload`, then pass its package UUID to `save_dataset_pipeline`.
+
+| Field | Meaning |
+| --- | --- |
+| `name` | Revision name |
+| `request_key` | Stable save identity |
+| `package` | Required retained package UUID |
+| `dataset` | Optional association with the preparation |
+| `pipeline` | Existing recipe family when saving a new revision |
+| `expected_revision` | Optimistic concurrency check for a family update |
+| `derived_from` | Attribution for a variant derived from another revision |
+
+Returned `pipeline_id` identifies the family; returned `id` identifies the exact revision. A stale family update reports `revision_conflict`. An old save retry does not reset a newer preparation association.
+
+## Steps and flow
+
+Packages contain 1–20 meaningful script stages. Each entrypoint exposes its substantive transformation; shared helpers hold reusable utilities. Retained-file inspection verifies checksums and pages full source with `file`, `offset`, `limit` and `next_offset`.
+
+A step can declare:
+
+- `id` and `input` naming `source` or an earlier step.
+- `inputs` for ordered concatenation of disjoint earlier branches.
+- `condition` with an expression and entrypoint line describing agent-authored routing.
+- Column and row requirements, including the final consumer contract.
+- `batch_rows` for independent row-wise work.
+
+Repeated input dependencies form forks. Conditions are declarations; scripts perform selection, and all steps execute, including empty branches. Fan-in rejects overlapping row identities and incompatible nonempty schemas rather than silently deduplicating or coercing them. It is concatenation, not a relational key join.
+
+The returned `flow` records nodes, edges, conditions and output. `flow.unconsumed_steps` identifies branches outside the final result. A declared graph does not prove that branches are complete or mutually exclusive.
+
+## Execution request
+
+`run_dataset_pipeline` takes `dataset`, exact `pipeline` revision, `source_cell`, `source_fingerprint`, `request_key`, optional `parameters` and `mode`.
+
+| Mode | Result |
+| --- | --- |
+| `preview` | Bounded samples/checks retained; no cells published |
+| `publish` | Successful step outputs appended atomically |
+
+`preview_rows` defaults to 100 and is bounded from 1 to 1,000. A preview samples a prefix, not guaranteed coverage of all source families. Absolute `min_rows`/`max_rows` requirements remain deferred until publication; schema, lineage and row-preservation checks apply to both modes.
+
+`validate_dataset_pipeline` performs retained-code and declared-source checks without execution. Runtime execution occurs in the isolated approved container, without platform credentials, host mounts or outbound network.
+
+## Batching and limits
+
+For row-independent work, `batch_rows` accepts 1–100,000. Batches run separately and concatenate in source order. Each expanded JSONL input/output must fit half the declared `scratch_mb`, and each batch has the declared time limit.
+
+Global sorting, grouping, splitting and deduplication must not use this batching contract. Combined-output row checks and atomic publication still apply; a failed batch publishes no partial cells.
+
+## Receipts and recovery
+
+`get_job(kind="dataset_pipeline", id=RUN_ID)` reads one run. Receipts retain exact input/output cells and fingerprints, revision/package, execution state, stages, queue age, measured counts, checks, attribution and publication outcome. `evidence_resource` links full preview/row evidence.
+
+A failed or cancelled run preserves prior successful sources and consumers. Cancellation prevents publication without claiming remote termination. Interrupted/expired execution is not automatically replayed. Controller recovery fences lost work and cleans owned containers before accepting another execution.
+
+## Bindings
+
+Bindings pin a revision, parameters, source, destination and explicit limits. They start paused. `set_dataset_pipeline_binding_state` enables or pauses them with `expected_version`; `run_dataset_pipeline_binding` processes one saved snapshot without enabling ongoing processing.
+
+Processing uses bounded full snapshots, including late updates and removed matches. A successful unchanged snapshot is a no-op. Checkpoints commit with publication. Trace snapshots above 10,000 traces fail rather than truncate. Revision adoption requires an explicit rebuild.
+
+## External imports
+
+`import_dataset_version` accepts at most 2,000 inline rows/4 MiB, or a project-owned `artifact_cell` and fingerprint for larger results. Bind the original source and preserve `source_row` or declare every contributing `_overmind_parent_rows` identity.
+
+The receipt records external producer attribution and validates lineage. It does not independently verify external execution or inherit human-review claims from the source. See [Prepare data](/how-to/prepare-data).

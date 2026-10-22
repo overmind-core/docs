@@ -1,0 +1,79 @@
+---
+title: "Deployment configuration"
+description: "Server settings and operating boundaries for self-hosted Overmind."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+This reference is for operators deploying the open-source platform. Overmind Cloud users can [connect their coding agent](/how-to/connect) without configuring these services.
+
+The platform repository's `.env.example`, `overbae/settings.py`, `docker-compose.yml` and `frontend/.env.example` define the current deployment contract. Set secrets through protected configuration; do not commit filled environment files.
+
+## Try it with your agent
+
+Use this in your platform checkout when [self-hosting Overmind](/how-to/self-host).
+
+<AgentPrompt text="Review the configuration for my self-hosted Overmind deployment. Check the required services, authentication and public URLs, and explain anything missing without displaying secret values." />
+
+## Local development endpoints
+
+These addresses apply when running the platform locally with Compose. A remote self-hosted deployment uses its configured addresses.
+
+| Service | Default |
+| --- | --- |
+| API | `http://localhost:8000` |
+| MCP | `http://localhost:8000/api/mcp/` |
+| Console | `http://localhost:5173` |
+
+## Required configuration
+
+Current API startup validation requires values for the following services, even if your first task does not launch training:
+
+| Variables | Purpose |
+| --- | --- |
+| `SANDBOX_URL`, `SANDBOX_TOKEN` | Isolated document and retained-package runtime |
+| `OPENROUTER_API_KEY` | Routed model operations |
+| `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET` | Provider training/serving access |
+| `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Deployed serving endpoint and shared secret |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME` | Checkpoint archive |
+| `HF_TOKEN` | Required base-model access |
+
+`FINETUNING_BACKEND` must be `modal`. Set `MODAL_ENVIRONMENT` explicitly and deploy the immutable worker releases expected by the API. Local hot reload does not deploy changed provider code.
+
+## Identity and URLs
+
+| Variable | Purpose |
+| --- | --- |
+| `DJANGO_SECRET_KEY` | Signing secret |
+| `DJANGO_DEBUG` | Development mode |
+| `DJANGO_ALLOWED_HOSTS` | Accepted API hosts |
+| `DJANGO_CORS_ALLOWED_ORIGINS` | Allowed Console origins |
+| `FIELD_ENCRYPTION_KEY` | Encryption of stored connector credentials |
+| `FRONTEND_URL` | Console links returned by the platform |
+| `MCP_SERVER_URL` | Canonical MCP URL and OAuth resource identity |
+| `CLERK_API_SECRET_KEY` | Hosted sign-in; blank selects local auth configuration |
+| `VITE_API_BASE_URL` | Frontend API destination |
+| `VITE_SELF_HOSTED` | Local Console email/password mode |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Hosted frontend sign-in; blank for local auth |
+
+Local frontend overrides belong in `.env.development.local`; the repository's environment-specific files take precedence over a generic `.env`.
+
+## Workers and sandbox
+
+Compose has six Celery worker/queue profiles: `control`, `io`, `io_traces`, `batch`, `landing` and `interactive`. Trace scoring is isolated from file landing and interactive preparation. Waiting jobs do not imply that their execution attempt has started.
+
+Document parsing and retained Python packages execute through the isolated sandbox. It has no platform credentials, shared application media mount or outbound network. The landing worker streams retained bytes and receives progress; unavailable parsing does not fall back to application-process execution.
+
+`WORKSHOP_PROJECT_CONCURRENCY` bounds per-project interactive execution. Shared admission and observed capacity govern landing. Do not change queue topology merely to clear a slow job without understanding its resource limits.
+
+## Model pacing and analytics
+
+`JEV_REQUESTS_PER_MINUTE` and `JEV_TOKENS_PER_SECOND` control account-wide pacing through shared capacity. Configuration failure is a technical scoring error, not permission to substitute a generative judge.
+
+`POSTHOG_PROJECT_TOKEN` enables optional server product analytics according to deployment settings. Local analytics remains off unless configured. Training evidence is retained independently of analytics delivery.
+
+## Metering and billing
+
+With `STRIPE_SECRET_KEY` configured, remaining-credit and seat/plan controls apply. Without it, usage can still be metered without the remaining-credit gate. Native coding-agent usage belongs to its external environment; model evaluations, training and serving have their own execution costs.
+
+Published rates, worker measurements and recorded ledger charges have different scopes. A local API address or a missing platform credit gate is not a promise of free provider execution.

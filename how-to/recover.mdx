@@ -1,0 +1,44 @@
+---
+title: "Recover interrupted work"
+description: "Resume from receipts without duplicating uploads, transformations or provider calls."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Start with the last returned job or request key. Read its current state before submitting anything else.
+
+## Try it with your agent
+
+Provide the last job link, ID or saved receipt if this is a new conversation.
+
+<AgentPrompt text="Check the interrupted Overmind job from our last session. Explain what completed, what is still running and whether it can safely resume, then continue using the recorded recovery path where available." />
+
+**What you get:** An evidence-based recovery of the existing work and its resulting state.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+| Situation | Next action | What to verify |
+| --- | --- | --- |
+| Upload disconnected | Repeat the identical CLI upload command | Same ordered files, destination and request key; recorded byte offset |
+| Bytes published but landing incomplete | Read `get_job(kind="dataset_run")` | Extraction stage, failure details and explicit import recovery action |
+| Source import lost its started worker | Inspect, then use `resume_dataset_import` where offered | Fenced attempt and retained source; do not start an unrelated upload |
+| Pipeline failed or expired | Inspect its exact receipt and retained code before a new run | No partial cells published; new execution needs a new request identity |
+| Pipeline request response was lost | Retry the identical request key and inputs | Existing receipt, not another execution |
+| Training launch response was lost | Retry the same launch request key and recipe | Existing job and any saved provider call |
+| Native comparison paused | Inspect then `resume_native_evaluation` | Exact stage; native collection requires its recorded call ID |
+| Deployment failed | Inspect then `retry_deployment` | Successful training artifact retained; no retraining |
+| MCP inference disconnected | Read the existing `inference_request` or retry its identical key | Same receipt and result, including unknown acknowledgement |
+
+## Read state at the right layer
+
+`dataset_transfer` reports byte transfer and publication. `dataset_run` reports landing. `dataset_pipeline` reports transformation execution. Completing one does not complete the others.
+
+Follow `poll_after_seconds` or the returned polling guidance while work is active. A queue wait does not prove a worker is stuck. Read terminal receipts once and follow their next actions rather than continuing to poll indefinitely.
+
+An observation timeout does not establish remote cancellation. If a provider might have accepted a request, use its saved identity for reconciliation. Do not infer from a disconnected client that paid work never started.
+
+## Cancel with the owning control
+
+Use the exact pipeline-run cancellation for a transformation, `cancel_dataset` for its supported dataset work, and `cancel_finetune` for training. Cancellation can prevent publication or record provider intent without instantly terminating remote computation.
+
+After recovery, verify the output and its identities before declaring success. Preserve previous successful versions and frozen consumer inputs.

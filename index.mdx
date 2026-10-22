@@ -1,116 +1,48 @@
 ---
-title: "Introduction"
-description: "Overmind improves production AI agents with their own data: traces in; datasets, evals, optimisation runs and trained models out."
+title: "Drive Overmind from your coding agent"
+description: "Describe the job. Your coding agent prepares data, investigates traces, evaluates changes and trains models through MCP."
 ---
 
-import { Ascii } from "/snippets/ascii.jsx";
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
 
-<Ascii
-  lines={[
-    "╔═ Overmind ════════════════════════════════════════════════════════════════════════════╗",
-    "║    ╔═════════════════════╗    ╔═══════════════════════════╗                           ║",
-    "║ ┌─▶║     OTLP ingest     ╟───▶║     Spans in Postgres     ║                           ║",
-    "║ │  ║ POST /api/v1/traces ║    ║ scored per task execution ║                           ║",
-    "║ │  ╚═════════════════════╝    ╚═════════════╤═════════════╝                           ║",
-    "║ │             ┌─────────────────────────────┘                                         ║",
-    "║ │             ▼                                                                       ║",
-    "║ │  ╔═════════════════════╗    ╔══════════════════════╗   ╔═════════════════════════╗  ║",
-    "║ │  ║       Datasets      ╟─┬─▶║      Eval runs       ╟──▶║        Optimiser        ╟┐ ║",
-    "║ │  ║ curated from traces ║ │  ║ variants vs baseline ║   ║ diffs replayed + scored ║│ ║",
-    "║ │  ╚═════════════════════╝ │  ╚══════════════════════╝   ╚═════════════════════════╝│ ║",
-    "║ │                          │                                                        │ ║",
-    "║ │                          │  ╔════════════════════╗     ╔═══════════════════════╗  │ ║",
-    "║ │                          └─▶║      Training      ╟────▶║       Inference       ╟─┐│ ║",
-    "║ │                             ║ models vs baseline ║     ║ OpenAI-compatible API ║ ││ ║",
-    "║ │                             ╚════════════════════╝     ╚═══════════════════════╝ ││ ║",
-    "║ │ OTLP                                                                             ││ ║",
-    "╚═╪══════════════════════════════════════════════════════════════════════════════════╪╪═╝",
-    "  │                                                                                  ││  ",
-    "╔═╨════════════════════╗                                                             ││  ",
-    "║      Your agent      ║◀───────────────────────────traced───────────────────────────┘│  ",
-    "║ SDK or OTel exporter ║◀──────────────────────────best diff──────────────────────────┘  ",
-    "╚══════════════════════╝                                                                 ",
-  ]}
-/>
+Tell your coding agent what you want to achieve. With Overmind connected through MCP, it can inspect your project, prepare datasets, investigate failures, compare models, run training and help connect the result to your application—all from the same conversation.
 
-Overmind ingests OpenTelemetry traces, scores them as they arrive and turns them into datasets. Those datasets drive evals, optimisation runs and training runs, and every result is benchmarked against the agent you ship today.
+## Try it with your agent
 
-Use the [hosted Console](https://console.overmindlab.ai) or [self-host](/platform/self-hosting) the same code with Docker Compose. The platform is AGPL-3.0 and the SDK is MIT; see [Licensing](/platform/licensing).
+[Connect Overmind](/how-to/connect), choose a project, then paste:
 
-Everything speaks standard protocols: OTLP/HTTP for ingest, REST JSON for the API, [MCP](/platform/mcp) for coding agents and OpenAI-compatible serving for models. The Python SDK instruments OpenAI, Anthropic, Gemini, Agno and LangChain, and any OpenTelemetry exporter can send to the same endpoint.
+<AgentPrompt text="Use Overmind to prepare this ecommerce fraud dataset, train a decision model, and benchmark its results on held-out data: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Show me how it compares with a baseline and where it makes mistakes." />
 
-What Overmind does:
+Your agent takes the workflow from source data through preparation, training and benchmarking. You get a trained model and a comparison against a baseline on held-out examples. Follow [Train your first fraud model](/tutorials/first-dataset) for the full walkthrough. This request includes training and benchmark execution; the agent explains the proposed model and expected cost before launch.
 
-- [Capability scan](/core/capabilities): your coding agent maps the repository into capabilities
-- [Live scoring](/agent-testing/trace-scoring): every trace is carved into task executions and judged against the capability's eval set
-- [Datasets](/core/datasets): traces and files become eval and training data, shaped by scripts your coding agent runs in the sandbox
-- [Decision models](/models/decision-models): small models trained from decision rows that return a probability for every option
-- [Eval](/agent-testing/eval): variants measured against a baseline with typed scores
-- [Optimiser](/agent-testing/optimisers): candidate code changes replayed in your repository and scored; the winning diff is yours to apply
-- [Training](/models/training): fine-tuned models you own, trained from your data
-- [Inference](/models/inference): an OpenAI-compatible API for your trained models and frontier models
-- [MCP](/platform/mcp) and [CLI](/platform/cli): the same workflows from Cursor, Claude Code, OpenCode or Codex
+## Ask for the outcome
 
-## Guides
+| Your task | Example prompt | Guide |
+| --- | --- | --- |
+| Understand the application | “Map this repository's capabilities in Overmind.” | [Map an agent](/how-to/map-agent) |
+| Find a failure pattern | “Investigate this capability's failures over the last 24 hours and show the evidence.” | [Investigate](/how-to/investigate) |
+| Prepare data | “Turn these files into training examples and keep the preparation reproducible.” | [Prepare data](/how-to/prepare-data) |
+| Compare results | “Compare these two models on the same evaluation set and explain the regressions.” | [Evaluate](/how-to/evaluate) |
+| Improve the application | “Try two prompt changes against this eval set and show the best diff.” | [Optimise](/how-to/optimise) |
+| Train a model | “Train a fraud decision model on this dataset.” | [Train](/how-to/train) |
+| Follow a running job | “How is this training run doing, and what do its development checks show?” | [Monitor](/how-to/monitor-training) |
+| Use the trained result | “Test this deployment and show me how to call it from my app.” | [Serve](/how-to/serve) |
+
+A single request can span several steps. The agent carries the returned dataset, model and job identities forward, checks the results and reports the evidence. You do not need to construct each tool call yourself.
+
+## Two ways to start
+
+**Have data?** Start with files or a Hugging Face dataset and describe the prediction you want to make. Repository scans and capabilities are optional.
+
+**Have an application?** Open its repository in your coding environment. Ask the agent to map it, add tracing, investigate recorded behaviour and evaluate a change.
+
+MCP handles platform operations. Your agent also uses local files, the Overmind CLI and your application's tools. Initial login, secrets and client permissions still belong to their normal setup flows. The Console is available for visual inspection; it is not required for every step. [See how the interfaces work together](/explanation/native-agent).
+
+## Find the right kind of help
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" href="/quickstart">
-    One pasted prompt: SDK, MCP, capability scan, first trace.
-  </Card>
-
-  <Card title="Self-hosting" href="/platform/self-hosting">
-    Docker Compose, the environment reference, backends and billing modes.
-  </Card>
-
-  <Card title="Observability" href="/core/observability">
-    OTLP ingest, span model, attribute mapping, the executions view.
-  </Card>
-
-  <Card title="Python SDK" href="/tracing/sdk-python">
-    `init()`, the run boundary, decorators, tasks, runtime expectations.
-  </Card>
-
-  <Card title="Agent & Capabilities" href="/core/capabilities">
-    Local discovery, `overmind sync`, tasks, telemetry attribution.
-  </Card>
-
-  <Card title="Datasets" href="/core/datasets">
-    Sources, documents, versions from your agent, contracts.
-  </Card>
-
-  <Card title="Eval" href="/agent-testing/eval">
-    Evaluator kinds, claims, task bindings, eval runs.
-  </Card>
-
-  <Card title="Trace scoring" href="/agent-testing/trace-scoring">
-    Units, tasks, verdicts, execution and session scores.
-  </Card>
-
-  <Card title="Optimisers" href="/agent-testing/optimisers">
-    The client-driven loop, harness and backtesting modes, the winning diff.
-  </Card>
-
-  <Card title="MCP" href="/platform/mcp">
-    Setup per coding agent, the tool catalog, prompts, resources.
-  </Card>
-</CardGroup>
-
-## Models & API
-
-<CardGroup cols={2}>
-  <Card title="Models" href="/models/training">
-    Runs, the model catalog, loss curves, the baseline benchmark.
-  </Card>
-
-  <Card title="Inference" href="/models/inference">
-    Serving lifecycle, the capability alias, `/api/v1/chat/completions`.
-  </Card>
-
-  <Card title="REST API" href="/platform/api">
-    Auth, endpoint map, conventions, Swagger.
-  </Card>
-
-  <Card title="CLI" href="/platform/cli">
-    `overmind init`, `sync`, `dataset`, `connector`, `optimise`, `backtest`, `finetune`, `model`, `skills`.
-  </Card>
+  <Card title="Tutorials" href="/tutorials/index">Paste a prompt and follow a small lesson with a known result.</Card>
+  <Card title="How-to guides" href="/how-to/connect">Give your agent a concrete job and verify the outcome.</Card>
+  <Card title="Reference" href="/reference/mcp">Look up tool contracts, commands and data formats.</Card>
+  <Card title="Explanation" href="/explanation/native-agent">Understand how evidence, evaluations and model lifecycles fit together.</Card>
 </CardGroup>

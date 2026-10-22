@@ -1,0 +1,72 @@
+---
+title: "Connect your coding agent"
+description: "Connect MCP and local file transfer to the same account, project and deployment."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Connect your coding agent to your Overmind account to use platform tools and upload files from your coding environment. These steps use Overmind Cloud; you do not need to deploy the platform.
+
+## Try it with your agent
+
+Give your agent the [Overmind quick-start instructions](https://console.overmindlab.ai/setup.md). It follows the setup for your coding environment; complete login or credential entry when needed.
+
+<AgentPrompt text="Read https://console.overmindlab.ai/setup.md and follow the instructions to set up Overmind in my coding agent." />
+
+**What you get:** A verified account connection and project, with MCP and file upload access checked.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## 1. Establish the MCP connection
+
+The [quick-start instructions](https://console.overmindlab.ai/setup.md) cover MCP configuration, the Python package and client setup. The Overmind Cloud MCP endpoint is `https://api.overmindlab.ai/api/mcp/`.
+
+For a repository, install the CLI and initialise your client:
+
+```bash
+uv tool install overmind
+overmind init --ide codex --api-url https://api.overmindlab.ai
+```
+
+Replace `codex` with `cursor`, `claude` or `opencode` as appropriate. `init` installs skills and client configuration; it does not by itself prove authentication or a completed repository scan.
+
+Authenticate with your Overmind account through the supported account connection or API key. Keep credentials in the client's protected configuration, not in prompts or committed files. Reload the client after changing MCP configuration.
+
+## 2. Verify the destination
+
+Ask the connected agent to call `list_projects`. Check `connection.mcp_url`, choose the intended project and keep its UUID. Account connections supply `project_id` on every project operation. IDs from another deployment cannot identify this project's resources.
+
+Read `overmind://interface/current` for the connected contract and catalogue fingerprint. Refresh the client's tool list when it has cached an older schema.
+
+## 3. Configure and check file transfer
+
+MCP authentication does not automatically give the CLI access to local bytes. With an authorized account key already available locally, configure the endpoint-bound account connection:
+
+```bash
+overmind connection configure \
+  --api-url https://api.overmindlab.ai --project-id PROJECT_ID --json
+
+overmind connection check \
+  --api-url https://api.overmindlab.ai --project-id PROJECT_ID --json
+```
+
+Configuration can update global Codex MCP and the account transfer connection; reload that client if changed. It does not globally select a project or grant host network permission.
+
+Run the check from the directory and execution environment that will upload files. For repository-free work, also check from an empty directory without injecting an alternate credential. A workspace's configuration may otherwise hide a broken account connection.
+
+## 4. Choose the next task
+
+For a dataset-to-model workflow, begin [Train your first fraud model](/tutorials/first-dataset). For an application repository, [map its capabilities](/how-to/map-agent). Data-first projects can proceed without a scan.
+
+## Using a self-hosted deployment
+
+If you run the open-source platform yourself, use the API address of that installation in place of the Cloud URL throughout this guide. Its MCP endpoint ends in `/api/mcp/`. Follow [Self-host Overmind](/how-to/self-host) for deployment instructions and [Deployment configuration](/reference/configuration) for server settings.
+
+## If connection fails
+
+- **Wrong endpoint:** correct the connection to the intended deployment before sending its credentials. Do not reuse a credential against a different address.
+- **MCP works, upload fails:** check the CLI's resolved account connection and project scope.
+- **Sandbox network denial:** request scoped host network permission in the coding environment, then repeat the same connection check.
+- **Missing tool:** refresh the catalogue and inspect the connected contract before concluding that a feature is unavailable.
+
+See [MCP reference](/reference/mcp) and [CLI reference](/reference/cli) for authentication and command details.

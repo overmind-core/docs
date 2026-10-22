@@ -1,0 +1,78 @@
+---
+title: "Self-host Overmind"
+description: "Configure the local Compose deployment and its external provider dependencies."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+This guide starts a new local development deployment from the platform repository. If it is already running, inspect its configuration and health instead of starting a second stack.
+
+## Try it with your agent
+
+Run this from the platform checkout with Docker available. Self-hosting uses local shell and configuration work before MCP can connect.
+
+<AgentPrompt text="Set up Overmind locally from this checkout and connect my coding agent to it. Verify the services and connection, then show me how to open the local Console and start using a project." />
+
+**What you get:** A checked local stack and an agent connection to the intended deployment.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## 1. Prepare the configuration
+
+Install Docker with Compose and clone the repository:
+
+```bash
+git clone https://github.com/overmind-core/overmind.git
+cd overmind
+cp .env.example .env
+```
+
+Fill in the required values described in [Configuration reference](/reference/configuration). Current startup validation requires the model provider, Modal training/serving, checkpoint archive and sandbox configuration. The supported training backend is Modal.
+
+A local API does not imply local GPU execution. Deploy and configure the required provider workers before launching provider-backed features; inspect their execution and cost settings.
+
+Keep `CLERK_API_SECRET_KEY` blank for local email/password login. Configure the frontend overrides:
+
+```bash
+cp frontend/.env.example frontend/.env.development.local
+```
+
+Check `VITE_API_BASE_URL=http://localhost:8000`, `VITE_SELF_HOSTED=true` and a blank `VITE_CLERK_PUBLISHABLE_KEY`.
+
+## 2. Start and check the stack
+
+```bash
+docker compose up -d --build
+docker compose ps
+curl --fail http://localhost:8000/health
+```
+
+Compose includes the API, frontend, Postgres, Redis, six Celery worker profiles, beat, the isolated sandbox and Grafana. The frontend is served at [localhost:5173](http://localhost:5173); a separate frontend development server is not required for this Compose setup.
+
+If a service fails, inspect its logs, for example:
+
+```bash
+docker compose logs --tail=100 api
+```
+
+Fix the named configuration or dependency failure before proceeding.
+
+## 3. Create a local account and connect
+
+Open the local Console and sign in with an email and password. Local login creates an account on first use without email verification. Create a project and establish an API-key connection for your coding environment.
+
+Configure your client for this local deployment:
+
+```bash
+overmind init --ide codex --api-url http://localhost:8000
+```
+
+Replace `codex` with your supported client. Use `http://localhost:8000/api/mcp/` as its MCP endpoint and authenticate against this installation. Check the endpoint returned by `list_projects` and keep `--api-url http://localhost:8000` explicit on sync and transfer commands.
+
+Use the [connection checks](/how-to/connect) to verify MCP and local file transfer access. Do not launch training merely to test connectivity.
+
+## Operate and update
+
+Retain persistent database and source storage, back up before migrations, and deploy the worker releases required by the API. Running jobs retain their pinned runtime; changing local source does not change an already deployed provider worker.
+
+The platform repository's `AGENTS.md`, `.env.example` and deployment files are the operational source of truth. Its [licensing guide](https://github.com/overmind-core/overmind/blob/main/LICENSING.md) describes the AGPL platform and MIT SDK scope.

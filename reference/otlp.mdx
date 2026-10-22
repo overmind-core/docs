@@ -1,0 +1,49 @@
+---
+title: "OTLP traces and attributes"
+description: "The trace ingest protocol and identity fields."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Check this application’s OpenTelemetry configuration for sending traces to Overmind. Explain the endpoint, authentication and capability mapping it uses, and identify anything missing from the setup." />
+
+| Field | Contract |
+| --- | --- |
+| Endpoint | `POST /api/v1/traces` |
+| Transport | OTLP/HTTP protobuf |
+| Content type | `application/x-protobuf` |
+| Compression | Gzip supported |
+| Authentication | Project/account API key in a supported header |
+| Root | Span with no parent; spans sharing a `trace_id` form a trace |
+
+There is no JavaScript tracing SDK in the current platform. Use an OpenTelemetry exporter in JavaScript/TypeScript or any other supported language.
+
+An explicit `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` includes the complete path. A generic exporter base endpoint may append its own `/v1/traces`; verify the actual request path instead of appending twice.
+
+## Identity and evidence
+
+| Attribute | Purpose |
+| --- | --- |
+| `overmind.capability.id` | The capability binding: known UUID or slug |
+| `overmind.capability.name` | Display label; does not bind |
+| `overmind.project.id` | Project attribution when required by the credential |
+| `overmind.span.type` | `entry_point`, `workflow`, `tool_call`, `function`, `llm_call`, `retrieval` |
+| `conversation.id` | Group related traces into a session |
+| `service.name` | Emitting service |
+| `code.namespace`, `code.function.name` | Source function identity |
+| `vcs.ref.head.revision` | Emitting revision |
+| `inputs`, `outputs` | Captured operation evidence where supplied by the SDK |
+| `overmind.unit_kind` | Run/turn metadata |
+| `overmind.delivery` | Delivered-result metadata |
+
+The ingest path also normalizes supported GenAI, OpenLLMetry and OpenInference attributes for messages, model identity, tools and usage. Evidence that was not emitted remains unavailable.
+
+Span identity can override resource identity for applications serving multiple capabilities. Unknown capabilities are stored as unbound; ingestion does not create a capability.
+
+Trace ingest and stored-evidence reads do not require remaining model credits. Model-backed scoring is a separate operation.
+
+See [Instrument an application](/how-to/instrument) for setup and [How evaluation works](/explanation/evaluation) for scoring semantics.

@@ -1,0 +1,137 @@
+---
+title: "CLI commands"
+description: "Account connection, source transfer, packages, repository sync and optimiser commands."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+The `overmind` command ships with the Python package. `overmind --version` reports the installed version; `overmind COMMAND --help` gives that version's exact options.
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Check that my Overmind CLI is connected to my account and help me upload the data file I have selected. Confirm which project receives it and show me the resulting dataset when the import finishes." />
+
+```bash
+uv tool install overmind
+```
+
+Install `overmind[tracing]` in the application environment for Python instrumentation. The CLI alone does not require tracing dependencies.
+
+## Connection
+
+Replace `API_URL` with `https://api.overmindlab.ai` for Overmind Cloud, or your installation’s API address for self-hosting. Replace `PROJECT_ID` with the project selected from your connected account.
+
+```bash
+overmind connection configure --api-url API_URL --project-id PROJECT_ID --json
+overmind connection check --api-url API_URL --project-id PROJECT_ID --json
+```
+
+The saved account connection is `$XDG_CONFIG_HOME/overmind/connection.toml`, defaulting to `~/.config/overmind/connection.toml`, with mode `0600`. API address and account credential are bound together. Repository credentials and explicit settings can take precedence; use the connection check from the actual working environment.
+
+Never copy a saved credential to a different URL to work around a connection error. A network permission denial is resolved in the host execution environment.
+
+## Repository setup and sync
+
+| Command | Purpose |
+| --- | --- |
+| `overmind init --ide CLIENT --api-url API_URL` | Install workflow skills, seed missing configuration and add the MCP entry |
+| `overmind chassis --root PATH` | Deterministic Python and TypeScript/JavaScript source inventory |
+| `overmind sync` | Upload and pull the repository manifest |
+| `overmind sync up` | Upload the snapshot and write assigned identities back |
+| `overmind sync down` | Pull the server snapshot into the local manifest |
+| `overmind skills list --verbose` | Installed/available workflow skills |
+| `overmind skills sync NAME... --ide CLIENT` | Refresh selected skills |
+
+Clients include `cursor`, `claude`, `opencode` and `codex`. An explicit `--api-url` pins the destination. `--env local` is for development of a self-hosted installation; ordinary Cloud setup does not require it.
+
+`/overmind setup` is a coding-agent workflow, not a shell subcommand. It runs discovery, authors the manifest and syncs it. There is no `overmind scan` command. `sync down` changes the local manifest; review local edits before pulling.
+
+## Dataset upload
+
+```bash
+overmind dataset upload FILE1 FILE2 \
+  --project-id PROJECT_ID --api-url API_URL --intent explore --wait --json
+```
+
+| Option | Meaning |
+| --- | --- |
+| `FILE...` | Ordered source files; one transfer and source publication |
+| `--project-id` | Explicit destination project; otherwise use repository configuration |
+| `--dataset` | Attach sources to an existing draft or append a version |
+| `--brief` | Task description for a new dataset |
+| `--intent` | `train`, `eval` or `explore`; omission stays pending |
+| `--capability` | Optional capability UUID |
+| `--json-rows-field` | Explicit top-level JSON row array; single-file selection |
+| `--request-key` | Explicit stable transfer key; default derives from bytes and destination recipe |
+| `--wait` | Wait for terminal landing; fail if landing fails |
+| `--split`, `--split-position` | Train/eval split share and `head`, `tail` or `random` placement |
+| `--api-url`, `--api-key`, `--path` | Explicit connection/configuration overrides; avoid secrets on shell history |
+| `--json` | Machine-readable result |
+
+Attachment uses the existing dataset's metadata; do not combine it with new-dataset brief, intent, capability or split settings. For explicit train/development/calibration/final roles use [saved partitions](/how-to/partition-data).
+
+Transfers bind SHA-256, byte count, file order and destination recipe. Repeat the identical command after interruption. Multi-file limits are 100 files and 2 GiB combined; per-type limits still apply. Confirm current limits through `overmind://dataset-upload`.
+
+`state_scope=at_publication` is a publication snapshot. `--wait` reports `observed_after_landing`. Use the returned current job to distinguish those states.
+
+## Dataset export and source download
+
+```bash
+overmind dataset export DATASET_ID --cell CELL_ID \
+  --format jsonl --output rows.jsonl --api-url API_URL --json
+
+overmind dataset export DATASET_ID --source SOURCE_SHA256 \
+  --output original.pdf --api-url API_URL --json
+```
+
+Formats are `jsonl` and `csv`; `--cell` accepts a cell UUID or displayed version, defaulting to the active version. `--source` downloads retained original bytes and verifies their checksum. Existing output paths are refused. Export does not count as consumer use.
+
+## Retained Python packages
+
+```bash
+overmind dataset pipeline-upload ./preparation --project-id PROJECT_ID --api-url API_URL --json
+overmind dataset pipeline-download PACKAGE_ID --project-id PROJECT_ID --output preparation.zip
+```
+
+Upload accepts a directory or package archive and returns the package identity for `save_dataset_pipeline`. Directory uploads omit Python bytecode caches; unsupported files still fail. Read [Pipeline reference](/reference/pipelines) before authoring the manifest.
+
+## Connectors
+
+```bash
+overmind connector add langfuse --project-id PROJECT_ID --api-url API_URL --json
+```
+
+| Provider | Credential environment variables |
+| --- | --- |
+| Langfuse | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`; optional `LANGFUSE_HOST` |
+| LangSmith | `LANGSMITH_API_KEY` |
+| Braintrust | `BRAINTRUST_API_KEY` |
+| Galileo | `GALILEO_API_KEY` |
+
+The command can prompt in a terminal. It returns the connector identity; inspect source boundaries, confirm their capability mapping and start the import through MCP or the Console.
+
+## Optimiser
+
+| Command | Purpose |
+| --- | --- |
+| `overmind optimise start -e EXPERIMENT_ID` | Attach to an existing experiment |
+| `overmind optimise next` | Get the next local action |
+| `overmind optimise set-template FILE` | Register the single-datapoint command template |
+| `overmind optimise run-smoke` | Run one datapoint to check the command |
+| `overmind optimise run-baseline` | Execute the unmodified application over the pinned data |
+| `overmind optimise add-candidate --diff FILE` | Queue a candidate diff |
+| `overmind optimise run-iteration` | Execute candidates and submit outputs |
+| `overmind optimise status --json` | Inspect progress |
+| `overmind optimise complete` | Close the experiment |
+
+Pass `-e` to select the experiment explicitly. Otherwise the CLI uses local `.overmind/optimise_state.json`. The local dataset cache is version-bound. See [the task guide](/how-to/optimise).
+
+## Checkpoints
+
+```bash
+overmind model download-checkpoint DEPLOYMENT_ID --output weights.zip --api-url API_URL --json
+```
+
+This downloads the deployment's archived checkpoint. It is not a generic download of every intermediate training checkpoint. The output path must not already exist.

@@ -1,0 +1,74 @@
+---
+title: "Prepare data for a task"
+description: "Retain original sources, author a reproducible transformation and verify the published output."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use this guide to turn files or traces into data for exploration, evaluation or training. Your coding agent owns interpretation and transformation code; Overmind retains the sources, executes saved packages and publishes versions.
+
+## Try it with your agent
+
+Use the [fraud dataset](/reference/example-dataset) from the tutorial, or attach your own source in the conversation.
+
+<AgentPrompt text="Prepare this dataset for training a fraud detector in Overmind: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Use the transaction details to predict fraud, check the data for problems, and show me the prepared examples and any limitations." />
+
+**What you get:** Published examples, retained code, a version for the consumer and a summary of checks.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+## 1. Define the intended result
+
+State the task, prediction unit, permitted inputs and intended consumer. Inspect a named capability if one exists. Clarify what labels, scores, blank values and groups mean before changing them.
+
+Create a brief-only draft with `start_dataset`, or upload an original source directly. Use explicit intent `explore`, `eval` or `train`; omitted intent remains pending.
+
+## 2. Land and verify the source
+
+Check file boundaries, record counts and nested values locally. Upload original bytes with the CLI; the draft's returned upload arguments already bind the destination project and dataset.
+
+```bash
+overmind dataset upload source.jsonl \
+  --project-id PROJECT_ID --api-url API_URL --intent explore --wait --json
+```
+
+For multiple files, supply them in the intended order in one command. For a top-level JSON wrapper, use `--json-rows-field FIELD` to select its row array explicitly. Follow `dataset_transfer` for bytes/publication and `dataset_run` for extraction.
+
+Inspect the source cell, fingerprint and extraction metadata. Compare landed counts and representative values with the original. For documents, inspect page/region evidence and OCR limitations. Resolve mismatches before preparation.
+
+## 3. Author and retain the transformation
+
+Inspect project recipes with `inspect_dataset_workbench`. Read retained code before reusing it; similar column names do not establish the same target meaning.
+
+For a new transformation, ask the agent to use `author-dataset-transformation` and the current manifest from `overmind://dataset-upload`. Write a Python package with explicit, meaningful steps. Preserve source identities, declared groups, full probability targets, option order and weights. Do not remove duplicates or blank values without a task-specific reason.
+
+Run local checks against independently expected row members and boundary cases. Then upload and register the package **before** full processing:
+
+```bash
+overmind dataset pipeline-upload ./preparation \
+  --project-id PROJECT_ID --api-url API_URL --json
+```
+
+Call `save_dataset_pipeline` with the returned package ID, name, dataset and stable request key. Saving retains code and associates the recipe with the preparation; it does not execute it.
+
+## 4. Validate, preview and publish
+
+Call `validate_dataset_pipeline` against the source cell and fingerprint. Preview with `run_dataset_pipeline(mode="preview")`, using the exact revision and a request key for that preview.
+
+Inspect the retained preview evidence. A bounded prefix can miss rare cases; absolute row-count checks remain deferred until publication. Verify branch coverage independently.
+
+Publish with `run_dataset_pipeline(mode="publish")` and a distinct request key. Poll its exact `dataset_pipeline` receipt. Successful publication appends the step cells atomically; failure publishes no partial chain.
+
+## 5. Verify the final output
+
+Inspect counts, schema, sampled values, target semantics and lineage across the intended source families. Check the final consumer contract and any unresolved review metadata. Record the scope of verification; format readiness alone does not prove label correctness.
+
+Hand the exact final cell ID to [partitioning](/how-to/partition-data), [evaluation](/how-to/evaluate) or [training](/how-to/train).
+
+## Correct or reuse a recipe
+
+For a correction, save a new revision in the same family with `expected_revision`, then run it against the original source. The selected preparation shows the corrected process; existing consumers retain their pinned cells. Use `derived_from` for an attributed variant.
+
+For genuine external results, use `import_dataset_version` with exact source bindings and parent identities. Do not upload prepared outputs as unrelated new sources. External attribution records the producer; it does not prove execution or semantic correctness.
+
+See [Pipeline reference](/reference/pipelines) for manifests, branching, batching, bindings and recovery constraints.

@@ -1,0 +1,40 @@
+---
+title: "Compare decision models"
+description: "Compare foundations and trained probability models on frozen suites."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use this workflow for models that return probabilities over supplied options. A training job or repository scan is not required.
+
+## Try it with your agent
+
+Use the trained model and held-out data from your [fraud workflow](/how-to/train). The agent checks the connected catalogue for an eligible Jev comparison target.
+
+<AgentPrompt text="Benchmark our trained fraud decision model against an eligible Jev model in Overmind using held-out examples from https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Compare fraud detection, false alarms and probability quality, and explain any gaps in the results." />
+
+**What you get:** A saved probability comparison, retained predictions and metrics for the covered labels.
+
+The steps below describe the workflow your agent follows and the results to verify.
+
+1. Prepare typed decision inputs and separate calibration/final cells. Preserve complete distributions and mean-only ordinal references without converting either to invented labels.
+2. Call `list_decision_models` and inspect eligibility for each foundation, trained artifact or supported external probability adapter. A catalogue entry does not establish measured hardware fit.
+3. Save a draft with `create_native_evaluation`: provide participants, an explicit baseline, `final_cell`, optional `calibration_cell`, inference settings, seed and request key.
+4. Call `prepare_native_evaluation`. Inspect the frozen suites, compatible rows and any unavailable measurements. Preparation does not submit inference.
+5. Call `launch_native_evaluation` for the saved draft when its execution and cost scope are accepted. Follow its job and operation receipts.
+6. Use `inspect_native_evaluation` to page retained inputs, references and predictions. Use `view="labels"` for per-label precision, recall, F1 and coverage where hard references and a fixed benchmark option order qualify.
+7. Download the checksum-bound report through its returned path on the same authenticated server. Compare per-benchmark results, paired coverage, raw/calibrated scores and missing, invalid or incompatible outputs.
+
+Calibration is fitted before final scoring and has its own in-sample results. Temperature fitting requires probability-labelled references; omit calibration for a mean-only suite. Mean-only ordinal references do not imply classification accuracy or a target probability distribution.
+
+## Partial or interrupted work
+
+Follow the receipt's recovery state. Completed predictions are reused; a missing acknowledgement is not permission to resubmit provider work. Explicit native collector recovery requires the exact recorded call ID. A paused local scoring stage can rebuild a report from saved predictions without invoking the provider again.
+
+A completed comparison can have issues. Report expected versus scored counts for each participant. Pairwise results use shared scored inputs and can be biased by missing coverage.
+
+## Measure serving performance separately
+
+Use `measure_decision_performance` with an explicit saved workload: input shapes, sample count, repetitions, concurrency and questions per request. Inspect complete client latency and valid throughput, including cold/warm distinctions and unknown timing.
+
+Prediction reuse for a quality comparison is explicit. Independent repetitions and performance measurements are not silently replaced with cached answers. Neither quality scoring nor performance measurement activates production routing.

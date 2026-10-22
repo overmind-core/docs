@@ -1,0 +1,45 @@
+---
+title: "Train your first fraud model"
+description: "Prepare data, train a decision model and benchmark its results with one prompt."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Start with the [ecommerce fraud dataset](https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl): 10,000 synthetic transactions with a supplied fraud label. Your coding agent can take it through data preparation, model training and a benchmark in Overmind from one request.
+
+## Before you begin
+
+[Connect your coding agent](/how-to/connect) and select a project for the tutorial. You do not need an application repository. This workflow includes training and benchmark inference, which can incur provider costs. Your agent explains the proposed model and expected cost before launch.
+
+## Try it with your agent
+
+<AgentPrompt text="Use Overmind to prepare this ecommerce fraud dataset, train a decision model, and benchmark its results on held-out data: https://huggingface.co/datasets/apex0data/ecommerce-fraud-detection-synthetic-10k-sampl. Show me how it compares with a baseline and where it makes mistakes." />
+
+The agent works out the preparation and carries the dataset, model and benchmark context through the workflow. You do not need to issue a new prompt for each stage.
+
+## What happens next
+
+1. **Prepare the data.** The agent inspects the source, prepares the transaction inputs and fraud labels, and separates training, development and held-out examples. It retains the preparation in Overmind so the result can be inspected and reproduced.
+2. **Train a model.** It selects a compatible decision model, checks the training setup and expected cost, then follows the accepted run through validation.
+3. **Benchmark the result.** It compares the trained model with a suitable baseline on the same held-out examples and explains the measured results.
+
+Data checks are part of the workflow. Preparation is not a separate stopping point; the agent continues toward the requested benchmark and brings back decisions that need your input. Follow progress in the same conversation or inspect the saved datasets and runs in the Console.
+
+## Check the result
+
+At the end, the agent should show:
+
+- The trained model and its completed training run, including the recorded validation results.
+- The benchmark participants, held-out data and number of examples scored by each model.
+- How often the models detect fraud, miss fraud or flag legitimate transactions, with representative mistakes.
+- The comparison with the baseline, including any missing results or limitations.
+
+The original source has **9,580 non-fraud** and **420 fraud** transactions, so overall accuracy alone can hide poor fraud detection. The supplied `is_fraud` label is the answer to predict, not part of the model input. The agent handles these checks during preparation; [dataset details](/reference/example-dataset) explain the source and its limitations.
+
+These are synthetic examples. Improvement on this benchmark does not establish performance on real transactions, and a trained model may not outperform its baseline.
+
+## Continue in the same conversation
+
+<AgentPrompt text="Explain where the trained fraud model improved over the baseline and where it still makes mistakes. Show representative held-out examples and recommend what to try next." />
+
+Use [Compare decision models](/how-to/compare-decisions) for another comparison, [Monitor training](/how-to/monitor-training) to inspect a run, or [Serve a model](/how-to/serve) to try the trained result in an application.

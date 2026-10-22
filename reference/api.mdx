@@ -1,0 +1,98 @@
+---
+title: "REST API map"
+description: "Authentication, schema discovery and the current resource families."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Overmind Cloud uses `https://api.overmindlab.ai` as its API base. For self-hosting, use your installation’s API address. Each server publishes its own OpenAPI schema at the paths below.
+
+## Try it with your agent
+
+Use this after [connecting Overmind](/how-to/connect). Supply or select the named resource in your conversation; the agent reads the contract rather than guessing IDs.
+
+<AgentPrompt text="Show me how to inspect the dataset we prepared using the Overmind REST API. Explain the endpoint, required authentication and response fields, with an example request that uses an environment variable for the key." />
+
+| Path | Content |
+| --- | --- |
+| `/api/schema/` | Machine-readable OpenAPI |
+| `/api/docs/` | Interactive Swagger explorer |
+| `/api/redoc/` | Reference explorer |
+| `/health` | Unauthenticated health check |
+
+The deployed schema is authoritative for request/response fields. The endpoint index below names resource families, not every custom action. MCP uses the same domain services through purpose-built tools.
+
+## Authentication
+
+API keys use `X-Api-Key`, `Authorization: Bearer` or `Authorization: Api-Key`. Account scope reaches authorized projects; project scope is restricted to one. Select the project using each endpoint's declared query/body field.
+
+The hosted Console uses Clerk when configured. Local email/password login is `POST /api/auth/local/`, with create-on-first-use and no email verification. JWT token/refresh endpoints also exist. MCP OAuth tokens are specific to MCP and are not ordinary REST/CLI credentials.
+
+API keys are managed under `/api/auth/api-keys/`, with calling-key inspection at `/api/auth/api-keys/current/`. Plaintext keys are returned only at creation. Guest sessions are read/claim-only unless an endpoint explicitly permits the requested guest write.
+
+## Core and observability
+
+| Resource | Path |
+| --- | --- |
+| Projects | `/api/projects/` |
+| Memberships and invitations | `/api/projects/{project_id}/memberships/`, `/invites/` |
+| Agent map | `/api/agent/` |
+| Capabilities | `/api/capabilities/` |
+| Repository sync | `GET` / `POST /api/v1/sync` |
+| Traces | `/api/traces/` |
+| Sessions | `/api/sessions/` |
+| OTLP protobuf ingest | `POST /api/v1/traces` |
+| Signal definitions/settings | `/api/signal-subscriptions/` |
+| Observed signals | `/api/signal-events/` |
+| Tracing connectors | `/api/connector-credentials/` |
+
+Trace list/detail are backed by spans, not a separate Trace table. The current API has no task-execution, behaviour or verdict resource families.
+
+## Data and preparation
+
+| Resource | Path |
+| --- | --- |
+| Datasets | `/api/datasets/` |
+| Durable local transfers | `/api/dataset-transfers/` |
+| Upload storage | `/api/uploads/` |
+| Retained packages | `/api/dataset-pipeline-packages/` |
+| Recipe revisions | `/api/dataset-pipelines/` |
+| Bindings | `/api/dataset-pipeline-bindings/` |
+| Exploration | `/api/data-explorations/` |
+| Group-preserving partitions | `/api/data-partitions/` |
+
+Dataset actions expose source/cell inspection, rows, export, workbench and pipeline execution. New recipes require a retained package. Use the CLI for local byte transfer rather than manually reconstructing its resumable protocol.
+
+## Evaluation, training and serving
+
+| Resource | Path |
+| --- | --- |
+| Eval matrix | `/api/eval-matrix/` |
+| Eval sets | `/api/eval-sets/` |
+| Eval runs | `/api/eval-runs/` |
+| Run rows | `/api/eval-run-rows/` |
+| Score history | `/api/eval-scores/` |
+| Optimiser experiments/candidates | `/api/optimizer-experiments/`, `/api/optimizer-candidates/` |
+| Training preparations | `/api/training-preparations/` |
+| Training jobs | `/api/finetuning-jobs/` |
+| Decision job identity | `/api/decision-jobs/` |
+| Decision catalogue | `/api/decision-models/` |
+| Task training plans | `/api/training-plans/` |
+| Saved training experiments | `/api/training-experiments/` |
+| Native comparisons | `/api/native-evaluations/` |
+| Decision performance workloads | `/api/decision-performance/` |
+| Deployments | `/api/deployed-models/` |
+| Durable deployment inference | `/api/deployed-models/{deployment_id}/inference/` |
+| Inference receipts | `/api/inference-requests/{request_id}/` |
+| Chat completions/model catalogue | `/api/v1/chat/completions`, `/api/v1/models` |
+| Typed system-one inference | `/api/v1/systemone` |
+
+Read the operation schema to distinguish saving, preparation and launch. A saved training experiment or native comparison draft does not start provider work.
+
+## Errors and pagination
+
+DRF lists generally return `count`, `next`, `previous` and `results`; custom evidence endpoints may use offset/cursor contracts. Follow the returned pagination rather than assuming the first response is complete.
+
+Typical status classes are `401` for authentication, `403` for permission, `404` for absent or inaccessible resources, `409` for identity/revision conflicts and `402` for insufficient credits where billing gates apply. Field validation and workflow errors include details to inspect before retrying.
+
+Use a stable request key where an operation supports it. Do not assume a repeated POST is harmless on operations without that contract.
