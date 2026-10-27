@@ -27,7 +27,7 @@ The following is the launch `hyperparameters` object:
 {"training_type": {"type": "Lora"}}
 ```
 
-Inside launch `hyperparameters`, `training_type` must be an object. The separate `prepare_training_data` tool instead accepts a top-level `training_type="lora"` or `"full"` string, plus a required `context_length`. Native decision full-weight training and unqualified packing are unavailable. Explicit unsupported settings are rejected, not silently clamped.
+Inside launch `hyperparameters`, `training_type` must be an object. The separate `prepare_training_data` tool instead accepts a top-level `training_type="lora"` or `"full"` string, plus a required `context_length`. Native decision full-weight training and unqualified packing are unavailable. `lora_r` must be 8, 16, 32, 64, 128, 256, 320 or 512, and `lora_alpha` must be twice `lora_r`. Explicit unsupported settings are rejected, not silently clamped.
 
 Receipts bind inputs, recipe, provider intent and runtime release/environment. Reusing a launch key with the same recipe returns the same job; changing the recipe conflicts. Unknown provider acknowledgement is reconciled against saved metadata.
 

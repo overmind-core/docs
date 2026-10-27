@@ -74,4 +74,4 @@ Deployment resources and REST metrics accept `period=1h|24h|7d|30d|all` and `sou
 
 Reported latency/speed distributions depend on measured successful requests; failed calls and missing timing remain separate. Cost coverage must accompany estimated totals.
 
-`overmind model download-checkpoint DEPLOYMENT_ID` downloads the retained deployment archive. Deployment retries reuse successful training artifacts; they do not rerun training.
+`overmind model download-checkpoint DEPLOYMENT_ID` downloads the retained deployment archive once it exists; a ready deployment can have none yet. Deployment retries reuse successful training artifacts; they do not rerun training.

@@ -57,7 +57,7 @@ Fix the named configuration or dependency failure before proceeding.
 
 ## 3. Create a local account and connect
 
-Open the local Console and sign in with an email and password. Local login creates an account on first use without email verification. Create a project and establish an API-key connection for your coding environment.
+Open the local Console and sign in with an email and password. Local login creates an account on first use without email verification. Create a project.
 
 Configure your client for this local deployment:
 
@@ -65,7 +65,7 @@ Configure your client for this local deployment:
 overmind init --ide codex --api-url http://localhost:8000
 ```
 
-Replace `codex` with your supported client. Use `http://localhost:8000/api/mcp/` as its MCP endpoint and authenticate against this installation. Check the endpoint returned by `list_projects` and keep `--api-url http://localhost:8000` explicit on sync and transfer commands.
+Replace `codex` with your supported client. Use `http://localhost:8000/api/mcp/` as its MCP endpoint and sign in through the client's OAuth prompt, which uses this installation's login. Outside `DJANGO_DEBUG`, set `MCP_SERVER_URL` to the deployment's MCP URL. Check the endpoint returned by `list_projects` and keep `--api-url http://localhost:8000` explicit on sync and transfer commands.
 
 Use the [connection checks](/how-to/connect) to verify MCP and local file transfer access. Do not launch training merely to test connectivity.
 

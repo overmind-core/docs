@@ -24,7 +24,7 @@ The steps below describe the workflow your agent follows and the results to veri
 
 The chassis supports Python and TypeScript/JavaScript. Structural verification confirms source anchors and reachability; it does not prove that the application always follows the intended path.
 
-Keep capability slugs stable when changing display names. A capability absent from a later scan becomes a leftover; its data remains. Commit the manifest, keeping `.overmind/credentials.toml` and credential-bearing client configuration out of version control.
+Keep capability slugs stable when changing display names. A capability absent from a later scan becomes a leftover; its data remains. Commit the manifest. `.overmind/credentials.toml` stays out of version control through `.overmind/.gitignore`.
 
 After changing source code, refresh the scan. If the checkout changed during scanning, repeat it so the retained provenance describes the code actually inspected.
 

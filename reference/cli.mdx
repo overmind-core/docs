@@ -132,4 +132,4 @@ Pass `-e` to select the experiment explicitly. Otherwise the CLI uses local `.ov
 overmind model download-checkpoint DEPLOYMENT_ID --output weights.zip --api-url API_URL --json
 ```
 
-This downloads the deployment's archived checkpoint. It is not a generic download of every intermediate training checkpoint. The output path must not already exist.
+This downloads the deployment's archived checkpoint. The archive is written after deployment starts, so a ready deployment can have none yet. It is not a generic download of every intermediate training checkpoint. The output path must not already exist.

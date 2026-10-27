@@ -22,13 +22,13 @@ The [quick-start instructions](https://console.overmindlab.ai/setup.md) cover MC
 For a repository, install the CLI and initialise your client:
 
 ```bash
-uv tool install overmind
+uv tool install "overmind>=0.1.106"
 overmind init --ide codex --api-url https://api.overmindlab.ai
 ```
 
 Replace `codex` with `cursor`, `claude` or `opencode` as appropriate. `init` installs skills and client configuration; it does not by itself prove authentication or a completed repository scan.
 
-Authenticate with your Overmind account through the supported account connection or API key. Keep credentials in the client's protected configuration, not in prompts or committed files. Reload the client after changing MCP configuration.
+`init` writes the MCP entry without a key and prints the client's sign-in step. Sign in through the client's OAuth prompt; an API-key header is optional. Keep credentials out of prompts and committed files. Reload the client after changing MCP configuration.
 
 ## 2. Verify the destination
 

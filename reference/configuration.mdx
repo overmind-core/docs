@@ -62,7 +62,7 @@ Compose has six Celery worker/queue profiles: `control`, `io`, `io_traces`, `bat
 
 Document parsing and retained Python packages execute through the isolated sandbox. It has no platform credentials, shared application media mount or outbound network. The landing worker streams retained bytes and receives progress; unavailable parsing does not fall back to application-process execution.
 
-`WORKSHOP_PROJECT_CONCURRENCY` bounds per-project interactive execution. Shared admission and observed capacity govern landing. Do not change queue topology merely to clear a slow job without understanding its resource limits.
+`WORKSHOP_PROJECT_CONCURRENCY` bounds per-project interactive execution. Shared admission and observed capacity govern landing. A nonzero `DATASET_IMPORT_MAX_QUEUE_SECONDS` expires imports that wait longer; the default `0` never expires them. Do not change queue topology merely to clear a slow job without understanding its resource limits.
 
 ## Model pacing and analytics
 
