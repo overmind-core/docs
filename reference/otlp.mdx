@@ -12,8 +12,8 @@ Use this after [connecting Overmind](/how-to/connect). Supply or select the name
 | Field | Contract |
 | --- | --- |
 | Endpoint | `POST /api/v1/traces` |
-| Transport | OTLP/HTTP protobuf |
-| Content type | `application/x-protobuf` |
+| Transport | OTLP/HTTP protobuf or JSON |
+| Content type | `application/x-protobuf` or `application/json` |
 | Compression | Gzip supported |
 | Authentication | Project/account API key in a supported header |
 | Root | Span with no parent; spans sharing a `trace_id` form a trace |
@@ -38,7 +38,11 @@ An explicit `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` includes the complete path. A g
 | `overmind.unit_kind` | Run/turn metadata |
 | `overmind.delivery` | Delivered-result metadata |
 
-The ingest path also normalizes supported GenAI, OpenLLMetry and OpenInference attributes for messages, model identity, tools and usage. Evidence that was not emitted remains unavailable.
+The ingest path also normalizes supported GenAI, OpenLLMetry and OpenInference attributes for messages, model identity, tools and usage, including Claude API, Claude Code and OpenRouter spans. Evidence that was not emitted remains unavailable.
+
+For Claude API traces, add a Custom destination in the Claude Console with the API base URL plus `/api` as the OTLP endpoint URL and an `X-Api-Key` request header. Claude Code traces carry the user prompt with `OTEL_LOG_USER_PROMPTS=1`; tool input and model responses require its detailed tracing (`ENABLE_BETA_TRACING_DETAILED=1`), which interactive sessions receive only for allowlisted organizations.
+
+For OpenRouter Broadcast, add an OpenTelemetry Collector destination with the API base URL plus `/api/v1/traces` as the endpoint and `{"X-Api-Key": "<key>"}` as the headers.
 
 Span identity can override resource identity for applications serving multiple capabilities. Unknown capabilities are stored as unbound; ingestion does not create a capability.
 
