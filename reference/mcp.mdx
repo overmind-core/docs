@@ -25,7 +25,7 @@ Use the connected `tools/list`, `prompts/list` and resources for complete argume
 
 ## Authentication
 
-API-key connections use `X-Api-Key` or a supported bearer header. Account keys reach authorized projects; project keys retain narrower scope. OAuth is supported for MCP account connections and requires the deployment's login and consent flow. MCP OAuth tokens do not authenticate ordinary CLI file transfers.
+Account connections sign in with OAuth through the deployment's login and consent flow; `overmind init` configures this. API-key connections use `X-Api-Key` or a supported bearer header. Account keys reach authorized projects; project keys retain narrower scope. MCP OAuth tokens do not authenticate ordinary CLI file transfers.
 
 Read permission exposes inspection operations; writes require the operation's permission scope. Expiry, account state and membership continue to apply.
 
