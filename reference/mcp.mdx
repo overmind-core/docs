@@ -60,6 +60,7 @@ Preparation tools can create records or run preprocessing. An inspection-style n
 | URI | Content |
 | --- | --- |
 | `overmind://project/current` | Project identity, scan provenance and Console URL |
+| `overmind://activity` | Saved project outcomes, task and asset references, and onboarding milestones |
 | `overmind://dataset-upload` | CLI handoff, format limits, package manifest and runtime requirements |
 | `overmind://dataset-export` | Version export guidance |
 | `overmind://checkpoint-download` | Checkpoint download guidance |
@@ -90,3 +91,42 @@ Tool errors include a structured code, message, retryability and field details w
 Prompts include `author-dataset-transformation`, `develop-model-from-data`, `investigate-capability`, `instrument-repository`, `prepare-evaluation`, `evaluate-change`, `finetune-capability`, `optimize-capability`, `compare-models`, `ship-model`, `upload-dataset-file`, `export-dataset`, `connect-traces` and `download-checkpoint`.
 
 The CLI transfers bytes and runs local repository work. Provider secrets enter protected local configuration or the appropriate Console flow, not MCP tool arguments. See [Connect your coding agent](/how-to/connect).
+
+
+## Agent activity and setup progress
+
+The Console bell shows saved outcomes from coding-agent actions alongside running jobs.
+Entries are short sentences with the reported coding client when known and inline
+navigation chips for recorded tasks and affected assets. Unknown or ambiguous clients use a generic label;
+a connection milestone does not establish that an agent is currently working.
+
+After connection, the main landing page replaces the getting-started prompt with the
+current SDK’s ten onboarding stages: install, connect, inspect, discover, describe,
+verify references, write snapshot, validate, sync, and instrument capabilities. Data onboarding keeps its upload flow without a setup checklist.
+The notification bell has one activity feed. The coding agent reports verified completed
+stages with `report_onboarding_progress(project_id, run_id, completed_steps)` (0–10),
+reusing one UUID `run_id` per attempt. Local-stage completion is agent-reported; it
+is not independent server verification. Progress reports do not create notifications.
+Retries retain progress, and a new run ID starts a separate attempt. Historical local
+work without a progress receipt stays unreported.
+
+Read the same records through `overmind://activity?project_id=PROJECT_ID`. Use `offset`
+and `limit` (1–100) to page activity, and `path=agent` or `path=data` to inspect setup
+milestones. Repository sync, source upload and landing, preparation publication and the
+first received trace advance milestones only when their evidence is recorded. Historical
+work without an activity receipt stays unrecorded.
+
+Status checks, inspections and polling do not create action notifications. Initialization
+records a one-time connection milestone. Job state changes update the saved task activity;
+retries reuse the same receipt. The Console keeps read state per user, and reading the
+MCP resource never acknowledges notifications.
+
+The Console receives project-scoped activity snapshots through a live connection.
+Task rows evolve in place, and affected asset views refresh their data without a page
+reload. Newly observed changes briefly highlight the affected row or card; historical
+activity does not flash on page load. Reconnecting reconciles the saved state.
+
+The dataset inventory shows attached uploads with measured byte progress and distinguishes
+queued work, transformations, previews, imports, and failed datasets. Published versions
+and row counts remain visible while new work is underway. MCP job receipts remain the
+source for detailed progress; viewing or refreshing the table creates no action records.

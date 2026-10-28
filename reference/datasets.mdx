@@ -23,6 +23,14 @@ Use this after the relevant [tutorial](/tutorials/index), or substitute a resour
 
 Intent is `train`, `eval`, `explore` or pending when not selected. A capability is optional. Once a version has been used, the dataset’s intent and capability association are fixed. Selecting a different active version does not rewrite frozen consumers.
 
+## Inventory roles
+
+The Console lists one row per source workspace, combining its recorded partition and derivation outputs. Output datasets remain accessible inside the workspace and through their detail links. Counts and filters apply to workspace rows.
+
+The Console’s Role column and filter show Training, Development, Calibration, Evaluation and Source. Roles come from completed partition assignments and recorded consumer usage, including earlier versions. A dataset can have multiple roles. A source dataset also shows all roles produced by its completed partition plans. Raw-only published datasets without another role show Source; other datasets without recorded roles show an em dash and match the Unassigned filter. Intent and dataset names do not assign roles.
+
+Dataset preparation notifications connect creation, upload, import, saved transformations, previews and publication with a shared workflow connector. Each event retains its own status; the connector does not imply that the entire workflow is complete. Training and unrelated dataset edits remain separate.
+
 ## Source formats and limits
 
 Read `overmind://dataset-upload` for the connected deployment's supported formats and numeric limits. Tables include CSV, TSV, JSON, JSONL/NDJSON and Parquet. Supported document/image landing retains original bytes and extraction metadata.
