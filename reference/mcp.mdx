@@ -40,7 +40,7 @@ This index identifies the entry points; it does not replace their schemas.
 | Signals | `list_signals` | `set_signal_subscription` |
 | Instrumentation | `get_instrumentation_plan`, `verify_instrumentation` | Repository edits happen locally |
 | Sources | `list_datasets`, `inspect_dataset`, `query_dataset` | `start_dataset`, `create_dataset_from_traces`, `update_dataset`, `resume_dataset_import` |
-| Workshop | `inspect_dataset_workbench`, `validate_dataset_pipeline` | `save_dataset_pipeline`, `run_dataset_pipeline`, `cancel_dataset_pipeline_run`, `import_dataset_version` |
+| Workshop | `inspect_dataset_workbench`, `validate_dataset_pipeline` | `start_dataset_preparation`, `update_dataset_preparation`, `save_dataset_pipeline`, `run_dataset_pipeline`, `cancel_dataset_pipeline_run`, `import_dataset_version` |
 | Bindings | Workbench binding inspection | `save_dataset_pipeline_binding`, `set_dataset_pipeline_binding_state`, `run_dataset_pipeline_binding` |
 | Data roles | `explore_dataset`, workflow inspection | `derive_dataset`, `create_data_partition`, `retry_data_partition` |
 | Matrix evaluation | `check_evaluation_readiness`, `compare_evaluations` | `create_eval_matrix_row`, `delete_eval_matrix_row`, `create_eval_set`, `run_evaluation` |
@@ -130,3 +130,19 @@ The dataset inventory shows attached uploads with measured byte progress and dis
 queued work, transformations, previews, imports, and failed datasets. Published versions
 and row counts remain visible while new work is underway. MCP job receipts remain the
 source for detailed progress; viewing or refreshing the table creates no action records.
+
+Onboarding milestones include the recorded coding agent name and kind. The Console shows that reporter beside the current stage. Repository setup must report verified progress through MCP at every stage transition, including when resuming with older installed skills; chat updates alone do not update the Console.
+
+### Dataset preparation progress
+
+Before preparing a dataset, call `inspect_dataset_workbench` and resume its
+`preparation_workflow`, or call `start_dataset_preparation` with a stable request key.
+Keep it preparing across local authoring, previews and publications. Call
+`update_dataset_preparation` with `state="completed"` and verified published output
+cell UUIDs only when all requested agent work is finished. Use `paused` when stopping
+temporarily or `cancelled` when abandoning the workflow. Individual job completion
+does not finish preparation.
+
+The Console keeps one evolving notification for the workflow; upload, import and
+pipeline events remain recorded beneath it. No page refresh is required. Pausing
+is an explicit report, not inferred from a disconnected client.
