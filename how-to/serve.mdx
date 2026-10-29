@@ -54,10 +54,6 @@ For a confirmed failed deployment, use `retry_deployment` after inspecting its e
 
 A dedicated endpoint serves one model on reserved GPUs instead of shared serverless capacity. On the model page, **Configure GPU** sets the GPU type, the replica range, scale to zero and the idle timeout. **Start** shows the GPU type and its rate in credits per GPU-hour before anything starts; **Stop** keeps the configuration for the next start. While replicas start, the endpoint shows the stage the worker reports.
 
-<Frame caption="A stopped dedicated endpoint keeps its GPU, replica range, idle timeout and rate.">
-  <img src="/images/platform/dedicated-endpoint.jpg" alt="Dedicated endpoint card on the model page" />
-</Frame>
-
 **Spend & usage** on the same page shows dedicated credits, billed GPU hours and token counts for the selected period. **Dedicated API snippet** gives the request for the dedicated endpoint.
 
 Coding agents use `list_dedicated_gpus`, `start_dedicated_deployment`, `update_dedicated_deployment` and `stop_dedicated_deployment`. Starting reserves paid capacity: confirm the GPU and rate with the user first.
