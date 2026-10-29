@@ -75,3 +75,15 @@ Deployment resources and REST metrics accept `period=1h|24h|7d|30d|all` and `sou
 Reported latency/speed distributions depend on measured successful requests; failed calls and missing timing remain separate. Cost coverage must accompany estimated totals.
 
 `overmind model download-checkpoint DEPLOYMENT_ID` downloads the retained deployment archive once it exists; a ready deployment can have none yet. Deployment retries reuse successful training artifacts; they do not rerun training.
+
+## Dedicated startup progress
+
+Dedicated chat deployments expose `startup` in deployment responses and the deployment MCP resource. It includes the current stage, measured counters when available, an operation ID, telemetry availability, and up to 200 timestamped startup entries. `inspect_operation` reads the corresponding operation.
+
+The Console updates the stage and block loading bar automatically in the dedicated endpoint header. Whole blocks advance as observed startup milestones are reached; they do not estimate elapsed time. Detailed startup receipts and stage-local counters remain available through REST and MCP; the Console shows only the current stage and progress. Missing telemetry remains unavailable; only a successful endpoint probe marks the deployment ready.
+
+**Configure GPU** opens the saved GPU and scaling settings. The joined **Start / Stop** control stops the deployment or starts it again with those settings. Stopping preserves the configuration. **Dedicated API snippet** provides examples targeting `dedicated/<model ID>` during startup, online operation, and while stopped; **Serverless API snippet** targets the serverless route.
+
+## Dedicated spend and usage
+
+The model detail page shows dedicated spend below performance. The selected reporting period applies to recorded charges, billed GPU hours, and the spend chart. The GPU breakdown groups charges by GPU type; dedicated charges cover all traffic, even when the performance filter selects application traffic. Token counts follow that traffic filter. Missing billing measurements display as unavailable. Charges are recorded in credits and are separate from estimated per-request serving cost.
