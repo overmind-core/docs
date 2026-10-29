@@ -56,6 +56,16 @@ Run the check from the directory and execution environment that will upload file
 
 For a dataset-to-model workflow, choose [How to train a decision model](/tutorials/first-dataset) for typed probabilities or [How to fine-tune a language model](/tutorials/fine-tune-language-model) for generated responses. For an application repository, [map its capabilities](/how-to/map-agent). Data-first projects can proceed without a scan.
 
+## Follow setup in the Console
+
+While your agent onboards a repository, it reports each of the ten setup stages with `report_onboarding_progress`. A project without capabilities shows that progress in place of the setup prompt. A project with capabilities keeps its capability grid and shows the agent and current stage in one row above it; **Dismiss onboarding progress** hides the row. Progress belongs to one project: signing in once does not mark other projects as connected.
+
+<Frame caption="A project with capabilities shows the reporting agent, the current stage and the completed count above its capability grid.">
+  <img src="/images/platform/onboarding-progress.jpg" alt="Onboarding progress row above the capability grid" />
+</Frame>
+
+The notification bell lists what agents and the CLI did in the project: connections, requested jobs and changes to datasets, evaluations and capabilities. Job rows update as the jobs run, and the pages they reference refresh without a reload.
+
 ## Using a self-hosted deployment
 
 If you run the open-source platform yourself, use the API address of that installation in place of the Cloud URL throughout this guide. Its MCP endpoint ends in `/api/mcp/`. Follow [Self-host Overmind](/how-to/self-host) for deployment instructions and [Deployment configuration](/reference/configuration) for server settings.

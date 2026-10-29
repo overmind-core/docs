@@ -23,6 +23,16 @@ Use this after the relevant [tutorial](/tutorials/index), or substitute a resour
 
 Intent is `train`, `eval`, `explore` or pending when not selected. A capability is optional. Once a version has been used, the dataset’s intent and capability association are fixed. Selecting a different active version does not rewrite frozen consumers.
 
+## Inventory and preparation
+
+The Console lists one row per source workspace: the source dataset and the outputs derived from it. **Status** shows current work (upload bytes when both counts are known, queued work, transformations, previews and imports). **Role** shows Training, Development, Calibration, Evaluation or Source from completed partitions and recorded consumers. **Source** shows the uploaded file or the source kind.
+
+<Frame caption="The dataset inventory with an open preparation on one workspace.">
+  <img src="/images/platform/datasets-inventory.jpg" alt="Dataset inventory with status, role and source columns" />
+</Frame>
+
+A coding agent groups its preparation work with `start_dataset_preparation` and closes it with `update_dataset_preparation`: `completed` with published output cells, `paused` or `cancelled`. Jobs inside an open preparation appear under one notification. An open preparation labels the dataset but does not block editing. **End preparation** on the dataset page cancels it, and Overmind cancels a preparation after 24 hours without activity.
+
 ## Source formats and limits
 
 Read `overmind://dataset-upload` for the connected deployment's supported formats and numeric limits. Tables include CSV, TSV, JSON, JSONL/NDJSON and Parquet. Supported document/image landing retains original bytes and extraction metadata.
