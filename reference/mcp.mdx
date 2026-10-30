@@ -20,7 +20,7 @@ Use this after [connecting Overmind](/how-to/connect). Supply or select the name
 | Project tools | Account connections pass `project_id` explicitly |
 | Project resources | Add `?project_id=PROJECT_ID` or follow the returned scoped link |
 | Project API key | Restricted to its bound project |
-| `get_credit_balance` | Balance, granted and spent credits of the connection's account, which pays for the work it starts |
+| `get_credit_balance` | The connection owner's account balance and usage by service; see [credit reporting](/reference/mcp#credit-reporting-and-task-budgets) |
 
 Use the connected `tools/list`, `prompts/list` and resources for complete argument schemas. Tool availability depends on permissions and the deployed version; a static tool count is not a capability guarantee.
 
