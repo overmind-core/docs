@@ -56,6 +56,16 @@ This index identifies the entry points; it does not replace their schemas.
 
 Preparation tools can create records or run preprocessing. An inspection-style name is not a guarantee of zero provider cost; read the tool's impact and result contract before executing it.
 
+## Credit reporting and task budgets
+
+Use `get_credit_balance` to read the connection owner's account balance, lifetime grants and spending, and usage by service. Account and project keys return account-wide figures; no `project_id` is required. Amounts are exact decimal strings in credits: 100 credits = 1 USD.
+
+<AgentPrompt text="Check my Overmind credit balance. You have a budget of 500 credits for this task. Check estimated costs before launching paid work, monitor recorded spending, and stop before starting more work that would exceed the budget." />
+
+Save the initial report's `observed_at` and pass it as `since` on subsequent calls. `usage.spent_credits` reports account charges recorded since that timestamp, including charges without a project assignment. `usage.by_service` breaks down that spending. Balance, grants and lifetime spending stay account-wide lifetime totals. Top-ups do not reduce usage. Omit `since` for lifetime usage.
+
+Reporting does not reserve credits or enforce a hard task cap. Concurrent spending within the reported scope is included; unposted charges and external coding-agent costs are excluded. Recorded usage can lag work already in progress. A zero recorded total does not establish that pending work is free. When `billing_enabled` is false, the deployment meters usage without enforcing a credit balance.
+
 ## Resources
 
 | URI | Content |
