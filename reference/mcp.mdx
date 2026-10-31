@@ -20,6 +20,7 @@ Use this after [connecting Overmind](/how-to/connect). Supply or select the name
 | Project tools | Account connections pass `project_id` explicitly |
 | Project resources | Add `?project_id=PROJECT_ID` or follow the returned scoped link |
 | Project API key | Restricted to its bound project |
+| `get_credit_balance` | The connection owner's account balance and usage by service; see [credit reporting](/reference/mcp#credit-reporting-and-task-budgets) |
 
 Use the connected `tools/list`, `prompts/list` and resources for complete argument schemas. Tool availability depends on permissions and the deployed version; a static tool count is not a capability guarantee.
 
@@ -35,7 +36,7 @@ This index identifies the entry points; it does not replace their schemas.
 
 | Area | Inspection or preparation | Execution or mutation |
 | --- | --- | --- |
-| Projects | `list_projects` | `create_api_key`, `report_onboarding_progress` |
+| Projects | `list_projects`, `get_credit_balance` | `create_api_key`, `report_onboarding_progress` |
 | Observability | `inspect_capability_health`, `query_traces`, `query_failures` | Signal subscriptions through `set_signal_subscription` |
 | Signals | `list_signals` | `set_signal_subscription` |
 | Instrumentation | `get_instrumentation_plan`, `verify_instrumentation` | Repository edits happen locally |
@@ -54,6 +55,16 @@ This index identifies the entry points; it does not replace their schemas.
 | Operations | `get_job`, `inspect_operation` | Use each workflow's named lifecycle controls |
 
 Preparation tools can create records or run preprocessing. An inspection-style name is not a guarantee of zero provider cost; read the tool's impact and result contract before executing it.
+
+## Credit reporting and task budgets
+
+Use `get_credit_balance` to read the connection owner's account balance, lifetime grants and spending, and usage by service. Account and project keys return account-wide figures; no `project_id` is required. Amounts are exact decimal strings in credits: 100 credits = 1 USD.
+
+<AgentPrompt text="Check my Overmind credit balance. You have a budget of 500 credits for this task. Check estimated costs before launching paid work, monitor recorded spending, and stop before starting more work that would exceed the budget." />
+
+Save the initial report's `observed_at` and pass it as `since` on subsequent calls. `usage.spent_credits` reports account charges recorded since that timestamp, including charges without a project assignment. `usage.by_service` breaks down that spending. Balance, grants and lifetime spending stay account-wide lifetime totals. Top-ups do not reduce usage. Omit `since` for lifetime usage.
+
+Reporting does not reserve credits or enforce a hard task cap. Concurrent spending within the reported scope is included; unposted charges and external coding-agent costs are excluded. Recorded usage can lag work already in progress. A zero recorded total does not establish that pending work is free. When `billing_enabled` is false, the deployment meters usage without enforcing a credit balance.
 
 ## Resources
 
