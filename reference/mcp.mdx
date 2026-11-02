@@ -91,7 +91,7 @@ Follow returned resource links for packages, revisions, bindings and data-first 
 
 Background operations return durable identities. `get_job(kind=..., id=...)` reads the receipt; `inspect_operation` pages stored events without waking a worker. Use returned polling guidance while active and next actions after completion.
 
-Requests that accept a stable key recover the same work when the key and payload match. Changed payloads conflict. Mutations with an optional catalogue `request_key`, including `run_evaluation`, recover the original response through `inspect_mutation`. Omission creates new work. Pending or unknown receipts require reconciliation before resubmission; native request-key workflows retain their own receipts.
+Requests that accept a stable key recover the same work when the key and payload match. Changed payloads conflict. Mutations with an optional catalogue `request_key`, including `run_evaluation`, recover the original response through `inspect_mutation`. Omission creates new work. A retryable error releases the key, so retry with the same key. Any other refusal stays on its receipt; fix the cause and use a new key. Pending or unknown receipts require reconciliation before resubmission; native request-key workflows retain their own receipts.
 
 Pagination can be limited by both item count and response bytes. Follow returned cursors, offsets, `collections` descriptors and `evidence_resource` links for complete retained evidence.
 
@@ -130,10 +130,14 @@ fields and link to the complete job resource. Inspection does not start provider
 Job responses distinguish stage, heartbeat and forward progress, and expose
 saved workflow actions and polling guidance where available.
 
-Read `overmind://eval-rows/{id}` for an evaluator's definition and `updated_at`.
-Use that timestamp as `expected_updated_at` in `revise_eval_matrix_row`.
-The edit retains earlier definitions, set membership and frozen historical run
-snapshots. A stale timestamp fails rather than overwriting a concurrent edit.
+Read `overmind://eval-rows/{id}` for an evaluator's definition and `updated_at`,
+or get `updated_at` from `list_objects` with `kinds=["eval_row"]`. Pass it as
+`expected_updated_at` in `revise_eval_matrix_row`, with only the fields that
+change. Omitted fields keep their values, and the capability cannot change.
+`source` replaces the whole definition, so read every `source_page` of a long
+row before you edit it. The edit retains earlier definitions, set membership and
+frozen historical run snapshots. A stale timestamp fails rather than overwriting
+a concurrent edit.
 
 ## Project credit attribution
 
