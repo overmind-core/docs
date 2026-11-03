@@ -70,3 +70,9 @@ For a correction, save a new revision in the same family with `expected_revision
 For genuine external results, use `import_dataset_version` with exact source bindings and parent identities. Do not upload prepared outputs as unrelated new sources. External attribution records the producer; it does not prove execution or semantic correctness.
 
 See [Pipeline reference](/reference/pipelines) for manifests, branching, batching, bindings and recovery constraints.
+
+## Start or repair preparation from the Console
+
+A dataset page places coding-agent controls inside the relevant cell: the active cell for preparation, the failed run's source cell for repair, or the source card before publication. Use **Copy prompt**, or **Open in** for a chosen agent. The prompt carries the dataset, source cell, fingerprint and latest run.
+
+A failed run shows **Preparation failed**. Hover over it, focus it or select it to read the recorded error. The last published version stays visible, and a successful publication clears the failure. A resumable source import also offers **Resume import**.

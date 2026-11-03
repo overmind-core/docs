@@ -17,7 +17,11 @@ The Console setup screen offers **Copy prompt**. Paste the prompt into your codi
 agent. Use the attached arrow to choose Claude Code, Codex, Cursor or OpenCode.
 For Claude Code, Codex and Cursor, **Open in** then starts that agent's desktop app
 with the prompt filled in. OpenCode uses the copied prompt. The prompt includes the
-selected project when one exists.
+selected project when one exists. This browser keeps your choice of agent. A prompt
+too long for an app link offers only **Copy prompt**.
+
+Setup starts on the **Agent** page or the **Datasets** page. Another page with no
+project shows **Set up an agent** and **Upload data**, which open those pages.
 
 After connection, the progress card shows completed setup work. The continuation
 card's prompt asks the coding agent to install what it lacks, check live onboarding
@@ -74,6 +78,8 @@ For a dataset-to-model workflow, choose [How to train a decision model](/tutoria
 ## Follow setup in the Console
 
 While your agent onboards a repository, it reports each of the ten setup stages with `report_onboarding_progress`. A project without capabilities shows that progress in place of the setup prompt. A project with capabilities keeps its capability grid and shows the agent and current stage in one row above it; **Dismiss onboarding progress** hides the row. Progress belongs to one project: signing in once does not mark other projects as connected.
+
+**Setup checklist** on the progress card lists each stage as **Complete** or **Not reported**.
 
 <Frame caption="A project with capabilities shows the reporting agent, the current stage and the completed count above its capability grid.">
   <img src="/images/platform/onboarding-progress.jpg" alt="Onboarding progress row above the capability grid" />

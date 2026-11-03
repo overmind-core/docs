@@ -40,3 +40,15 @@ An observation timeout does not establish remote cancellation. If a provider mig
 Use the exact pipeline-run cancellation for a transformation, `cancel_dataset` for its supported dataset work, and `cancel_finetune` for training. Cancellation can prevent publication or record provider intent without instantly terminating remote computation.
 
 After recovery, verify the output and its identities before declaring success. Preserve previous successful versions and frozen consumer inputs.
+
+## Recover in the Console
+
+The Console keeps an open page in place when a session or a request fails. It does not reload the page by itself.
+
+| Situation | What you see | Next action |
+| --- | --- | --- |
+| The session cannot be verified | **Session interrupted** dialog | Select **Reconnect**. On a self-hosted deployment, you can sign in inside the dialog and keep the page. On Overmind Cloud, **Sign in again** leaves the page and loses unsaved changes |
+| Part of the app cannot load | **Page unavailable** | Check your connection, then refresh the page |
+| A list cannot refresh | **Update unavailable**, with the last rows still visible | Select **Retry** where it appears; filters and paging stay |
+| A list cannot load | **List unavailable** | Select **Retry** where it appears |
+| A page number has no rows | **No rows on this page** | Select **First page** |
