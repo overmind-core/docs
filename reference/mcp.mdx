@@ -66,6 +66,20 @@ Save the initial report's `observed_at` and pass it as `since` on subsequent cal
 
 Reporting does not reserve credits or enforce a hard task cap. Concurrent spending within the reported scope is included; unposted charges and external coding-agent costs are excluded. Recorded usage can lag work already in progress. A zero recorded total does not establish that pending work is free. When `billing_enabled` is false, the deployment meters usage without enforcing a credit balance.
 
+Langfuse history imports expose cached progress through
+`get_job(kind="connector_sync", id=...)` at `details.sync.progress`, and through
+`sync.progress` on the connector resource. The Metrics API semantic-root count
+estimates source traces; it is not an exact unique trace-ID count. The response
+includes the count timestamp, imported source traces and estimated seconds
+remaining based on measured throughput, including provider waits. An unknown
+or stalled estimate is `null`; `retry_at` identifies a scheduled retry. Polling
+these Overmind resources does not consume Langfuse API requests.
+
+Counts and completion cover API-accessible history only. Langfuse Cloud Hobby
+allows 30 days of API history and Core allows 90 days; an empty response does not
+prove the project is empty. See [Langfuse API history limits](https://langfuse.com/docs/administration/data-deletion).
+
+
 ## Resources
 
 | URI | Content |
