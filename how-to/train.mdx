@@ -35,7 +35,7 @@ The steps below describe the workflow your agent follows and the results to veri
 
 Use `get_model_catalog` for chat training or `list_decision_training_models` for native decision training. Inspect the model's supported method, context and runtime constraints.
 
-Call `check_finetune_readiness` with the exact dataset/cell and planned validation/evaluation inputs. Resolve format and model compatibility failures in Data Workshop. Readiness does not certify the labels or expected task performance.
+Call `check_finetune_readiness` with the exact dataset/cell and planned validation/evaluation inputs. Resolve format and model compatibility failures in Data Workshop. The Console training setup lists dataset findings under **Dataset needs attention before training**. Readiness does not certify the labels or expected task performance.
 
 For native decision training, the qualified path is Clef with Modal LoRA on one GPU. D3 and D1 catalogue paths remain launch-disabled until their runtimes qualify. Preserve runtime options, target distributions, weights and declared ordinal means.
 
