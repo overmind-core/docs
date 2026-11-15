@@ -41,7 +41,7 @@ This index identifies the entry points; it does not replace their schemas.
 | Signals | `list_signals` | `set_signal_subscription` |
 | Instrumentation | `get_instrumentation_plan`, `verify_instrumentation` | Repository edits happen locally |
 | Sources | `list_datasets`, `inspect_dataset`, `query_dataset` | `start_dataset`, `create_dataset_from_traces`, `update_dataset`, `resume_dataset_import` |
-| Workshop | `inspect_dataset_workbench`, `validate_dataset_pipeline` | `start_dataset_preparation`, `update_dataset_preparation`, `save_dataset_pipeline`, `run_dataset_pipeline`, `cancel_dataset_pipeline_run`, `import_dataset_version` |
+| Workshop | `inspect_dataset_workbench`, `validate_dataset_pipeline` | `save_dataset_pipeline`, `run_dataset_pipeline`, `cancel_dataset_pipeline_run`, `import_dataset_version` |
 | Bindings | Workbench binding inspection | `save_dataset_pipeline_binding`, `set_dataset_pipeline_binding_state`, `run_dataset_pipeline_binding` |
 | Data roles | `explore_dataset`, workflow inspection | `derive_dataset`, `create_data_partition`, `retry_data_partition` |
 | Matrix evaluation | `check_evaluation_readiness`, `compare_evaluations` | `create_eval_matrix_row`, `revise_eval_matrix_row`, `delete_eval_matrix_row`, `create_eval_set`, `run_evaluation` |
@@ -114,6 +114,8 @@ Tool errors include a structured code, message, retryability and field details w
 ## Prompts and local handoffs
 
 Prompts include `author-dataset-transformation`, `develop-model-from-data`, `investigate-capability`, `instrument-repository`, `prepare-evaluation`, `evaluate-change`, `finetune-capability`, `optimize-capability`, `compare-models`, `ship-model`, `upload-dataset-file`, `export-dataset`, `connect-traces` and `download-checkpoint`.
+
+The [Console assistant](/how-to/use-assistant) uses these same tools and never acts for an MCP connection.
 
 The CLI transfers bytes and runs local repository work. Provider secrets enter protected local configuration or the appropriate Console flow, not MCP tool arguments. See [Connect your coding agent](/how-to/connect).
 

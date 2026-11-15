@@ -24,11 +24,13 @@ A plain-language prompt in these docs is a request to your coding agent. A **nat
 | Coding agent | Task interpretation, repository edits, transformation authoring and evidence-based decisions |
 | CLI | Local bytes, repository scanning/sync and local application execution |
 | MCP | Project-scoped platform tools, workflow prompts, resources and durable job inspection |
-| Console | Visual inspection of sources, cells, traces, results, deployments and progress |
+| Console | Visual inspection of sources, cells, traces, results, deployments and progress; the assistant, a second author on the platform tools |
 
 MCP is a first-class platform interface sharing domain services with REST and the Console. A plugin can package its connection and skills, but the connected tool catalogue supplies the current contract. Installed prose can lag a deployment.
 
 Initial account login, credential entry and client permission grants still use the host's supported flows. Membership or billing controls without an MCP operation remain in their management surface. The agent should name the required action when it reaches one.
+
+The Console assistant calls the same tools as a coding agent and cannot reach your repository or machine. Repository work stays with your coding agent.
 
 Local filesystem work stays in the coding environment. MCP does not upload a local file simply because the agent knows its path; the CLI transfers its bytes with a separately verified connection.
 
@@ -36,7 +38,7 @@ Local filesystem work stays in the coding environment. MCP does not upload a loc
 
 A project can begin with a brief and source files. There is no need to invent a repository, capability or trace history. The useful chain is a retained source, an explicit preparation, exact consumer inputs and a measured result.
 
-Data Workshop has no platform chat agent. Landing does not start semantic preparation. A coding agent authors a retained Python package; the isolated runtime executes it and publishes cells. Semantic conclusions remain attributable to the evidence and authoring work that support them.
+Landing does not start semantic preparation. An author writes a retained Python package: your coding agent over MCP, or the [Console assistant](/how-to/use-assistant). The isolated runtime executes it and publishes cells. Semantic conclusions remain attributable to the evidence and authoring work that support them.
 
 ## Starting with an application
 
