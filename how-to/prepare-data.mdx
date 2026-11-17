@@ -19,7 +19,7 @@ The steps below describe the workflow your agent follows and the results to veri
 
 State the task, prediction unit, permitted inputs and intended consumer. Inspect a named capability if one exists. Clarify what labels, scores, blank values and groups mean before changing them.
 
-Create a brief-only draft with `start_dataset`, or upload an original source directly. Use explicit intent `explore`, `eval` or `train`; omitted intent remains pending.
+Create a brief-only draft with `start_dataset`, or upload an original source directly. Use explicit intent `eval` or `train`; omitted intent remains pending. Publication sets a pending intent from the final step's declared consumer.
 
 ## 2. Land and verify the source
 
@@ -27,7 +27,7 @@ Check file boundaries, record counts and nested values locally. Upload original 
 
 ```bash
 overmind dataset upload source.jsonl \
-  --project-id PROJECT_ID --api-url API_URL --intent explore --wait --json
+  --project-id PROJECT_ID --api-url API_URL --intent train --wait --json
 ```
 
 For multiple files, supply them in the intended order in one command. For a top-level JSON wrapper, use `--json-rows-field FIELD` to select its row array explicitly. Follow `dataset_transfer` for bytes/publication and `dataset_run` for extraction.

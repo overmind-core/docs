@@ -60,7 +60,7 @@ The returned `flow` records nodes, edges, conditions and output. `flow.unconsume
 
 ## Batching and limits
 
-For row-independent work, `batch_rows` accepts 1–100,000. Batches run separately and concatenate in source order. Each expanded JSONL input/output must fit half the declared `scratch_mb`, and each batch has the declared time limit.
+For row-independent work, `batch_rows` accepts 1–100,000. Batches run one after another, each in a fresh process inside the step's one sandbox run, and concatenate in source order. Memory admission covers one batch, and each batch has the declared time limit. A step may declare `"io": "parquet"` to read `input.parquet` and write `output.parquet` instead of JSONL.
 
 Global sorting, grouping, splitting and deduplication must not use this batching contract. Combined-output row checks and atomic publication still apply; a failed batch publishes no partial cells.
 

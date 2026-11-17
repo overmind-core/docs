@@ -21,7 +21,7 @@ Use this after the relevant [tutorial](/tutorials/index), or substitute a resour
 | `source_row` | Source identity, independent of current display position |
 | `_overmind_parent_rows` | Declared contributing source identities for externally imported derived rows |
 
-Intent is `train`, `eval`, `explore` or pending when not selected. A capability is optional. Once a version has been used, the dataset’s intent and capability association are fixed. Selecting a different active version does not rewrite frozen consumers.
+Intent is `train` (with training format `sft` or `decision`), `eval`, or pending when not selected. Publication sets a pending intent from the final step's declared consumer. Each version reports whether its rows fit SFT training, decision training and evaluation. A capability is optional. Once a version has been used, the dataset’s intent and capability association are fixed. Selecting a different active version does not rewrite frozen consumers.
 
 ## Inventory and preparation
 
