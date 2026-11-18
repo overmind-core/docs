@@ -1,0 +1,56 @@
+---
+title: "Agent feedback"
+description: "What a coding agent sends when it reports friction with Overmind, and how to turn it on or off."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+A coding agent connected over MCP can report friction with Overmind itself: an operation that fails or contradicts its description, unclear guidance, a missing capability, stuck work, or repeated attempts without progress. Reports go to the Overmind team. They describe how the platform behaved, not what your data holds.
+
+<AgentPrompt text="If an Overmind operation fails, contradicts its description or needs repeated attempts, report it with submit_feedback and tell me the line it returns." />
+
+## Turn it on or off
+
+Agent feedback is one choice for your account. It covers every coding agent you connect.
+
+| Where | When you see it |
+| --- | --- |
+| Sign-up | **Let my coding agents report friction with Overmind** is ticked by default under the sign-up form. |
+| **Connect to Overmind** | The same checkbox appears when a coding agent asks for access through OAuth. **Connect** saves it. |
+| Console notice | An account with no recorded choice sees **Allow** and **Don't allow** under the page header. |
+| **Settings** → **Privacy** | The **Agent feedback** switch, with the time of your last choice. |
+
+Until you choose, and after you choose **Don't allow**, `submit_feedback` is not in the agent's tool list and nothing is sent. Guest workspaces never send reports.
+
+## What a report contains
+
+The agent fills these fields. Text fields have length limits, and the schema accepts no other fields.
+
+| Field | Content |
+| --- | --- |
+| `kind` | `failure`, `mismatch`, `confusing`, `missing`, `stuck`, `dead_end`, `idea`, `praise` or `question` |
+| `area` | `setup`, `observability`, `datasets`, `evaluation`, `optimizer`, `training`, `serving`, `billing` or `other` |
+| `severity`, `outcome` | How much it blocked the agent, and how the attempt ended |
+| `headline`, `summary`, `intent`, `expected`, `observed`, `suggestion` | Short descriptions of the platform's behaviour |
+| `trail` | The tools, `overmind://` resources and `overmind` CLI commands used, in order, with each result and error code. CLI arguments are not accepted. |
+| `resources` | `overmind://` links to the records involved |
+| `tool_calls` | The number of tool calls the attempt took, when the agent counted them |
+| `environment` | What the agent knows about itself: harness and version, model, operating system, shell, Python, CLI and skills versions |
+
+Overmind adds what it observes on the connection: the client name, the `User-Agent` and `MCP-Protocol-Version` headers, the credential type and the MCP contract version. Each report is linked to your account and, when given, to the project.
+
+## What is never sent
+
+Agents are told never to include data rows, prompts, code, file contents, paths, customer names or credentials. Before a report is saved, Overmind also replaces:
+
+- credentials and keys with `[credential removed]`
+- email addresses with `[email]`
+- web links with `[link]`
+- home-directory paths with `[path]`
+- IP addresses with `[ip]`
+
+The agent shows you a line for each report it sends, with the link to **Settings**.
+
+## Limits
+
+An account sends at most 20 reports an hour. A report sent again with the same `report_id` updates the earlier report. On a self-hosted deployment, reports stay in that deployment's own database.

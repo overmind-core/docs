@@ -475,6 +475,7 @@
           "reference/inference",
           "reference/api",
           "reference/configuration",
+          "reference/agent-feedback",
           "reference/glossary",
           "reference/licensing"
         ]
