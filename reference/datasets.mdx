@@ -25,7 +25,9 @@ Intent is `train` (with training format `sft` or `decision`), `eval`, or pending
 
 ## Inventory and preparation
 
-The Console lists one row per source workspace: the source dataset and the outputs derived from it. **Status** shows current work (upload bytes when both counts are known, queued work, transformations, previews and imports). **Intent** shows Training · SFT, Training · Decision, Evaluation or Not set. **Used for** shows Training, Development, Calibration or Evaluation from completed partitions and recorded consumers. **Source** shows the uploaded file or the source kind.
+A dataset created in the Console with an intent or a brief starts the assistant once its source lands. The assistant prepares a version that fits the intent; with no intent it chooses the closest use and says which. A **Training + evaluation** split is prepared in one conversation, so both halves share the same cleaning steps. Each assistant publish first runs the script on a 200-row sample and publishes nothing when the sample fails.
+
+The Console lists one row per source workspace: the source dataset and the outputs derived from it. **Status** shows current work: upload bytes, rows written and measured while a source lands, and a transformation's stage with its completed batches or rows written and measured. Other work shows its stage without a count. **Intent** shows Training · SFT, Training · Decision, Evaluation or Not set. **Used for** shows Training, Development, Calibration or Evaluation from completed partitions and recorded consumers. **Source** shows the uploaded file or the source kind.
 
 <Frame caption="The dataset inventory while the assistant prepares one dataset.">
   <img src="/images/platform/datasets-inventory.jpg" alt="Dataset inventory with status, intent, use and source columns" />
