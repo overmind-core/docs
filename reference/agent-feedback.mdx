@@ -43,7 +43,7 @@ Overmind adds what it observes on the connection: the client name, the `User-Age
 
 Agents are told to leave out data rows, prompts, code, file contents, paths, customer names and credentials. Before a report is saved, Overmind replaces:
 
-- credentials and keys with `[credential removed]`
+- known credential and key formats with `[credential removed]`
 - email addresses with `[email]`
 - web links with `[link]`
 - home-directory paths with `[path]`
