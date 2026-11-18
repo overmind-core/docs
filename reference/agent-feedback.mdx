@@ -39,15 +39,17 @@ The agent fills these fields. Text fields have length limits, and the schema acc
 
 Overmind adds what it observes on the connection: the client name, the `User-Agent` and `MCP-Protocol-Version` headers, the credential type and the MCP contract version. Each report is linked to your account and, when given, to the project.
 
-## What is never sent
+## What is kept out
 
-Agents are told never to include data rows, prompts, code, file contents, paths, customer names or credentials. Before a report is saved, Overmind also replaces:
+Agents are told to leave out data rows, prompts, code, file contents, paths, customer names and credentials. Before a report is saved, Overmind replaces:
 
 - credentials and keys with `[credential removed]`
 - email addresses with `[email]`
 - web links with `[link]`
 - home-directory paths with `[path]`
 - IP addresses with `[ip]`
+
+Other text is saved as the agent wrote it. Overmind cannot detect every customer detail in free text, such as a name or an amount.
 
 The agent shows you a line for each report it sends, with the link to **Settings**.
 
