@@ -25,10 +25,10 @@ Intent is `train` (with training format `sft` or `decision`), `eval`, or pending
 
 ## Inventory and preparation
 
-The Console lists one row per source workspace: the source dataset and the outputs derived from it. **Status** shows current work (upload bytes when both counts are known, queued work, transformations, previews and imports). **Role** shows Training, Development, Calibration, Evaluation or Source from completed partitions and recorded consumers. **Source** shows the uploaded file or the source kind.
+The Console lists one row per source workspace: the source dataset and the outputs derived from it. **Status** shows current work (upload bytes when both counts are known, queued work, transformations, previews and imports). **Intent** shows Training · SFT, Training · Decision, Evaluation or Not set. **Used for** shows Training, Development, Calibration or Evaluation from completed partitions and recorded consumers. **Source** shows the uploaded file or the source kind.
 
 <Frame caption="The dataset inventory while the assistant prepares one dataset.">
-  <img src="/images/platform/datasets-inventory.jpg" alt="Dataset inventory with status, role and source columns" />
+  <img src="/images/platform/datasets-inventory.jpg" alt="Dataset inventory with status, intent, use and source columns" />
 </Frame>
 
 **Status** shows Preparing while the [Console assistant](/how-to/use-assistant) works on the dataset. Status comes from running work only; nothing labels a dataset between jobs.
