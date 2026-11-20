@@ -29,7 +29,7 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-`model` can pin a deployment's `model_id` or use `overmind/CAPABILITY_UUID` for an active chat alias. Supported frontier models may route through the configured provider; catalogue presence and access depend on the deployment.
+`model` can pin a deployment's `model_id` or use `overmind/CAPABILITY_UUID` for an active chat alias. Frontier model ids are forwarded to OpenRouter only when `OPENROUTER_PROXY_ENABLED=1`. With the proxy off, those ids are unknown and return `404`, and they are left off `GET /api/v1/models`.
 
 `POST /api/v1/chat/completions` supports message input, model generation parameters, tools, structured response configuration and streaming according to the selected runtime. Read the deployed schema and model contract for supported fields.
 
