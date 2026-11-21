@@ -30,13 +30,15 @@ Current API startup validation requires values for the following services, even 
 | Variables | Purpose |
 | --- | --- |
 | `SANDBOX_URL`, `SANDBOX_TOKEN` | Isolated document and retained-package runtime |
-| `OPENROUTER_API_KEY` | Routed model operations |
+| `OPENROUTER_API_KEY` | Judges, evals, trace scoring and other routed model calls. The chat-completions proxy stays off unless `OPENROUTER_PROXY_ENABLED=1` |
 | `MODAL_TOKEN_ID`, `MODAL_TOKEN_SECRET` | Provider training/serving access |
 | `INFERENCE_API_URL`, `INFERENCE_API_KEY` | Deployed serving endpoint and shared secret |
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_BUCKET_NAME` | Checkpoint archive |
 | `HF_TOKEN` | Required base-model access |
 
 `FINETUNING_BACKEND` must be `modal`. Set `MODAL_ENVIRONMENT` explicitly and deploy the immutable worker releases expected by the API. Local hot reload does not deploy changed provider code.
+
+`OPENROUTER_PROXY_ENABLED=1` lists frontier models on `GET /api/v1/models` and forwards their chat completions to OpenRouter. Unset, those ids return `404`. Judges and evals keep using `OPENROUTER_API_KEY` either way.
 
 ## Identity and URLs
 
