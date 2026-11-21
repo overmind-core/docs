@@ -53,6 +53,7 @@ This index identifies the entry points; it does not replace their schemas.
 | Optimiser | `check_optimizer_readiness`, `inspect_optimizer_result` | `start_optimizer`; local execution uses the CLI |
 | Connectors | `inspect_connectors` | `configure_connector`, `sync_connector` |
 | Operations | `get_job`, `inspect_jobs`, `inspect_operation`, `inspect_mutation`, `inspect_dependencies` | Use each workflow's named lifecycle controls |
+| Feedback | Listed only when the account allows [agent feedback](/reference/agent-feedback) | `submit_feedback` |
 
 Preparation tools can create records or run preprocessing. An inspection-style name is not a guarantee of zero provider cost; read the tool's impact and result contract before executing it.
 
