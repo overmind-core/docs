@@ -1,0 +1,48 @@
+---
+title: "Work with the Console assistant"
+description: "Prepare data from the Console, without a connected coding agent."
+---
+
+import { AgentPrompt } from "/snippets/agent-prompt.mdx";
+
+Use the assistant to prepare data in the Console without a connected coding agent. It calls the same platform tools as a coding agent over MCP and creates the same records: sources, retained packages, dataset versions and jobs.
+
+**What you get:** One conversation on the dataset, a retained transformation, published versions and a receipt for each job it started.
+
+## 1. Start from a goal
+
+Open **Datasets**. Type the goal in **What would you like to train?** and attach source files or an existing dataset. Sending creates the dataset when you attached files; the assistant starts when the source has landed.
+
+On a dataset page, message the assistant in the dock. Each dataset has one conversation, shared by the project's members. A teammate's message shows their email.
+
+## 2. Follow the work
+
+The assistant explores the data with Python in an isolated workspace and reports measured results as text, tables, charts and dataset versions. Each step shows one line that says what it does; open a step to read its code. To change data it writes a pipeline package and runs it on the platform, which publishes the result as new versions, as in [Prepare data](/how-to/prepare-data).
+
+<Frame caption="The assistant on a dataset page: the request, the reading it took, one line for each step, and the published versions.">
+  <img src="/images/platform/assistant-conversation.jpg" alt="Assistant conversation with step summaries and published dataset versions" />
+</Frame>
+
+The work continues when you close the tab. The page catches up when you return.
+
+A message you send while the assistant works waits in a queue. Edit or delete your own queued messages, reorder the queue, or select **Send** to deliver a message at the next step. **Stop run** stops the assistant; jobs it started continue.
+
+## 3. Answer questions
+
+The assistant acts on the most likely meaning of a request and says which meaning it took. It asks when the evidence cannot decide: one question, with the option that works with the data as it is first. Answer in the conversation.
+
+## 4. Continue from your coding agent
+
+Everything the assistant makes is an ordinary project record. A [connected agent](/how-to/connect) reads the same dataset versions, retained packages and jobs over MCP:
+
+<AgentPrompt text="Inspect the dataset the Console assistant prepared in our Overmind project. Show me the published versions, the retained transformation and anything it could not check." />
+
+The assistant cannot reach your repository or machine. Training, evaluation, instrumentation and a model swap in your code stay with your coding agent.
+
+## Boundaries
+
+- A project has one workspace with no outbound network. It holds a read-only copy of each dataset version the assistant read, and each conversation has its own Python kernel and working folder.
+- A kernel stops after 15 idle minutes. The next cell starts a new one with the same files and without the earlier Python variables.
+- Deleting a dataset or a project deletes its copies from the workspace.
+- A published version comes only from a saved package run by the platform, never from kernel output.
+- The assistant never acts for an MCP connection.

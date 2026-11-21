@@ -58,11 +58,15 @@ Local frontend overrides belong in `.env.development.local`; the repository's en
 
 ## Workers and sandbox
 
-Compose has six Celery worker/queue profiles: `control`, `io`, `io_traces`, `batch`, `landing` and `interactive`. Trace scoring is isolated from file landing and interactive preparation. Waiting jobs do not imply that their execution attempt has started.
+Compose has seven Celery worker/queue profiles: `control`, `io`, `io_traces`, `batch`, `landing`, `interactive` and `assistant`. Trace scoring is isolated from file landing and interactive preparation. Waiting jobs do not imply that their execution attempt has started.
 
 Document parsing and retained Python packages execute through the isolated sandbox. It has no platform credentials, shared application media mount or outbound network. The landing worker streams retained bytes and receives progress; unavailable parsing does not fall back to application-process execution.
 
 `WORKSHOP_PROJECT_CONCURRENCY` bounds per-project interactive execution. Shared admission and observed capacity govern landing. A nonzero `DATASET_IMPORT_MAX_QUEUE_SECONDS` expires imports that wait longer; the default `0` never expires them. Do not change queue topology merely to clear a slow job without understanding its resource limits.
+
+The `assistant` worker runs the [Console assistant](/how-to/use-assistant). `WORKSPACE_PROVIDER` selects where its project workspaces run. `native`, the default, keeps them on the sandbox service's `workspaces` volume and supports one sandbox server. `daytona` gives each project its own hosted sandbox and requires `DAYTONA_API_KEY` and a snapshot built once per release with `manage.py build_workspace_snapshot`. `manage.py check_workspaces` reports the isolation of the selected provider.
+
+`ASSISTANT_COMPACT_TOKENS` sets the prompt size above which the older conversation is summarised.
 
 ## Model pacing and analytics
 

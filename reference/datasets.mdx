@@ -21,17 +21,19 @@ Use this after the relevant [tutorial](/tutorials/index), or substitute a resour
 | `source_row` | Source identity, independent of current display position |
 | `_overmind_parent_rows` | Declared contributing source identities for externally imported derived rows |
 
-Intent is `train`, `eval`, `explore` or pending when not selected. A capability is optional. Once a version has been used, the dataset’s intent and capability association are fixed. Selecting a different active version does not rewrite frozen consumers.
+Intent is `train` (with training format `sft` or `decision`), `eval`, or pending when not selected. Publication sets a pending intent from the final step's declared consumer. Each version reports whether its rows fit SFT training, decision training and evaluation. A capability is optional. Once a version has been used, the dataset’s intent and capability association are fixed. Selecting a different active version does not rewrite frozen consumers.
 
 ## Inventory and preparation
 
-The Console lists one row per source workspace: the source dataset and the outputs derived from it. **Status** shows current work (upload bytes when both counts are known, queued work, transformations, previews and imports). **Role** shows Training, Development, Calibration, Evaluation or Source from completed partitions and recorded consumers. **Source** shows the uploaded file or the source kind.
+A dataset created in the Console with an intent or a brief starts the assistant once its source lands. The assistant prepares a version that fits the intent; with no intent it chooses the closest use and says which. A **Train + eval** split is prepared in one conversation, so both halves share the same cleaning steps. Each assistant publish first runs the script on a 200-row sample and publishes nothing when the sample fails.
 
-<Frame caption="The dataset inventory with an open preparation on one workspace.">
-  <img src="/images/platform/datasets-inventory.jpg" alt="Dataset inventory with status, role and source columns" />
+The Console lists one row per source workspace: the source dataset and the outputs derived from it. Each row shows **Name**, **Role**, **Capability**, **Datapoints**, **Source** and **Updated**. **Role** is the intent: Train · SFT, Train · Decision, Train or Eval; its tooltip names the runs and partitions that used the dataset. A used dataset with no intent, such as the source of a split, shows its uses instead, for example Train + Eval. **Source** shows the first file and how many more, or Pasted rows, Inline rows, Traces, LLM calls, the version a dataset was derived from, or its split. Current work shows beside the name while it runs: upload bytes, rows written and measured while a source lands, and a transformation's stage with its completed batches or rows written and measured.
+
+<Frame caption="The dataset inventory while the assistant prepares one dataset.">
+  <img src="/images/platform/datasets-inventory.jpg" alt="Dataset inventory with status, intent, use and source columns" />
 </Frame>
 
-A coding agent groups its preparation work with `start_dataset_preparation` and closes it with `update_dataset_preparation`: `completed` with published output cells, `paused` or `cancelled`. Jobs inside an open preparation appear under one notification. An open preparation labels the dataset but does not block editing. **End preparation** on the dataset page cancels it, and Overmind cancels a preparation after 24 hours without activity.
+The name shows Preparing while the [Console assistant](/how-to/use-assistant) works on the dataset. This comes from running work only; nothing labels a dataset between jobs.
 
 ## Source formats and limits
 

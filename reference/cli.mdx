@@ -50,7 +50,7 @@ Clients include `cursor`, `claude`, `opencode` and `codex`. An explicit `--api-u
 
 ```bash
 overmind dataset upload FILE1 FILE2 \
-  --project-id PROJECT_ID --api-url API_URL --intent explore --wait --json
+  --project-id PROJECT_ID --api-url API_URL --intent train --wait --json
 ```
 
 | Option | Meaning |
@@ -59,7 +59,7 @@ overmind dataset upload FILE1 FILE2 \
 | `--project-id` | Explicit destination project; otherwise use repository configuration |
 | `--dataset` | Attach sources to an existing draft or append a version |
 | `--brief` | Task description for a new dataset |
-| `--intent` | `train`, `eval` or `explore`; omission stays pending |
+| `--intent` | `train` or `eval`; omission stays pending |
 | `--capability` | Optional capability UUID |
 | `--json-rows-field` | Explicit top-level JSON row array; single-file selection |
 | `--request-key` | Explicit stable transfer key; default derives from bytes and destination recipe |

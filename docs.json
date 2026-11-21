@@ -436,6 +436,7 @@
             "group": "Prepare and evaluate",
             "pages": [
               "how-to/prepare-data",
+              "how-to/use-assistant",
               "how-to/partition-data",
               "how-to/evaluate",
               "how-to/compare-decisions"
