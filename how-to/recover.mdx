@@ -19,7 +19,8 @@ The steps below describe the workflow your agent follows and the results to veri
 | --- | --- | --- |
 | Upload disconnected | Repeat the identical CLI upload command | Same ordered files, destination and request key; recorded byte offset |
 | Bytes published but landing incomplete | Read `get_job(kind="dataset_run")` | Extraction stage, failure details and explicit import recovery action |
-| Source import lost its started worker | Inspect, then use `resume_dataset_import` where offered | Fenced attempt and retained source; do not start an unrelated upload |
+| Source import lost its worker or document parser | Wait: it is retried automatically, up to 3 attempts in total. After that, inspect and use `resume_dataset_import` where offered | A new fenced attempt on the retained source; do not start an unrelated upload |
+| Evaluation lost its worker | Wait and read the run | Saved scores are kept and scoring continues; a lost row generates once more, then shows as unknown |
 | Pipeline failed or expired | Inspect its exact receipt and retained code before a new run | No partial cells published; new execution needs a new request identity |
 | Pipeline request response was lost | Retry the identical request key and inputs | Existing receipt, not another execution |
 | Training launch response was lost | Retry the same launch request key and recipe | Existing job and any saved provider call |

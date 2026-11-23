@@ -15,6 +15,7 @@ Use this after [connecting Overmind](/how-to/connect). Supply or select the name
 | Transport | OTLP/HTTP protobuf or JSON |
 | Content type | `application/x-protobuf` or `application/json` |
 | Compression | Gzip supported |
+| Size | At most 20 MiB per request, before and after gzip; a larger export gets HTTP 413. Span names, `service.name` and scope names longer than 255 characters are stored cut to 255 |
 | Authentication | Project/account API key in a supported header |
 | Root | Span with no parent; spans sharing a `trace_id` form a trace |
 
