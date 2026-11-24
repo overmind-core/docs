@@ -21,12 +21,15 @@ The steps below describe the workflow your agent follows and the results to veri
 | Bytes published but landing incomplete | Read `get_job(kind="dataset_run")` | Extraction stage, failure details and explicit import recovery action |
 | Source import lost its worker or document parser | Wait: it is retried automatically, up to 3 attempts in total. After that, inspect and use `resume_dataset_import` where offered | A new fenced attempt on the retained source; do not start an unrelated upload |
 | Evaluation lost its worker | Wait and read the run | Saved scores are kept and scoring continues; a lost row generates once more, then shows as unknown |
+| Pipeline run lost its worker or sandbox | Wait and read the run | It runs again by itself under a new attempt, up to 2 times; only one attempt publishes. After a third loss it fails, and a new request key runs it again |
+| Exploration, partition plan, experiment preparation or performance measurement lost its worker | Wait | It starts again within about 5 minutes; a job lost 3 times fails |
+| Training data preparation lost its worker before submission | Wait | It starts again; one lost after its Modal call was sent fails with an unknown acknowledgement |
 | Pipeline failed or expired | Inspect its exact receipt and retained code before a new run | No partial cells published; new execution needs a new request identity |
 | Pipeline request response was lost | Retry the identical request key and inputs | Existing receipt, not another execution |
 | Training launch response was lost | Retry the same launch request key and recipe | Existing job and any saved provider call |
 | Native comparison paused | Inspect then `resume_native_evaluation` | Exact stage; native collection requires its recorded call ID |
 | Deployment failed | Inspect then `retry_deployment` | Successful training artifact retained; no retraining |
-| MCP inference disconnected | Read the existing `inference_request` or retry its identical key | Same receipt and result, including unknown acknowledgement |
+| MCP inference disconnected or lost its worker | Read the existing `inference_request` or retry its identical key | Same receipt and result. A dedicated-deployment request is read back from its saved call; it shows unknown only when its worker stopped between sending and saving the call |
 
 ## Read state at the right layer
 
