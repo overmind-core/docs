@@ -1,6 +1,6 @@
 ---
 title: "Datasets, sources and consumer formats"
-description: "Identities, file limits, query bounds and training/evaluation row shapes."
+description: "Dataset identities, file limits, query bounds and training and evaluation row shapes, including the chat messages JSONL that OpenAI fine-tuning uses."
 ---
 
 import { AgentPrompt } from "/snippets/agent-prompt.mdx";
@@ -65,6 +65,8 @@ A trainable conversation retains message roles, content and tool-call structure,
   ]
 }
 ```
+
+This is the chat format OpenAI supervised fine-tuning uses, so an OpenAI fine-tuning JSONL file can be uploaded as it is. Rows written as `prompt` and `completion` pairs are accepted too.
 
 Exact model preprocessing validates the selected tokenizer/template and supervised tokens. Format acceptance does not verify that the assistant response is correct.
 
