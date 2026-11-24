@@ -262,11 +262,11 @@
     },
     {
       "source": "/guides/getting-started",
-      "destination": "/tutorials/index"
+      "destination": "/tutorials"
     },
     {
       "source": "/guides/how-to-use-overmind",
-      "destination": "/tutorials/index"
+      "destination": "/tutorials"
     },
     {
       "source": "/guides/how-to-use-tracing",
@@ -302,7 +302,7 @@
     },
     {
       "source": "/guides/:slug*",
-      "destination": "/tutorials/index"
+      "destination": "/tutorials"
     },
     {
       "source": "/api/:slug*",
@@ -314,7 +314,7 @@
     },
     {
       "source": "/quickstart",
-      "destination": "/tutorials/index"
+      "destination": "/tutorials"
     },
     {
       "source": "/core/capabilities",

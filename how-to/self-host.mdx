@@ -1,6 +1,6 @@
 ---
 title: "Self-host Overmind"
-description: "Configure the local Compose deployment and its external provider dependencies."
+description: "Self-host Overmind by configuring the local Docker Compose deployment and its external provider dependencies, then connect your coding agent."
 ---
 
 import { AgentPrompt } from "/snippets/agent-prompt.mdx";
@@ -73,4 +73,4 @@ Use the [connection checks](/how-to/connect) to verify MCP and local file transf
 
 Retain persistent database and source storage, back up before migrations, and deploy the worker releases required by the API. Running jobs retain their pinned runtime; changing local source does not change an already deployed provider worker.
 
-The platform repository's `AGENTS.md`, `.env.example` and deployment files are the operational source of truth. Its [licensing guide](https://github.com/overmind-core/overmind/blob/main/LICENSING.md) describes the AGPL platform and MIT SDK scope.
+The platform repository's `AGENTS.md`, `.env.example` and deployment files are the operational source of truth. [Licensing](/reference/licensing) describes the AGPL platform and MIT SDK scope.
