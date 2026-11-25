@@ -134,27 +134,6 @@
         ]
       },
       {
-        "header": "Comparisons",
-        "items": [
-          {
-            "label": "vs LangSmith",
-            "href": "https://www.overmindlab.ai/compare/overmind-vs-langsmith"
-          },
-          {
-            "label": "vs Langfuse",
-            "href": "https://www.overmindlab.ai/compare/overmind-vs-langfuse"
-          },
-          {
-            "label": "vs OpenPipe",
-            "href": "https://www.overmindlab.ai/compare/overmind-vs-openpipe"
-          },
-          {
-            "label": "All comparisons",
-            "href": "https://www.overmindlab.ai/compare"
-          }
-        ]
-      },
-      {
         "header": "Legal",
         "items": [
           {
