@@ -50,7 +50,6 @@ This index identifies the entry points; it does not replace their schemas.
 | Experiments | `list_model_workflows`, `prepare_training_experiment` | `save_training_plan`, `create_training_experiment`, `launch_training_experiment`, `create_training_profile` |
 | Performance | Workflow/job inspection | `measure_decision_performance`, `resume_decision_performance`, explicit `reuse_evaluation_predictions` |
 | Serving | Deployment resources, `get_model_swap_prompt`, `list_dedicated_gpus` | `deploy_finetune`, `retry_deployment`, `run_inference`, `set_active_model`, `set_benchmark_model`, `start_dedicated_deployment`, `update_dedicated_deployment`, `stop_dedicated_deployment` |
-| Optimiser | `check_optimizer_readiness`, `inspect_optimizer_result` | `start_optimizer`; local execution uses the CLI |
 | Connectors | `inspect_connectors` | `configure_connector`, `sync_connector` |
 | Operations | `get_job`, `inspect_jobs`, `inspect_operation`, `inspect_mutation`, `inspect_dependencies` | Use each workflow's named lifecycle controls |
 | Feedback | Listed only when the account allows [agent feedback](/reference/agent-feedback) | `submit_feedback` |
@@ -114,7 +113,7 @@ Tool errors include a structured code, message, retryability and field details w
 
 ## Prompts and local handoffs
 
-Prompts include `author-dataset-transformation`, `develop-model-from-data`, `investigate-capability`, `instrument-repository`, `prepare-evaluation`, `evaluate-change`, `finetune-capability`, `optimize-capability`, `compare-models`, `ship-model`, `upload-dataset-file`, `export-dataset`, `connect-traces` and `download-checkpoint`.
+Prompts include `author-dataset-transformation`, `develop-model-from-data`, `investigate-capability`, `instrument-repository`, `prepare-evaluation`, `evaluate-change`, `finetune-capability`, `ship-model`, `upload-dataset-file`, `export-dataset`, `connect-traces` and `download-checkpoint`.
 
 The [Console assistant](/how-to/use-assistant) uses these same tools and never acts for an MCP connection.
 
