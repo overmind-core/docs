@@ -52,6 +52,6 @@ If a criterion is wrong, correct its source and start a new run. Do not reinterp
 The installed `overmind` skill has two workflows that build on these steps:
 
 - `/overmind compare-models` replays recorded calls with candidate models against a `recorded` baseline. It does not run your application or its tools.
-- `/overmind improve` tries a new system prompt as a `generate` target, or measures a code change by running your application locally with tracing on and reading live scores. Local runs start only after you approve them.
+- `/overmind improve` measures a prompt or code change by running your application locally, before and after the change, with tracing on and reading the live scores. Local runs start only after you approve them.
 
 See [Evaluation reference](/reference/evaluation) for target fields and row contracts.
