@@ -208,12 +208,16 @@
       "destination": "/how-to/evaluate"
     },
     {
+      "source": "/how-to/optimise",
+      "destination": "/how-to/evaluate"
+    },
+    {
       "source": "/evaluation/optimizers",
-      "destination": "/how-to/optimise"
+      "destination": "/how-to/evaluate"
     },
     {
       "source": "/agent-testing/optimizers",
-      "destination": "/how-to/optimise"
+      "destination": "/how-to/evaluate"
     },
     {
       "source": "/fine-tuning",
@@ -269,7 +273,7 @@
     },
     {
       "source": "/guides/overmind_optimizer",
-      "destination": "/how-to/optimise"
+      "destination": "/how-to/evaluate"
     },
     {
       "source": "/guides/fine-tuning-beta",
@@ -325,7 +329,7 @@
     },
     {
       "source": "/agent-testing/optimisers",
-      "destination": "/how-to/optimise"
+      "destination": "/how-to/evaluate"
     },
     {
       "source": "/agent-testing/improvements",
@@ -426,7 +430,6 @@
             "pages": [
               "how-to/train",
               "how-to/monitor-training",
-              "how-to/optimise",
               "how-to/serve"
             ]
           },

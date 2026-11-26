@@ -51,7 +51,7 @@ The home page routes users by task and offers both data-first and repository ent
 | `agent-testing/eval`            | `how-to/evaluate`             | Matrix reference, comparison semantics                      |
 | `agent-testing/trace-scoring`   | `explanation/evaluation`      | Matrix/reference history and signals                        |
 | `agent-testing/decision-engine` | `explanation/decision-models` | Native comparison guide and typed data                      |
-| `agent-testing/optimisers`      | `how-to/optimise`             | CLI loop reference                                          |
+| `agent-testing/optimisers`      | `how-to/evaluate`             | Optimiser removed from the platform                         |
 | `agent-testing/improvements`    | `how-to/investigate`          | Remove absent improvement/release system claims             |
 | `models/training`               | `how-to/train`                | Monitoring guide, training reference, lifecycle explanation |
 | `models/inference`              | `how-to/serve`                | Inference contract and routing states                       |

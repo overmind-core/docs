@@ -1,6 +1,6 @@
 ---
 title: "CLI commands"
-description: "Overmind CLI commands for account connection, repository sync, dataset upload and export, retained packages, the optimiser and downloading model weights."
+description: "Overmind CLI commands for account connection, repository sync, dataset upload and export, retained packages and downloading model weights."
 ---
 
 import { AgentPrompt } from "/snippets/agent-prompt.mdx";
@@ -109,22 +109,6 @@ overmind connector add langfuse --project-id PROJECT_ID --api-url API_URL --json
 | Galileo | `GALILEO_API_KEY` |
 
 The command can prompt in a terminal. It returns the connector identity; inspect source boundaries, confirm their capability mapping and start the import through MCP or the Console.
-
-## Optimiser
-
-| Command | Purpose |
-| --- | --- |
-| `overmind optimise start -e EXPERIMENT_ID` | Attach to an existing experiment |
-| `overmind optimise next` | Get the next local action |
-| `overmind optimise set-template FILE` | Register the single-datapoint command template |
-| `overmind optimise run-smoke` | Run one datapoint to check the command |
-| `overmind optimise run-baseline` | Execute the unmodified application over the pinned data |
-| `overmind optimise add-candidate --diff FILE` | Queue a candidate diff |
-| `overmind optimise run-iteration` | Execute candidates and submit outputs |
-| `overmind optimise status --json` | Inspect progress |
-| `overmind optimise complete` | Close the experiment |
-
-Pass `-e` to select the experiment explicitly. Otherwise the CLI uses local `.overmind/optimise_state.json`. The local dataset cache is version-bound. See [the task guide](/how-to/optimise).
 
 ## Checkpoints
 
