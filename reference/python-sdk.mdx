@@ -44,15 +44,16 @@ overmind.init(
 | `providers` | `"auto"` or selected installed provider instrumentors; omission enables none |
 | `redact_keys` | Additional case-insensitive dictionary keys to redact |
 | `export_orphan_spans` | Whether standalone function fragments may export; default false |
+| `trace_content` | Include prompt and completion text on provider spans. On by default; `False` keeps token counts and model metadata and omits the text |
 | `debug` | Diagnostic logging |
 
-Call once at startup before provider calls. Missing credentials normally return `False` and leave helpers inactive; `OVERMIND_STRICT_MODE=true` makes missing configuration raise. Reinitialization refreshes identity without constructing another exporter.
+Call once at startup before provider calls. Missing credentials normally return `False` and leave helpers inactive; `OVERMIND_STRICT_MODE=true` makes missing configuration raise. Reinitialization refreshes identity and the content policy without constructing another exporter.
 
 Supported instrumentors cover OpenAI, Anthropic, Google, Agno and LangChain, including LangGraph through the LangChain instrumentor. Only installed integrations can be enabled.
 
 ## Environment and credentials
 
-Identity/configuration variables include `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_PROJECT_ID`, `OVERMIND_SERVICE_NAME`, `OVERMIND_ENVIRONMENT`, `OVERMIND_CAPABILITY_ID` and `OVERMIND_CAPABILITY_NAME`.
+Identity/configuration variables include `OVERMIND_API_KEY`, `OVERMIND_API_URL`, `OVERMIND_PROJECT_ID`, `OVERMIND_SERVICE_NAME`, `OVERMIND_ENVIRONMENT`, `OVERMIND_CAPABILITY_ID` and `OVERMIND_CAPABILITY_NAME`. `OVERMIND_TRACE_CONTENT=false` omits prompt and completion text. When that variable is unset, `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` and `TRACELOOP_TRACE_CONTENT` still opt out.
 
 Repository credentials in `.overmind/credentials.toml` are checked against the manifest's endpoint/project. Explicit identity arguments do not merge a missing half with unrelated capability environment defaults.
 
