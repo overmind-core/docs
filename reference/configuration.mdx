@@ -78,6 +78,6 @@ The `assistant` worker runs the [Console assistant](/how-to/use-assistant). `WOR
 
 ## Metering and billing
 
-With `STRIPE_SECRET_KEY` configured, remaining-credit and seat/plan controls apply. Without it, usage can still be metered without the remaining-credit gate. Native coding-agent usage belongs to its external environment; model evaluations, training and serving have their own execution costs.
+With `STRIPE_SECRET_KEY` configured, new accounts receive signup credits, credit purchases go through Stripe Checkout and the remaining-credit gate applies. Without it, usage can still be metered without the remaining-credit gate. Native coding-agent usage belongs to its external environment; model evaluations, training and serving have their own execution costs.
 
 Published rates, worker measurements and recorded ledger charges have different scopes. A local API address or a missing platform credit gate is not a promise of free provider execution.
